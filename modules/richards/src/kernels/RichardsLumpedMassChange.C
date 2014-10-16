@@ -16,6 +16,7 @@ InputParameters validParams<RichardsLumpedMassChange>()
   params.addRequiredParam<std::vector<UserObjectName> >("density_UO", "List of names of user objects that define the fluid density (or densities for multiphase).  In the multiphase case, for ease of use, the density, Seff and Sat UserObjects are the same format as for RichardsMaterial, but only the one relevant for the specific phase is actually used.");
   params.addRequiredParam<std::vector<UserObjectName> >("seff_UO", "List of name of user objects that define effective saturation as a function of porepressure(s)");
   params.addRequiredParam<std::vector<UserObjectName> >("sat_UO", "List of names of user objects that define saturation as a function of effective saturation");
+  params.addRequiredCoupledVar("p", "");
   return params;
 }
 
@@ -33,7 +34,6 @@ RichardsLumpedMassChange::RichardsLumpedMassChange(const std::string & name,
     _seff_UO(&getUserObjectByName<RichardsSeff>(getParam<std::vector<UserObjectName> >("seff_UO")[_pvar])),
     _sat_UO(&getUserObjectByName<RichardsSat>(getParam<std::vector<UserObjectName> >("sat_UO")[_pvar])),
     _density_UO(&getUserObjectByName<RichardsDensity>(getParam<std::vector<UserObjectName> >("density_UO")[_pvar]))
-
 {
   _ps_at_nodes.resize(_num_p);
   _ps_old_at_nodes.resize(_num_p);
@@ -41,6 +41,14 @@ RichardsLumpedMassChange::RichardsLumpedMassChange(const std::string & name,
   _nodal_pp.resize(_num_p);
   for (unsigned int i=0 ; i<_num_p; ++i)
     _nodal_pp[i] = _richards_name_UO.raw_var(i);
+
+  _nodal_ps.resize(_num_p);
+  _nodal_ps_old.resize(_num_p);
+  for (unsigned int i = 0 ; i < _num_p; ++i)
+  {
+    _nodal_ps[i] = &coupledNodalValue("p", i);
+    _nodal_ps_old[i] = &coupledNodalValueOld("p", i);
+  }
 
   _dseff.resize(_num_p);
 }
@@ -81,6 +89,8 @@ RichardsLumpedMassChange::computeResidual()
 Real
 RichardsLumpedMassChange::computeQpResidual()
 {
+  std::cerr << "_ps_at_nodes[" << _i << "] = " << (*_ps_at_nodes[0])[_i] << ", _nodal_pp[0][" << _i << "] = " << (*_nodal_ps[0])[_i] << ", diff = " << std::abs((*_ps_at_nodes[0])[_i] - (*_nodal_ps[0])[_i]) << std::endl;
+
   // current values:
   Real density = (*_density_UO).density(_var.nodalSln()[_i]);
   Real seff = (*_seff_UO).seff(_ps_at_nodes, _i);

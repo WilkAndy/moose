@@ -77,6 +77,7 @@
   [./richardst]
     type = RichardsLumpedMassChange
     variable = pressure
+    p = pressure
   [../]
   [./richardsf]
     type = RichardsFlux

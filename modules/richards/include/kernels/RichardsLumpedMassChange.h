@@ -106,6 +106,9 @@ protected:
   /// Holds the nodal values of pressures at timestep_begin, in same way as _ps_at_nodes
   std::vector<VariableValue *> _ps_old_at_nodes;
 
+  std::vector<VariableValue *> _nodal_ps;
+  std::vector<VariableValue *> _nodal_ps_old;
+
   /**
    * Holds the values of pressures at all the nodes of the element
    * This holds the same info as _ps_at_nodes, but in a different way.
