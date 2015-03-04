@@ -58,6 +58,9 @@
 #include "RichardsBorehole.h"
 #include "RichardsPolyLineSink.h"
 
+// ScalarKernels
+#include "RichardsFluxController.h"
+
 // Functions
 #include "RichardsExcavGeom.h"
 #include "GradParsedFunction.h"
@@ -168,6 +171,9 @@ RichardsApp::registerObjects(Factory & factory)
   // DiracKernels
   registerDiracKernel(RichardsPolyLineSink);
   registerDiracKernel(RichardsBorehole);
+
+  // ScalarKernels
+  registerScalarKernel(RichardsFluxController);
 
   // Functions
   registerFunction(RichardsExcavGeom);

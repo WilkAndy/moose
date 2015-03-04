@@ -25,6 +25,8 @@ InputParameters validParams<RichardsPiecewiseLinearSink>()
   params.addParam<FunctionName>("multiplying_fcn", 1.0, "If this function is provided, the flux will be multiplied by this function.  This is useful for spatially or temporally varying sinks");
   params.addRequiredParam<UserObjectName>("richardsVarNames_UO", "The UserObject that holds the list of Richards variable names.");
   params.addParam<bool>("fully_upwind", false, "Use full upwinding");
+  params.addCoupledVar("p0", 0, "If given, then this is subtracted from the 'pressures' values before computing the bare_flux.  This is mostly used to form a flux whose integral over the boundary is a user-specified value, and p0 is a SCALAR variable whose value is chosen by MOOSE to ensure the total flux is the desired value");
+  params.addClassDescription("Fluid flux out from a boundary, defined by linearly interpolating the (pressures, bare_fluxes) tuples");
   return params;
 }
 
@@ -65,7 +67,11 @@ RichardsPiecewiseLinearSink::RichardsPiecewiseLinearSink(const std::string & nam
     _drel_perm_dv(getMaterialProperty<std::vector<std::vector<Real> > >("drel_perm_dv")),
 
     _density(getMaterialProperty<std::vector<Real> >("density")),
-    _ddensity_dv(getMaterialProperty<std::vector<std::vector<Real> > >("ddensity_dv"))
+    _ddensity_dv(getMaterialProperty<std::vector<std::vector<Real> > >("ddensity_dv")),
+
+    _p0_var(isCoupledScalar("p0") ? coupledScalar("p0") : 0),
+    _p0(isCoupledScalar("p0") ? coupledScalarValue("p0") : _zero)
+
 {
   _ps_at_nodes.resize(_num_p);
   for (unsigned int pnum = 0 ; pnum < _num_p; ++pnum)
@@ -131,7 +137,7 @@ RichardsPiecewiseLinearSink::computeQpResidual()
 
   if (!_fully_upwind)
   {
-    flux = _test[_i][_qp]*_sink_func.sample(_pp[_qp][_pvar]);
+    flux = _test[_i][_qp]*_sink_func.sample(_pp[_qp][_pvar] - _p0[0]);
     if (_use_mobility)
     {
       k = (_permeability[_qp]*_normals[_qp])*_normals[_qp];
@@ -142,7 +148,7 @@ RichardsPiecewiseLinearSink::computeQpResidual()
   }
   else
   {
-    flux = _test[_i][_qp]*_sink_func.sample((*_ps_at_nodes[_pvar])[_i]);
+    flux = _test[_i][_qp]*_sink_func.sample((*_ps_at_nodes[_pvar])[_i] - _p0[0]);
     if (_use_mobility)
     {
       k = (_permeability[0]*_normals[_qp])*_normals[_qp]; // assume that _permeability is constant throughout element so doesn't need to be upwinded
@@ -183,10 +189,11 @@ RichardsPiecewiseLinearSink::computeJacobianBlock(unsigned int jvar)
 Real
 RichardsPiecewiseLinearSink::computeQpOffDiagJacobian(unsigned int jvar)
 {
-  if (_richards_name_UO.not_richards_var(jvar))
-    return 0.0;
-  unsigned int dvar = _richards_name_UO.richards_var_num(jvar);
-  return jac(dvar);
+  if (!_richards_name_UO.not_richards_var(jvar))
+    return jac(_richards_name_UO.richards_var_num(jvar));
+  else if (isCoupledScalar("p0") && jvar == _p0_var)
+    return jacp0();
+  return 0.0;
 }
 
 Real
@@ -201,8 +208,8 @@ RichardsPiecewiseLinearSink::jac(unsigned int wrt_num)
 
   if (!_fully_upwind)
   {
-    flux = _sink_func.sample(_pp[_qp][_pvar]);
-    deriv = _sink_func.sampleDerivative(_pp[_qp][_pvar])*_dpp_dv[_qp][_pvar][wrt_num];
+    flux = _sink_func.sample(_pp[_qp][_pvar] - _p0[0]);
+    deriv = _sink_func.sampleDerivative(_pp[_qp][_pvar] - _p0[0])*_dpp_dv[_qp][_pvar][wrt_num];
     phi = _phi[_j][_qp];
     if (_use_mobility)
     {
@@ -219,8 +226,8 @@ RichardsPiecewiseLinearSink::jac(unsigned int wrt_num)
   {
     if (_i != _j)
       return 0.0;  // residual at node _i only depends on variables at that node
-    flux = _sink_func.sample((*_ps_at_nodes[_pvar])[_i]);
-    deriv = (_pvar == wrt_num ? _sink_func.sampleDerivative((*_ps_at_nodes[_pvar])[_i]) : 0); // NOTE: i'm assuming that the variables are pressure variables
+    flux = _sink_func.sample((*_ps_at_nodes[_pvar])[_i] - _p0[0]);
+    deriv = (_pvar == wrt_num ? _sink_func.sampleDerivative((*_ps_at_nodes[_pvar])[_i] - _p0[0]) : 0); // NOTE: i'm assuming that the variables are pressure variables
     phi = 1;
     if (_use_mobility)
     {
@@ -232,6 +239,47 @@ RichardsPiecewiseLinearSink::jac(unsigned int wrt_num)
     }
     if (_use_relperm)
       deriv = _nodal_relperm[_i]*deriv + _dnodal_relperm_dv[_i][wrt_num]*flux;
+  }
+
+
+  deriv *= _m_func.value(_t, _q_point[_qp]);
+
+  return _test[_i][_qp]*deriv*phi;
+}
+
+Real
+RichardsPiecewiseLinearSink::jacp0()
+{
+  Real deriv = 0;
+  Real k = 0;
+  Real mob = 0;
+  Real phi = 0;
+
+  if (!_fully_upwind)
+  {
+    deriv = -_sink_func.sampleDerivative(_pp[_qp][_pvar] - _p0[0]);
+    phi = _phi[_j][_qp];
+    if (_use_mobility)
+    {
+      k = (_permeability[_qp]*_normals[_qp])*_normals[_qp];
+      mob = _density[_qp][_pvar]*k/_viscosity[_qp][_pvar];
+      deriv = mob*deriv;
+    }
+    if (_use_relperm)
+      deriv = _rel_perm[_qp][_pvar]*deriv;
+  }
+  else
+  {
+    deriv = -_sink_func.sampleDerivative((*_ps_at_nodes[_pvar])[_i] - _p0[0]);
+    phi = 1;
+    if (_use_mobility)
+    {
+      k = (_permeability[0]*_normals[_qp])*_normals[_qp];
+      mob = _nodal_density[_i]*k/_viscosity[0][_pvar];
+      deriv = mob*deriv;
+    }
+    if (_use_relperm)
+      deriv = _nodal_relperm[_i]*deriv;
   }
 
 

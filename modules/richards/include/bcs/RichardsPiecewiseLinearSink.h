@@ -144,6 +144,12 @@ protected:
   /// d(density_i)/d(variable_j)
   MaterialProperty<std::vector<std::vector<Real> > > & _ddensity_dv;
 
+  /// optional Scalar variable coupling: this is the scalar variable's number
+  unsigned int _p0_var;
+
+  /// optional Scalar variable coupling: _p0[0] is the scalar variable's value
+  VariableValue & _p0;
+
   /**
    * Holds the values of pressures at all the nodes of the element
    * Only used if _fully_upwind = true
@@ -159,6 +165,9 @@ protected:
 
   /// derivative of residual wrt the wrt_num Richards variable
   Real jac(unsigned int wrt_num);
+
+  /// derivative of residual wrt to the optional scalar variable
+  Real jacp0();
 
 
 };
