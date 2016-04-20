@@ -20,7 +20,6 @@
 
 // Forward declerations
 class CommonOutputAction;
-class OutputWarehouse;
 
 template<>
 InputParameters validParams<CommonOutputAction>();
@@ -39,7 +38,7 @@ public:
   /**
    * Class constructor
    */
-  CommonOutputAction(const std::string & name, InputParameters params);
+  CommonOutputAction(InputParameters params);
 
   /**
    * Perform the action creation
@@ -55,14 +54,10 @@ private:
   void create(std::string object_type);
 
   /**
-   * Helper method for creating Checkpoint object for auto recovery testing
+   * Check if a Console object that outputs to the screen has been defined
+   * @return True if the a screen outputting Console objects
    */
-  void createAutoRecoveryCheckpointObject();
-
-
-  void setRecoverFileBase();
-
-  std::string getRecoveryDirectory();
+  bool hasConsole();
 
   /// Parameters from the action being created (AddOutputAction)
   InputParameters _action_params;

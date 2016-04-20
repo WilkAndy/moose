@@ -1,8 +1,13 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSTHERMALBC_H
 #define NSTHERMALBC_H
 
 #include "NodalBC.h"
-
 
 // Forward Declarations
 class NSThermalBC;
@@ -13,10 +18,7 @@ InputParameters validParams<NSThermalBC>();
 class NSThermalBC : public NodalBC
 {
 public:
-
-  NSThermalBC(const std::string & name, InputParameters parameters);
-
-  virtual ~NSThermalBC(){}
+  NSThermalBC(const InputParameters & parameters);
 
 protected:
   // Computes the temperature based on ideal gas equation of state,
@@ -24,7 +26,7 @@ protected:
   virtual Real computeQpResidual();
 
   unsigned int _rho_var;
-  VariableValue & _rho;
+  const VariableValue & _rho;
 
   Real _initial;
   Real _final;
@@ -32,8 +34,8 @@ protected:
 
   // Specific heat at constant volume, treated as a single
   // constant value.
-  Real _R;
-  Real _gamma;
+  const Real _R;
+  const Real _gamma;
 };
 
-#endif //THERMALBC_H
+#endif //NSTHERMALBC_H

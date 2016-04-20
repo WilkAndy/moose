@@ -1,3 +1,16 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #include "BlkResTestDiffusion.h"
 #include "MooseEnum.h"
 #include "MooseTypes.h"
@@ -5,15 +18,18 @@
 template<>
 InputParameters validParams<BlkResTestDiffusion>()
 {
-  MooseEnum test("none, fe_problem_null, mesh_null, use_mesh, hasBlocks, hasBlocks_ANY_BLOCK_ID, blocks, blockIDs, isBlockSubset, hasBlockMaterialProperty_true, hasBlockMaterialProperty_false", "none", "Select a test");
+  MooseEnum test("none fe_problem_null mesh_null use_mesh hasBlocks hasBlocks_ANY_BLOCK_ID blocks blockIDs isBlockSubset hasBlockMaterialProperty_true hasBlockMaterialProperty_false", "none", "Select a test");
   InputParameters params = validParams<Kernel>();
   params.addParam<MooseEnum>("test", test, "Select the desired test");
   return params;
 }
 
-// A function to modify the paramters for testing purposes
-InputParameters & modifyParams(InputParameters & params)
+// A function to modify the parameters for testing purposes
+InputParameters & modifyParams(const InputParameters & parameters)
 {
+  // This is only a test, so hack it up
+  InputParameters & params = const_cast<InputParameters &>(parameters);
+
   // Get the FEProblem pointer
   FEProblem* fe_ptr = params.get<FEProblem*>("_fe_problem");
 
@@ -31,6 +47,7 @@ InputParameters & modifyParams(InputParameters & params)
     params.suppressParameter<std::vector<SubdomainName> >("block");
     params.suppressParameter<FEProblem*>("_fe_problem");
     params.suppressParameter<NonlinearVariableName>("variable");
+    params.set<FEProblem*>("_fe_problem") = NULL;
     params.set<MooseMesh*>("_mesh") = NULL;
     break;
 
@@ -47,8 +64,8 @@ InputParameters & modifyParams(InputParameters & params)
 }
 
 
-BlkResTestDiffusion::BlkResTestDiffusion(const std::string & name, InputParameters parameters) :
-    Kernel(name, modifyParams(parameters))
+BlkResTestDiffusion::BlkResTestDiffusion(const InputParameters & parameters) :
+    Kernel(modifyParams(parameters))
 {
 
   // Get an test enum from the kernel parameters
@@ -164,7 +181,7 @@ BlkResTestDiffusion::BlkResTestDiffusion(const std::string & name, InputParamete
   // Test that hasMaterialPropertyBlock is working properly
   else if (test == "hasBlockMaterialProperty_true")
   {
-    if (hasBlockMaterialProperty("a"))
+    if (hasBlockMaterialProperty<Real>("a"))
       mooseError("hasBlockMaterialProperty is true, test passed"); // expected error
     else
       mooseError("hasBlockMaterialProperty is false, test failed");
@@ -172,7 +189,7 @@ BlkResTestDiffusion::BlkResTestDiffusion(const std::string & name, InputParamete
 
   else if (test == "hasBlockMaterialProperty_false")
   {
-    if (hasBlockMaterialProperty("b"))
+    if (hasBlockMaterialProperty<Real>("b"))
       mooseError("hasBlockMaterialProperty is true, test failed");
     else
       mooseError("hasBlockMaterialProperty is false, test passed"); // expected error

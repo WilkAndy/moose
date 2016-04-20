@@ -15,7 +15,7 @@
 #ifndef ADDBOUNDSVECTORSACTION_H
 #define ADDBOUNDSVECTORSACTION_H
 
-#include "MooseObjectAction.h"
+#include "Action.h"
 
 class AddBoundsVectorsAction;
 
@@ -25,7 +25,7 @@ InputParameters validParams<AddBoundsVectorsAction>();
 class AddBoundsVectorsAction : public Action
 {
 public:
-  AddBoundsVectorsAction(const std::string & name, InputParameters params);
+  AddBoundsVectorsAction(InputParameters params);
 
   virtual void act();
 };

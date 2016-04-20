@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef RETURNMAPPINGMODEL_H
 #define RETURNMAPPINGMODEL_H
 
@@ -10,29 +16,26 @@
 class ReturnMappingModel : public ConstitutiveModel
 {
 public:
-  ReturnMappingModel( const std::string & name,
-                           InputParameters parameters );
+  ReturnMappingModel(const InputParameters & parameters);
   virtual ~ReturnMappingModel() {}
 
-
   /// Compute the stress (sigma += deltaSigma)
-  virtual void computeStress( const Elem & current_elem,
-                              unsigned qp,
-                              const SymmElasticityTensor & elasticityTensor,
-                              const SymmTensor & stress_old,
-                              SymmTensor & strain_increment,
-                              SymmTensor & stress_new );
+  virtual void computeStress(const Elem & current_elem,
+                             unsigned qp,
+                             const SymmElasticityTensor & elasticityTensor,
+                             const SymmTensor & stress_old,
+                             SymmTensor & strain_increment,
+                             SymmTensor & stress_new );
 
-  void computeStress( const Elem & /*current_elem*/,
-                      unsigned qp,
-                      const SymmElasticityTensor & elasticityTensor,
-                      const SymmTensor & stress_old,
-                      SymmTensor & strain_increment,
-                      SymmTensor & stress_new,
-                      SymmTensor & inelastic_strain_increment );
+  void computeStress(const Elem & /*current_elem*/,
+                     unsigned qp,
+                     const SymmElasticityTensor & elasticityTensor,
+                     const SymmTensor & stress_old,
+                     SymmTensor & strain_increment,
+                     SymmTensor & stress_new,
+                     SymmTensor & inelastic_strain_increment );
 
 protected:
-
   virtual void computeStressInitialize(unsigned /*qp*/,
                                        Real /*effectiveTrialStress*/,
                                        const SymmElasticityTensor & /*elasticityTensor*/) {}
@@ -49,9 +52,9 @@ protected:
   const bool _output_iteration_info_on_error;
   const Real _relative_tolerance;
   const Real _absolute_tolerance;
+  Real _effective_strain_increment;
 
 private:
-
 };
 
 template<>

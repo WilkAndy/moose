@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "DesorptionToPorespace.h"
 
 #include <iostream>
@@ -12,9 +18,8 @@ InputParameters validParams<DesorptionToPorespace>()
   return params;
 }
 
-DesorptionToPorespace::DesorptionToPorespace(const std::string & name,
-                                             InputParameters parameters) :
-    Kernel(name,parameters),
+DesorptionToPorespace::DesorptionToPorespace(const InputParameters & parameters) :
+    Kernel(parameters),
     _conc_var(coupled("conc_var")),
     _mass_rate_from_matrix(getMaterialProperty<Real>("mass_rate_from_matrix")),
     _dmass_rate_from_matrix_dC(getMaterialProperty<Real>("dmass_rate_from_matrix_dC")),
@@ -41,3 +46,4 @@ DesorptionToPorespace::computeQpOffDiagJacobian(unsigned int jvar)
     return 0.0;
   return -_test[_i][_qp]*_dmass_rate_from_matrix_dC[_qp]*_phi[_j][_qp];
 }
+

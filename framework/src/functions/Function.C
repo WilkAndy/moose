@@ -24,13 +24,15 @@ InputParameters validParams<Function>()
   return params;
 }
 
-Function::Function(const std::string & name, InputParameters parameters) :
-    MooseObject(name, parameters),
-    SetupInterface(parameters),
-    TransientInterface(parameters, name, "functions"),
-    PostprocessorInterface(parameters),
-    UserObjectInterface(parameters),
-    Restartable(name, parameters, "Functions")
+Function::Function(const InputParameters & parameters) :
+    MooseObject(parameters),
+    SetupInterface(this),
+    TransientInterface(this),
+    PostprocessorInterface(this),
+    UserObjectInterface(this),
+    Restartable(parameters, "Functions"),
+    MeshChangedInterface(parameters),
+    ScalarCoupleable(parameters)
 {
 }
 
@@ -50,6 +52,13 @@ Function::gradient(Real /*t*/, const Point & /*p*/)
   return RealGradient(0, 0, 0);
 }
 
+Real
+Function::timeDerivative(Real /*t*/, const Point & /*p*/)
+{
+  mooseError("timeDerivative method not defined for function " << name());
+  return 0;
+}
+
 RealVectorValue
 Function::vectorValue(Real /*t*/, const Point & /*p*/)
 {
@@ -59,13 +68,13 @@ Function::vectorValue(Real /*t*/, const Point & /*p*/)
 Real
 Function::integral()
 {
-  mooseError("Integral method not defined for function " << _name);
+  mooseError("Integral method not defined for function " << name());
   return 0;
 }
 
 Real
 Function::average()
 {
-  mooseError("Average method not defined for function " << _name);
+  mooseError("Average method not defined for function " << name());
   return 0;
 }

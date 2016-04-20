@@ -33,7 +33,7 @@ class TimeStepper :
   public Restartable
 {
 public:
-  TimeStepper(const std::string & name, InputParameters parameters);
+  TimeStepper(const InputParameters & parameters);
   virtual ~TimeStepper();
 
   /**
@@ -45,6 +45,8 @@ public:
   virtual void preSolve() { }
   virtual void postSolve() { }
   virtual void postExecute() { }
+  virtual void preStep() { }
+  virtual void postStep() { }
 
   /**
    * Called before a new step is started.
@@ -90,11 +92,14 @@ public:
 
   virtual void forceTimeStep(Real dt);
 
+  ///@{
   /**
    * Add a sync time
    * \todo {Remove after old output system is removed; sync time are handled by OutputWarehouse}
    */
   void addSyncTime(Real sync_time);
+  void addSyncTime(const std::set<Real> & times);
+  ///@}
 
 protected:
   /**

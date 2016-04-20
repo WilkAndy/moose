@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef PLC_LSH_H
 #define PLC_LSH_H
 
@@ -18,8 +24,7 @@ InputParameters validParams<PLC_LSH>();
 class PLC_LSH : public SolidModel
 {
 public:
-  PLC_LSH( const std::string & name,
-           InputParameters parameters );
+  PLC_LSH( const InputParameters & parameters);
 
 protected:
 

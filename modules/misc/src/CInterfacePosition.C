@@ -1,16 +1,10 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
+
 
 #include "CInterfacePosition.h"
 #include "MooseMesh.h"
@@ -29,8 +23,8 @@ InputParameters validParams<CInterfacePosition>()
   return params;
 }
 
-CInterfacePosition::CInterfacePosition(const std::string & name, InputParameters parameters) :
-  NodalProxyMaxValue(name, parameters),
+CInterfacePosition::CInterfacePosition(const InputParameters & parameters) :
+  NodalProxyMaxValue(parameters),
   _RefVal(getParam<Real>("RefVal")),
     _direction_index(parameters.get<unsigned int>("direction_index")),
     _mesh(_subproblem.mesh())
@@ -53,3 +47,4 @@ CInterfacePosition::getValue()
   unsigned int node_id = NodalProxyMaxValue::getValue();
   return _mesh.node(node_id)(_direction_index);
 }
+

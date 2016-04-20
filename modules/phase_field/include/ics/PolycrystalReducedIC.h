@@ -1,8 +1,15 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef POLYCRYSTALREDUCEDIC_H
 #define POLYCRYSTALREDUCEDIC_H
 
 #include "Kernel.h"
 #include "InitialCondition.h"
+#include "PolycrystalICTools.h"
 
 // System includes
 #include <string>
@@ -25,12 +32,9 @@ public:
   /**
    * Constructor
    *
-   * @param name The name given to the initial condition in the input file.
    * @param parameters The parameters object holding data for the class to use.
-   * @param var_name The variable this InitialCondtion is supposed to provide values for.
    */
-  PolycrystalReducedIC(const std::string & name,
-                InputParameters parameters);
+  PolycrystalReducedIC(const InputParameters & parameters);
 
   /**
    * The value of the variable at a point.
@@ -42,6 +46,10 @@ public:
   virtual void initialSetup();
 
   MooseMesh & _mesh;
+
+  /// mesh dimension
+  unsigned int _dim;
+
   /// A reference to the nonlinear system
   NonlinearSystem & _nl;
 

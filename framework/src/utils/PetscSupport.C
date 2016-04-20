@@ -16,7 +16,7 @@
 
 #ifdef LIBMESH_HAVE_PETSC
 
-// Moose includes
+// MOOSE includes
 #include "MooseApp.h"
 #include "FEProblem.h"
 #include "DisplacedProblem.h"
@@ -28,8 +28,12 @@
 #include "MooseUtils.h"
 #include "CommandLine.h"
 #include "Console.h"
+#include "MultiMooseEnum.h"
+#include "Conversion.h"
+#include "Executioner.h"
+#include "MooseMesh.h"
 
-//libMesh Includes
+// libMesh includes
 #include "libmesh/libmesh_common.h"
 #include "libmesh/equation_systems.h"
 #include "libmesh/nonlinear_implicit_system.h"
@@ -41,7 +45,7 @@
 #include "libmesh/petsc_preconditioner.h"
 #include "libmesh/getpot.h"
 
-//PETSc includes
+// PETSc includes
 #include <petsc.h>
 #include <petscsnes.h>
 #include <petscksp.h>
@@ -163,11 +167,10 @@ void petscSetupDM (NonlinearSystem & nl) {
 void
 petscSetOptions(FEProblem & problem)
 {
-        std::vector<MooseEnum>     petsc_options = problem.parameters().get<std::vector<MooseEnum> >("petsc_options");
-  const std::vector<std::string> & petsc_options_inames = problem.parameters().get<std::vector<std::string> >("petsc_inames");
-  const std::vector<std::string> & petsc_options_values = problem.parameters().get<std::vector<std::string> >("petsc_values");
+  // Reference to the options stored in FEPRoblem
+  PetscOptions & petsc = problem.getPetscOptions();
 
-  if (petsc_options_inames.size() != petsc_options_values.size())
+  if (petsc.inames.size() != petsc.values.size())
     mooseError("PETSc names and options are not the same length");
 
   PetscOptionsClear();
@@ -182,11 +185,11 @@ petscSetOptions(FEProblem & problem)
 
   setSolverOptions(problem.solverParams());
 
-  // Add any additional options specified in the input fible
-  for (unsigned int i=0; i<petsc_options.size(); ++i)
-    PetscOptionsSetValue(std::string(petsc_options[i]).c_str(), PETSC_NULL);
-  for (unsigned int i=0; i<petsc_options_inames.size(); ++i)
-    PetscOptionsSetValue(petsc_options_inames[i].c_str(), petsc_options_values[i].c_str());
+  // Add any additional options specified in the input file
+  for (MooseEnumIterator it = petsc.flags.begin(); it != petsc.flags.end(); ++it)
+    PetscOptionsSetValue(it->c_str(), PETSC_NULL);
+  for (unsigned int i=0; i<petsc.inames.size(); ++i)
+    PetscOptionsSetValue(petsc.inames[i].c_str(), petsc.values[i].c_str());
 
   SolverParams& solver_params = problem.solverParams();
   if (solver_params._type != Moose::ST_JFNK  &&
@@ -283,6 +286,16 @@ PetscErrorCode petscConverged(KSP ksp, PetscInt n, PetscReal rnorm, KSPConverged
     *reason = KSP_CONVERGED_ITS;
     break;
 
+  case MOOSE_DIVERGED_NANORINF:
+#if PETSC_VERSION_LESS_THAN(3,4,0)
+    // Report divergence due to exceeding the divergence tolerance.
+    *reason = KSP_DIVERGED_DTOL;
+#else
+    // KSP_DIVERGED_NANORINF was added in PETSc 3.4.0.
+    *reason = KSP_DIVERGED_NANORINF;
+#endif
+    break;
+
   default:
   {
     // If it's not either of the two specific cases we handle, just go
@@ -324,12 +337,22 @@ PetscErrorCode petscNonlinearConverged(SNES snes, PetscInt it, PetscReal xnorm, 
   ierr = SNESGetNumberFunctionEvals(snes, &nfuncs);
   CHKERRABORT(problem.comm().get(),ierr);
 
+  // See if SNESSetFunctionDomainError() has been called.  Note:
+  // SNESSetFunctionDomainError() and SNESGetFunctionDomainError()
+  // were added in different releases of PETSc.
+#if !PETSC_VERSION_LESS_THAN(3,3,0)
+  PetscBool domainerror;
+  ierr = SNESGetFunctionDomainError(snes, &domainerror);
+  CHKERRABORT(problem.comm().get(),ierr);
+  if (domainerror)
+    {
+      *reason = SNES_DIVERGED_FUNCTION_DOMAIN;
+      return 0;
+    }
+#endif
+
   // Error message that will be set by the FEProblem.
   std::string msg;
-
-  // MOOSE-specific parameters
-  const Real ref_resid = system._initial_residual;
-  const Real div_threshold = system._initial_residual*(1.0/rtol);
 
   // xnorm: 2-norm of current iterate
   // snorm: 2-norm of current step
@@ -344,8 +367,8 @@ PetscErrorCode petscNonlinearConverged(SNES snes, PetscInt it, PetscReal xnorm, 
                                                                                    atol,
                                                                                    nfuncs,
                                                                                    maxf,
-                                                                                   ref_resid,
-                                                                                   div_threshold);
+                                                                                   system._initial_residual_before_preset_bcs,
+                                                                                   /*div_threshold=*/(1.0/rtol)*system._initial_residual_before_preset_bcs);
 
   if (msg.length() > 0)
     PetscInfo(snes, msg.c_str());
@@ -392,106 +415,6 @@ PetscErrorCode petscNonlinearConverged(SNES snes, PetscInt it, PetscReal xnorm, 
   return 0;
 }
 
-#if PETSC_VERSION_LESS_THAN(3,3,0)
-// PETSc 3.2.x-
-PetscErrorCode dampedCheck(SNES /*snes*/, Vec x, Vec y, Vec w, void *lsctx, PetscBool * /*changed_y*/, PetscBool * changed_w)
-#else
-// PETSc 3.3.0+
-  PetscErrorCode dampedCheck(SNESLineSearch /* linesearch */, Vec x, Vec y, Vec w, PetscBool * /*changed_y*/, PetscBool * changed_w, void *lsctx)
-#endif
-{
-  // From SNESLineSearchSetPostCheck docs:
-  // +  x - old solution vector
-  // .  y - search direction vector
-  // .  w - new solution vector  w = x-y
-  // .  changed_y - indicates that the line search changed y
-  // .  changed_w - indicates that the line search changed w
-
-  int ierr = 0;
-  Real damping = 1.0;
-
-  FEProblem & problem = *static_cast<FEProblem *>(lsctx);
-
-  TransientNonlinearImplicitSystem & system = problem.getNonlinearSystem().sys();
-
-  // The whole deal here is that we need ghosted versions of vectors y and w (they are parallel, but not ghosted).
-  // So to do that I'm going to duplicate current_local_solution (which has the ghosting we want).
-  // Then stuff values into the duplicates
-  // Then "close()" the vectors which updates their ghosted vaulues.
-
-  {
-    // cls is a PetscVector wrapper around the Vec in current_local_solution
-    PetscVector<Number> cls(static_cast<PetscVector<Number> *>(system.current_local_solution.get())->vec(), problem.comm());
-
-    // Create new NumericVectors with the right ghosting - note: these will be destroyed
-    // when this function exits, so nobody better hold pointers to them any more!
-    AutoPtr<NumericVector<Number> > ghosted_y_aptr( cls.zero_clone() );
-    AutoPtr<NumericVector<Number> > ghosted_w_aptr( cls.zero_clone() );
-
-    // Create PetscVector wrappers around the Vecs.
-    PetscVector<Number> ghosted_y( static_cast<PetscVector<Number> *>(ghosted_y_aptr.get())->vec(), problem.comm());
-    PetscVector<Number> ghosted_w( static_cast<PetscVector<Number> *>(ghosted_w_aptr.get())->vec(), problem.comm());
-
-    ierr = VecCopy(y, ghosted_y.vec()); CHKERRABORT(problem.comm().get(),ierr);
-    ierr = VecCopy(w, ghosted_w.vec()); CHKERRABORT(problem.comm().get(),ierr);
-
-    ghosted_y.close();
-    ghosted_w.close();
-
-    damping = problem.computeDamping(ghosted_w, ghosted_y);
-    if (damping < 1.0)
-    {
-      //recalculate w=-damping*y + x
-      ierr = VecWAXPY(w, -damping, y, x); CHKERRABORT(problem.comm().get(),ierr);
-      *changed_w = PETSC_TRUE;
-    }
-
-
-    if (problem.shouldUpdateSolution())
-    {
-      //Update the ghosted copy of w
-      if (*changed_w == PETSC_TRUE)
-      {
-        ierr = VecCopy(w, ghosted_w.vec()); CHKERRABORT(problem.comm().get(),ierr);
-        ghosted_w.close();
-      }
-
-      //Create vector to directly modify w
-      PetscVector<Number> vec_w(w, problem.comm());
-
-      bool updatedSolution = problem.updateSolution(vec_w, ghosted_w);
-      if (updatedSolution)
-        *changed_w = PETSC_TRUE;
-    }
-  }
-
-  return ierr;
-}
-
-void petscSetupDampers(NonlinearImplicitSystem& sys)
-{
-  FEProblem * problem = sys.get_equation_systems().parameters.get<FEProblem *>("_fe_problem");
-  NonlinearSystem & nl = problem->getNonlinearSystem();
-  PetscNonlinearSolver<Number> * petsc_solver = dynamic_cast<PetscNonlinearSolver<Number> *>(nl.sys().nonlinear_solver.get());
-  SNES snes = petsc_solver->snes();
-
-#if PETSC_VERSION_LESS_THAN(3,3,0)
-  // PETSc 3.2.x-
-  SNESLineSearchSetPostCheck(snes, dampedCheck, problem);
-#else
-  // PETSc 3.3.0+
-  SNESLineSearch linesearch;
-#if PETSC_VERSION_LESS_THAN(3,4,0)
-  PetscErrorCode ierr = SNESGetSNESLineSearch(snes, &linesearch);
-#else
-  PetscErrorCode ierr = SNESGetLineSearch(snes, &linesearch);
-#endif
-  CHKERRABORT(problem->comm().get(),ierr);
-
-  ierr = SNESLineSearchSetPostCheck(linesearch, dampedCheck, problem);
-  CHKERRABORT(problem->comm().get(),ierr);
-#endif
-}
 
 PCSide
 getPetscPCSide(Moose::PCSideType pcs)
@@ -549,6 +472,166 @@ void petscSetDefaults(FEProblem & problem)
   }
 #endif
 }
+
+void
+storePetscOptions(FEProblem & fe_problem, const InputParameters & params)
+{
+  // Note: Options set in the Preconditioner block will override those set in the Executioner block
+  if (params.isParamValid("solve_type"))
+  {
+    // Extract the solve type
+    const std::string & solve_type = params.get<MooseEnum>("solve_type");
+    fe_problem.solverParams()._type = Moose::stringToEnum<Moose::SolveType>(solve_type);
+  }
+
+  if (params.isParamValid("line_search"))
+  {
+      MooseEnum line_search = params.get<MooseEnum>("line_search");
+      if (fe_problem.solverParams()._line_search == Moose::LS_INVALID || line_search != "default")
+        fe_problem.solverParams()._line_search = Moose::stringToEnum<Moose::LineSearchType>(line_search);
+  }
+
+  // The parameters contained in the Action
+  const MultiMooseEnum & petsc_options = params.get<MultiMooseEnum>("petsc_options");
+  const MultiMooseEnum & petsc_options_inames = params.get<MultiMooseEnum>("petsc_options_iname");
+  const std::vector<std::string> & petsc_options_values = params.get<std::vector<std::string> >("petsc_options_value");
+
+  // A reference to the PetscOptions object that contains the settings that will be used in the solve
+  Moose::PetscSupport::PetscOptions & po = fe_problem.getPetscOptions();
+
+  // Update the PETSc single flags
+  for (MooseEnumIterator it = petsc_options.begin(); it != petsc_options.end(); ++it)
+  {
+    /**
+     * "-log_summary" cannot be used in the input file. This option needs to be set when PETSc is initialized
+     * which happens before the parser is even created.  We'll throw an error if somebody attempts to add this option later.
+     */
+    if (*it == "-log_summary")
+      mooseError("The PETSc option \"-log_summary\" can only be used on the command line.  Please remove it from the input file");
+
+    // Warn about superseded PETSc options (Note: -snes is not a REAL option, but people used it in their input files)
+    else
+    {
+      std::string help_string;
+      if (*it == "-snes" || *it == "-snes_mf" || *it == "-snes_mf_operator")
+        help_string = "Please set the solver type through \"solve_type\".";
+      else if (*it == "-ksp_monitor")
+        help_string = "Please use \"Outputs/print_linear_residuals=true\"";
+
+      if (help_string != "")
+        mooseWarning("The PETSc option " << *it << " should not be used directly in a MOOSE input file. " << help_string);
+    }
+
+    // Update the stored items, but do not create duplicates
+    if (find(po.flags.begin(), po.flags.end(), *it) == po.flags.end())
+      po.flags.push_back(*it);
+  }
+
+  // Check that the name value pairs are sized correctly
+  if (petsc_options_inames.size() != petsc_options_values.size())
+    mooseError("PETSc names and options are not the same length");
+
+  // Setup the name value pairs
+  bool boomeramg_found = false;
+  bool strong_threshold_found = false;
+  std::string pc_description = "";
+  for (unsigned int i = 0; i < petsc_options_inames.size(); i++)
+  {
+    // Do not add duplicate settings
+    if (find(po.inames.begin(), po.inames.end(), petsc_options_inames[i]) == po.inames.end())
+    {
+      po.inames.push_back(petsc_options_inames[i]);
+      po.values.push_back(petsc_options_values[i]);
+
+      // Look for a pc description
+      if (petsc_options_inames[i] == "-pc_type" || petsc_options_inames[i] == "-pc_sub_type" || petsc_options_inames[i] == "-pc_hypre_type")
+        pc_description += petsc_options_values[i] + ' ';
+
+      // This special case is common enough that we'd like to handle it for the user.
+      if (petsc_options_inames[i] == "-pc_hypre_type" && petsc_options_values[i] == "boomeramg")
+        boomeramg_found = true;
+      if (petsc_options_inames[i] == "-pc_hypre_boomeramg_strong_threshold")
+        strong_threshold_found = true;
+    }
+    else
+    {
+      for (unsigned int j = 0; j < po.inames.size(); j++)
+        if (po.inames[j] == petsc_options_inames[i])
+          po.values[j] = petsc_options_values[i];
+    }
+  }
+
+
+  // When running a 3D mesh with boomeramg, it is almost always best to supply a strong threshold value
+  // We will provide that for the user here if they haven't supplied it themselves.
+  if (boomeramg_found && !strong_threshold_found && fe_problem.mesh().dimension() == 3)
+  {
+    po.inames.push_back("-pc_hypre_boomeramg_strong_threshold");
+    po.values.push_back("0.7");
+    pc_description += "strong_threshold: 0.7 (auto)";
+  }
+
+  // Set Preconditioner description
+  po.pc_description = pc_description;
+}
+
+
+InputParameters
+getPetscValidParams()
+{
+  InputParameters params = emptyInputParameters();
+
+  MooseEnum solve_type("PJFNK JFNK NEWTON FD LINEAR");
+  params.addParam<MooseEnum>   ("solve_type",      solve_type,
+                                "PJFNK: Preconditioned Jacobian-Free Newton Krylov "
+                                "JFNK: Jacobian-Free Newton Krylov "
+                                "NEWTON: Full Newton Solve "
+                                "FD: Use finite differences to compute Jacobian "
+                                "LINEAR: Solving a linear problem");
+
+  // Line Search Options
+#ifdef LIBMESH_HAVE_PETSC
+#if PETSC_VERSION_LESS_THAN(3,3,0)
+  MooseEnum line_search("default cubic quadratic none basic basicnonorms", "default");
+#else
+  MooseEnum line_search("default shell none basic l2 bt cp", "default");
+#endif
+  std::string addtl_doc_str(" (Note: none = basic)");
+#else
+  MooseEnum line_search("default", "default");
+  std::string addtl_doc_str("");
+#endif
+  params.addParam<MooseEnum>   ("line_search",     line_search, "Specifies the line search type" + addtl_doc_str);
+
+  params.addParam<MultiMooseEnum>("petsc_options", getCommonPetscFlags(), "Singleton PETSc options");
+  params.addParam<MultiMooseEnum>("petsc_options_iname", getCommonPetscKeys(), "Names of PETSc name/value pairs");
+  params.addParam<std::vector<std::string> >("petsc_options_value", "Values of PETSc name/value pairs (must correspond with \"petsc_options_iname\"");
+
+  return params;
+}
+
+
+MultiMooseEnum
+getCommonPetscFlags()
+{
+  return MultiMooseEnum(
+    "-dm_moose_print_embedding -dm_view -ksp_converged_reason -ksp_gmres_modifiedgramschmidt "
+    "-ksp_monitor -ksp_monitor_snes_lg-snes_ksp_ew -ksp_snes_ew -snes_converged_reason "
+    "-snes_ksp -snes_ksp_ew -snes_linesearch_monitor -snes_mf -snes_mf_operator -snes_monitor "
+    "-snes_test_display -snes_view -snew_ksp_ew", "", true);
+}
+
+MultiMooseEnum
+getCommonPetscKeys()
+{
+  return MultiMooseEnum(
+    "-ksp_atol -ksp_gmres_restart -ksp_max_it -ksp_pc_side -ksp_rtol "
+    "-ksp_type -mat_fd_coloring_err -mat_fd_type -mat_mffd_type -pc_asm_overlap -pc_factor_levels "
+    "-pc_factor_mat_ordering_type -pc_hypre_boomeramg_grid_sweeps_all -pc_hypre_boomeramg_max_iter "
+    "-pc_hypre_boomeramg_strong_threshold -pc_hypre_type -pc_type -snes_atol -snes_linesearch_type "
+    "-snes_ls -snes_max_it -snes_rtol -snes_type -sub_ksp_type -sub_pc_type", "", true);
+}
+
 } // Namespace PetscSupport
 } // Namespace MOOSE
 

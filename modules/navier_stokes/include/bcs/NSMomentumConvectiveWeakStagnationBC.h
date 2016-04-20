@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSMOMENTUMCONVECTIVEWEAKSTAGNATIONBC_H
 #define NSMOMENTUMCONVECTIVEWEAKSTAGNATIONBC_H
 
@@ -9,7 +15,6 @@ class NSMomentumConvectiveWeakStagnationBC;
 template<>
 InputParameters validParams<NSMomentumConvectiveWeakStagnationBC>();
 
-
 /**
  * The convective part (sans pressure term) of the momentum equation
  * boundary integral evaluated at specified stagnation temperature,
@@ -17,11 +22,8 @@ InputParameters validParams<NSMomentumConvectiveWeakStagnationBC>();
  */
 class NSMomentumConvectiveWeakStagnationBC : public NSWeakStagnationBC
 {
-
 public:
-  NSMomentumConvectiveWeakStagnationBC(const std::string & name, InputParameters parameters);
-
-  virtual ~NSMomentumConvectiveWeakStagnationBC(){}
+  NSMomentumConvectiveWeakStagnationBC(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
@@ -29,7 +31,7 @@ protected:
   virtual Real computeQpOffDiagJacobian(unsigned jvar);
 
   // Required parameters
-  unsigned _component;
+  const unsigned int _component;
 };
 
 #endif // NSMOMENTUMCONVECTIVEWEAKSTAGNATIONBC_H

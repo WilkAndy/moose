@@ -1,9 +1,13 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #include "GradParsedFunction.h"
+#include "MooseParsedFunctionWrapper.h"
 
 template<>
 InputParameters validParams<GradParsedFunction>()
@@ -14,8 +18,8 @@ InputParameters validParams<GradParsedFunction>()
   return params;
 }
 
-GradParsedFunction::GradParsedFunction(const std::string & name, InputParameters parameters) :
-    MooseParsedFunction(name, parameters),
+GradParsedFunction::GradParsedFunction(const InputParameters & parameters) :
+    MooseParsedFunction(parameters),
     _direction(getParam<RealVectorValue>("direction"))
 {
   _len = std::pow(_direction*_direction, 0.5);
@@ -29,3 +33,4 @@ GradParsedFunction::value(Real t, const Point & p)
 {
   return (_function_ptr->evaluate<Real>(t, p + _direction) - _function_ptr->evaluate<Real>(t, p - _direction))/_len;
 }
+

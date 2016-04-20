@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "Kernel.h"
 
 #ifndef COUPLEDCONVECTIONREACTIONSUB_H
@@ -12,10 +18,6 @@
 //Forward Declarations
 class CoupledConvectionReactionSub;
 
-/**
- * validParams returns the parameters that this Kernel accepts / needs
- * The actual body of the function MUST be in the .C file.
- */
 template<>
 InputParameters validParams<CoupledConvectionReactionSub>();
 
@@ -29,13 +31,7 @@ InputParameters validParams<CoupledConvectionReactionSub>();
 class CoupledConvectionReactionSub : public Kernel
 {
 public:
-
-  /**
-   * This is the Constructor declaration AND definition.
-   * It is ok to have the definition in the .h if the function body
-   * is really small.  Otherwise it should be in the .C
-   */
-  CoupledConvectionReactionSub(const std::string & name, InputParameters parameters);
+  CoupledConvectionReactionSub(const InputParameters & parameters);
 
 protected:
   /**
@@ -61,31 +57,31 @@ protected:
   virtual Real computeQpOffDiagJacobian(unsigned int jvar);
 
 private:
-  /**
-   * Coupled things come through as std::vector _refernces_.
-   *
-   * Since this is a reference it MUST be set in the Initialization List of the
-   * constructor!
-   */
   /// Weight of the equilibrium species concentration in the total primary species concentration.
   Real _weight;
+
   /// Equilibrium constant for the equilibrium species in association form.
   Real _log_k;
+
   /// Stochiometric coefficient of the primary species.
   Real _sto_u;
+
   /// Stochiometric coefficiets of the coupled primary species.
   std::vector<Real> _sto_v;
 
   /// Material property of hydraulic conductivity.
-  MaterialProperty<Real> & _cond;
+  const MaterialProperty<Real> & _cond;
+
   /// Coupled gradient of hydraulic head.
-  VariableGradient & _grad_p;
+  const VariableGradient & _grad_p;
 
   std::vector<unsigned int> _vars;
-  /// Coupled primary species concentrations.
-  std::vector<VariableValue *> _vals;
-  /// Coupled gradients of primary species concentrations.
-  std::vector<VariableGradient *> _grad_vals;
 
+  /// Coupled primary species concentrations.
+  std::vector<const VariableValue *> _vals;
+
+  /// Coupled gradients of primary species concentrations.
+  std::vector<const VariableGradient *> _grad_vals;
 };
+
 #endif //COUPLEDCONVECTIONREACTIONSUB_H

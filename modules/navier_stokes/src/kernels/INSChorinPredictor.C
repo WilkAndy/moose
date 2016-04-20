@@ -1,4 +1,12 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 #include "INSChorinPredictor.h"
+#include "MooseMesh.h"
 
 template<>
 InputParameters validParams<INSChorinPredictor>()
@@ -25,8 +33,8 @@ InputParameters validParams<INSChorinPredictor>()
 
 
 
-INSChorinPredictor::INSChorinPredictor(const std::string & name, InputParameters parameters) :
-  Kernel(name, parameters),
+INSChorinPredictor::INSChorinPredictor(const InputParameters & parameters) :
+  Kernel(parameters),
 
   // Current velocities
   _u_vel(coupledValue("u")),
@@ -264,3 +272,4 @@ Real INSChorinPredictor::computeQpOffDiagJacobian(unsigned jvar)
     mooseError("Unrecognized Chorin predictor type requested.");
   }
 }
+

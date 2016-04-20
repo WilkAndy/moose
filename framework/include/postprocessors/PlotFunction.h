@@ -30,7 +30,7 @@ InputParameters validParams<PlotFunction>();
 class PlotFunction : public GeneralPostprocessor
 {
 public:
-  PlotFunction(const std::string & name, InputParameters parameters);
+  PlotFunction(const InputParameters & parameters);
   virtual ~PlotFunction();
 
   virtual void initialize();
@@ -39,7 +39,7 @@ public:
 
 protected:
   Function & _func;
-  const Point _point;
+  const Point & _point;
   const Real _scale_factor;
 };
 

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef CONTACTPENETRATIONAUXACTION_H
 #define CONTACTPENETRATIONAUXACTION_H
 
@@ -13,7 +19,7 @@ InputParameters validParams<ContactPenetrationAuxAction>();
 class ContactPenetrationAuxAction: public Action
 {
 public:
-  ContactPenetrationAuxAction(const std::string & name, InputParameters params);
+  ContactPenetrationAuxAction(const InputParameters & params);
 
   virtual void act();
 

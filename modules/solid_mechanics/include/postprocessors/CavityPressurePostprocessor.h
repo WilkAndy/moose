@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef CAVITYPRESSUREPOSTPROCESSOR_H
 #define CAVITYPRESSUREPOSTPROCESSOR_H
 
@@ -9,7 +15,7 @@ class CavityPressurePostprocessor : public GeneralPostprocessor
 {
 public:
 
-  CavityPressurePostprocessor(const std::string & name, InputParameters parameters);
+  CavityPressurePostprocessor(const InputParameters & parameters);
 
   virtual ~CavityPressurePostprocessor(){}
 

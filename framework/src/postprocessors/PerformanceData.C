@@ -22,7 +22,7 @@ InputParameters validParams<PerformanceData>()
 {
   InputParameters params = validParams<GeneralPostprocessor>();
 
-  MooseEnum column_options("n_calls, total_time, average_time, total_time_with_sub, average_time_with_sub, percent_of_active_time, percent_of_active_time_with_sub");
+  MooseEnum column_options("n_calls total_time average_time total_time_with_sub average_time_with_sub percent_of_active_time percent_of_active_time_with_sub");
 
   params.addRequiredParam<MooseEnum>("column", column_options, "The column you want the value of.");
   params.addRequiredParam<std::string>("event", "The name of the event.");
@@ -30,8 +30,8 @@ InputParameters validParams<PerformanceData>()
   return params;
 }
 
-PerformanceData::PerformanceData(const std::string & name, InputParameters parameters) :
-    GeneralPostprocessor(name, parameters),
+PerformanceData::PerformanceData(const InputParameters & parameters) :
+    GeneralPostprocessor(parameters),
     _column(getParam<MooseEnum>("column")),
     _event(getParam<std::string>("event"))
 {}
@@ -39,7 +39,7 @@ PerformanceData::PerformanceData(const std::string & name, InputParameters param
 Real
 PerformanceData::getValue()
 {
-  PerfData perf_data = Moose::perf_log.get_perf_data(_event, "Solve");
+  PerfData perf_data = Moose::perf_log.get_perf_data(_event, "Execution");
   double total_time = Moose::perf_log.get_active_time();
 
   if (perf_data.count == 0)

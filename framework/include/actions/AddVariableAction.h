@@ -17,9 +17,10 @@
 
 // MOOSE includes
 #include "Action.h"
+#include "OutputInterface.h"
 
 // libMesh includes
-#include "libmesh/fe.h"
+#include "libmesh/fe_type.h"
 
 // Forward declerations
 class AddVariableAction;
@@ -30,14 +31,16 @@ InputParameters validParams<AddVariableAction>();
 /**
  * Adds nonlinear variable
  */
-class AddVariableAction : public Action
+class AddVariableAction :
+  public Action,
+  public OutputInterface
 {
 public:
 
   /**
    * Class constructor
    */
-  AddVariableAction(const std::string & name, InputParameters params);
+  AddVariableAction(InputParameters params);
 
   /**
    * Adds the nonlinear variable
@@ -59,12 +62,19 @@ public:
 protected:
 
   /**
-   * Create initial condition object
+   * Adds a nonlinear variable to the system.
+   *
+   * @param var_name The name of the variable.
+   */
+  void addVariable(std::string & var_name);
+
+  /**
+   * Create the action to generate the InitialCondition object
    *
    * If the user supplies a value for 'initial_condition' in the input file this
    * method will create the proper InitialCondition object.
    */
-  void setInitialCondition();
+  void createInitialConditionAction();
 
   /**
    * Get the block ids from the input parameters
@@ -80,9 +90,6 @@ protected:
 
   /// Absolute zero tolerance
   static const Real _abs_zero_tol;
-
-
-  // std::string _variable_to_read;
 };
 
 #endif // ADDVARIABLEACTION_H

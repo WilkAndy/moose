@@ -22,32 +22,40 @@ template<>
 InputParameters validParams<NodalUserObject>()
 {
   InputParameters params = validParams<UserObject>();
+  params.addParam<bool>("unique_node_execute", false, "When false (default), block restricted objects will have the execute method called multiple times on a single node if the node lies on a interface between two subdomains.");
   params += validParams<BlockRestrictable>();
   params += validParams<BoundaryRestrictable>();
   params += validParams<RandomInterface>();
-
-  /// \todo{The default for both Boundary and Block Restrictable should be ANY...}
+  params += validParams<MaterialPropertyInterface>();
   return params;
 }
 
-NodalUserObject::NodalUserObject(const std::string & name, InputParameters parameters) :
-    UserObject(name, parameters),
-    BlockRestrictable(name, parameters),
-    BoundaryRestrictable(name, parameters),
-    MaterialPropertyInterface(parameters),
-    UserObjectInterface(parameters),
+NodalUserObject::NodalUserObject(const InputParameters & parameters) :
+    UserObject(parameters),
+    BlockRestrictable(parameters),
+    BoundaryRestrictable(parameters, blockIDs()),
+    MaterialPropertyInterface(this, blockIDs(), boundaryIDs()),
+    UserObjectInterface(this),
     Coupleable(parameters, true),
     ScalarCoupleable(parameters),
     MooseVariableDependencyInterface(),
-    TransientInterface(parameters, name, "nodal_user_objects"),
-    PostprocessorInterface(parameters),
-    RandomInterface(name, parameters, _fe_problem, _tid, true),
+    TransientInterface(this),
+    PostprocessorInterface(this),
+    RandomInterface(parameters, _fe_problem, _tid, true),
     ZeroInterface(parameters),
     _mesh(_subproblem.mesh()),
     _qp(0),
-    _current_node(_assembly.node())
+    _current_node(_assembly.node()),
+    _unique_node_execute(getParam<bool>("unique_node_execute"))
 {
   const std::vector<MooseVariable *> & coupled_vars = getCoupledMooseVars();
   for (unsigned int i=0; i<coupled_vars.size(); i++)
     addMooseVariableDependency(coupled_vars[i]);
+}
+
+
+void
+NodalUserObject::subdomainSetup()
+{
+  mooseError("NodalUserObjects do not execute subdomainSetup method, this function does nothing and should not be used.");
 }

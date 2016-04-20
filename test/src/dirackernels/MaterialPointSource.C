@@ -19,11 +19,12 @@ InputParameters validParams<MaterialPointSource>()
 {
   InputParameters params = validParams<DiracKernel>();
   params.addRequiredParam<Point>("point", "The x,y,z coordinates of the point");
+  params.declareControllable("point");
   return params;
 }
 
-MaterialPointSource::MaterialPointSource(const std::string & name, InputParameters parameters) :
-    DiracKernel(name, parameters),
+MaterialPointSource::MaterialPointSource(const InputParameters & parameters) :
+    DiracKernel(parameters),
     _p(getParam<Point>("point")),
     _value(getMaterialProperty<Real>("matp"))
 {
@@ -46,4 +47,3 @@ MaterialPointSource::computeQpResidual()
   // brought over to the left side.
   return -_test[_i][_qp]*_value[_qp];
 }
-

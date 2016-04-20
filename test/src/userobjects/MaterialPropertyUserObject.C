@@ -13,18 +13,19 @@
 /****************************************************************/
 
 #include "MaterialPropertyUserObject.h"
+#include "MooseMesh.h"
 
 template<>
 InputParameters validParams<MaterialPropertyUserObject>()
 {
   InputParameters params = validParams<ElementIntegralUserObject>();
-  params.addRequiredParam<std::string>("mat_prop", "the name of the material property we are going to use");
+  params.addRequiredParam<MaterialPropertyName>("mat_prop", "the name of the material property we are going to use");
   return params;
 }
 
-MaterialPropertyUserObject::MaterialPropertyUserObject(const std::string & name, InputParameters parameters) :
-    ElementIntegralUserObject(name, parameters),
-    _mat_prop(getMaterialProperty<Real>(getParam<std::string>("mat_prop")))
+MaterialPropertyUserObject::MaterialPropertyUserObject(const InputParameters & parameters) :
+    ElementIntegralUserObject(parameters),
+    _mat_prop(getMaterialProperty<Real>("mat_prop"))
 {
 }
 
@@ -69,6 +70,8 @@ MaterialPropertyUserObject::computeQpIntegral()
 Real
 MaterialPropertyUserObject::getElementalValue(unsigned int elem_id) const
 {
-
-  return _elem_integrals.at(elem_id);
+  if (_elem_integrals.size() > 0)
+    return _elem_integrals[elem_id];
+  else
+    return 0.;
 }

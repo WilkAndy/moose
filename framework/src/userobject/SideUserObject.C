@@ -15,24 +15,26 @@
 #include "SideUserObject.h"
 #include "SubProblem.h"
 #include "MooseTypes.h"
+#include "Assembly.h"
 
 template<>
 InputParameters validParams<SideUserObject>()
 {
   InputParameters params = validParams<UserObject>();
-  params += validParams<BoundaryRestrictable>();
+  params += validParams<BoundaryRestrictableRequired>();
+  params += validParams<MaterialPropertyInterface>();
   return params;
 }
 
-SideUserObject::SideUserObject(const std::string & name, InputParameters parameters) :
-    UserObject(name, parameters),
-    BoundaryRestrictable(name, parameters),
-    MaterialPropertyInterface(parameters),
+SideUserObject::SideUserObject(const InputParameters & parameters) :
+    UserObject(parameters),
+    BoundaryRestrictableRequired(parameters),
+    MaterialPropertyInterface(this, boundaryIDs()),
     Coupleable(parameters, false),
     MooseVariableDependencyInterface(),
-    UserObjectInterface(parameters),
-    TransientInterface(parameters, name, "side_user_objects"),
-    PostprocessorInterface(parameters),
+    UserObjectInterface(this),
+    TransientInterface(this),
+    PostprocessorInterface(this),
     ZeroInterface(parameters),
     _mesh(_subproblem.mesh()),
     _q_point(_assembly.qPointsFace()),

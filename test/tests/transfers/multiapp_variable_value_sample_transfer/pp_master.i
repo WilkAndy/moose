@@ -45,20 +45,14 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []
 
 [MultiApps]
   [./pp_sub]
     app_type = MooseTestApp
     positions = '0.5 0.5 0 0.7 0.7 0'
-    execute_on = timestep
+    execute_on = timestep_end
     type = TransientMultiApp
     input_files = pp_sub.i
   [../]
@@ -69,7 +63,6 @@
     source_variable = u
     direction = to_multiapp
     postprocessor = from_master
-    execute_on = timestep
     type = MultiAppVariableValueSamplePostprocessorTransfer
     multi_app = pp_sub
   [../]

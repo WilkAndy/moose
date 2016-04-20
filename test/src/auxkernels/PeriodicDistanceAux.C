@@ -23,15 +23,15 @@ InputParameters validParams<PeriodicDistanceAux>()
   return params;
 }
 
-PeriodicDistanceAux::PeriodicDistanceAux(const std::string & name, InputParameters parameters) :
-    AuxKernel(name, parameters),
+PeriodicDistanceAux::PeriodicDistanceAux(const InputParameters & parameters) :
+    AuxKernel(parameters),
     _point(getParam<Point>("point"))
 {
   // Make sure the point is in the domain
   for (unsigned int i=0; i<LIBMESH_DIM; ++i)
     if (_point(i) < _mesh.getMinInDimension(i) || _point(i) > _mesh.getMaxInDimension(i))
     {
-      Moose::out << _mesh.getMinInDimension(i) << "\t" << _mesh.getMaxInDimension(i) << "\n";
+      _console << _mesh.getMinInDimension(i) << "\t" << _mesh.getMaxInDimension(i) << "\n";
       mooseError("\"point\" is outside of the domain.");
     }
 }

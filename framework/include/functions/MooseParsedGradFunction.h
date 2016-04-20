@@ -18,10 +18,10 @@
 // MOOSE includes
 #include "Function.h"
 #include "MooseParsedFunctionBase.h"
-#include "MooseParsedFunctionWrapper.h"
 
 // Forward declerations
 class MooseParsedGradFunction;
+class MooseParsedFunctionWrapper;
 
 template<>
 InputParameters validParams<MooseParsedGradFunction>();
@@ -40,10 +40,9 @@ class MooseParsedGradFunction :
 public:
   /**
    * Class constructor
-   * @param name The name of the function
    * @param parameters The input parameters
    */
-  MooseParsedGradFunction(const std::string & name, InputParameters parameters);
+  MooseParsedGradFunction(const InputParameters & parameters);
 
   /**
    * Class destructor

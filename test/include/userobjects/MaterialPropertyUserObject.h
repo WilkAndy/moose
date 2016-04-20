@@ -1,5 +1,5 @@
 /****************************************************************/
-/*               Do NOT MODIFY THIS HEADER                      */
+/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
 /*           (c) 2010 Battelle Energy Alliance, LLC             */
@@ -11,6 +11,7 @@
 /*                                                              */
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
+
 
 #ifndef MATERIALPROPERTYUSEROBJECT_H
 #define MATERIALPROPERTYUSEROBJECT_H
@@ -29,7 +30,7 @@ class MaterialPropertyUserObject :
   public ElementIntegralUserObject
 {
 public:
-  MaterialPropertyUserObject(const std::string & name, InputParameters parameters);
+  MaterialPropertyUserObject(const InputParameters & parameters);
 
   virtual ~MaterialPropertyUserObject() {}
 
@@ -44,7 +45,7 @@ public:
 
 protected:
 
-  MaterialProperty<Real> & _mat_prop;
+  const MaterialProperty<Real> & _mat_prop;
 
   std::vector<Real> _elem_integrals;
 };

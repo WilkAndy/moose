@@ -26,7 +26,7 @@
   [../]
 
   [./conv]
-    type = Convection
+    type = ExampleConvection
     variable = convected
     some_variable = diffused
   [../]
@@ -88,14 +88,8 @@
 
 [Executioner]
   type = Transient
-
-
-  #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-
-
-
-  num_steps = 40
+  num_steps = 12
 
   # Use our custom TimeStepper
   [./TimeStepper]
@@ -107,11 +101,6 @@
 []
 
 [Outputs]
-  file_base = out
+  execute_on = 'timestep_end'
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

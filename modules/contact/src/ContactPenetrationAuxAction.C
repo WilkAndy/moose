@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "ContactPenetrationAuxAction.h"
 
 #include "Factory.h"
@@ -10,7 +16,7 @@ static unsigned int counter = 0;
 template<>
 InputParameters validParams<ContactPenetrationAuxAction>()
 {
-  MooseEnum orders("FIRST, SECOND, THIRD, FOURTH", "FIRST");
+  MooseEnum orders("FIRST SECOND THIRD FOURTH", "FIRST");
 
   InputParameters params = validParams<Action>();
   params.addRequiredParam<BoundaryName>("master", "The master surface");
@@ -19,8 +25,8 @@ InputParameters validParams<ContactPenetrationAuxAction>()
   return params;
 }
 
-ContactPenetrationAuxAction::ContactPenetrationAuxAction(const std::string & name, InputParameters params) :
-  Action(name, params),
+ContactPenetrationAuxAction::ContactPenetrationAuxAction(const InputParameters & params) :
+  Action(params),
   _master(getParam<BoundaryName>("master")),
   _slave(getParam<BoundaryName>("slave")),
   _order(getParam<MooseEnum>("order"))
@@ -35,15 +41,12 @@ ContactPenetrationAuxAction::act()
     mooseError("Contact requires updated coordinates.  Use the 'displacements = ...' line in the Mesh block.");
   }
 
-  std::string short_name(_name);
-  // Chop off "Contact/"
-  short_name.erase(0, 8);
-
   {
     InputParameters params = _factory.getValidParams("PenetrationAux");
 
     // Extract global params
-    _app.parser().extractParams(_name, params);
+    if (isParamValid("parser_syntax"))
+      _app.parser().extractParams(getParam<std::string>("parser_syntax"), params);
 
     params.set<std::vector<BoundaryName> >("boundary") = std::vector<BoundaryName>(1,_slave);
     params.set<BoundaryName>("paired_boundary") = _master;
@@ -53,7 +56,7 @@ ContactPenetrationAuxAction::act()
     params.set<bool>("use_displaced_mesh") = true;
 
     std::stringstream name;
-    name << short_name;
+    name << _name;
     name << "_contact_";
     name << counter++;
     _problem->addAuxKernel("PenetrationAux", name.str(), params);

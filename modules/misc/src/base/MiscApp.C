@@ -1,10 +1,16 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "MiscApp.h"
 #include "Moose.h"
 #include "AppFactory.h"
+#include "MooseSyntax.h"
 
 #include "BodyForceVoid.h"
 #include "CoefDiffusion.h"
-#include "Convection.h"
 #include "Density.h"
 #include "InternalVolume.h"
 #include "RobinBC.h"
@@ -16,19 +22,20 @@
 #include "RigidBodyModes3D.h"
 #include "CoupledDirectionalMeshHeightInterpolation.h"
 #include "CInterfacePosition.h"
+#include "ThermoDiffusion.h"
 
 template<>
 InputParameters validParams<MiscApp>()
 {
   InputParameters params = validParams<MooseApp>();
+  params.set<bool>("use_legacy_uo_initialization") = false;
+  params.set<bool>("use_legacy_uo_aux_computation") = false;
   return params;
 }
 
-MiscApp::MiscApp(const std::string & name, InputParameters parameters) :
-    MooseApp(name, parameters)
+MiscApp::MiscApp(const InputParameters & parameters) :
+    MooseApp(parameters)
 {
-  srand(processor_id());
-
   Moose::registerObjects(_factory);
   MiscApp::registerObjects(_factory);
 
@@ -40,12 +47,16 @@ MiscApp::~MiscApp()
 {
 }
 
+// External entry point for dynamic application loading
+extern "C" void MiscApp__registerApps() { MiscApp::registerApps(); }
 void
 MiscApp::registerApps()
 {
   registerApp(MiscApp);
 }
 
+// External entry point for dynamic object registration
+extern "C" void MiscApp__registerObjects(Factory & factory) { MiscApp::registerObjects(factory); }
 void
 MiscApp::registerObjects(Factory & factory)
 {
@@ -55,10 +66,10 @@ MiscApp::registerObjects(Factory & factory)
 
   registerKernel(BodyForceVoid);
   registerKernel(CoefDiffusion);
-  registerKernel(Convection);
   registerKernel(JouleHeating);
   registerKernel(CoefTimeDerivative);
   registerKernel(GaussContForcing);
+  registerKernel(ThermoDiffusion);
 
   registerMaterial(Density);
 
@@ -71,6 +82,8 @@ MiscApp::registerObjects(Factory & factory)
   registerPostprocessor(CInterfacePosition);
 }
 
+// External entry point for dynamic syntax association
+extern "C" void MiscApp__associateSyntax(Syntax & syntax, ActionFactory & action_factory) { MiscApp::associateSyntax(syntax, action_factory); }
 void
 MiscApp::associateSyntax(Syntax & /*syntax*/, ActionFactory & /*action_factory*/)
 {

@@ -16,7 +16,7 @@
 #define PETSCOUTPUT_H
 
 // MOOSE includes
-#include "FileOutput.h"
+#include "Output.h"
 
 // Forward declerations
 class PetscOutput;
@@ -27,16 +27,15 @@ InputParameters validParams<PetscOutput>();
 /**
  * Adds the ability to output on every nonlinear and/or linear residual
  */
-class PetscOutput : public FileOutput
+class PetscOutput : public Output
 {
 public:
 
   /**
    * Class constructor
-   * @param name Outputter name
    * @param parameters Outputter input file parameters
    */
-  PetscOutput(const std::string & name, InputParameters & parameters);
+  PetscOutput(const InputParameters & parameters);
 
   /**
    * Class destructor
@@ -44,24 +43,12 @@ public:
   virtual ~PetscOutput();
 
   /**
-   * Linear residual output status
-   * @return True if the output is currently being called on a linear residual evaluation
-   */
-  bool onLinearResidual(){ return _on_linear_residual; }
-
-  /**
-   * Non-Linear residual output status
-   * @return True if the output is currently being called on a non-linear residual evaluation
-   */
-  bool onNonlinearResidual() { return _on_nonlinear_residual; }
-
-  /**
    * Get the output time.
    * This outputter enables the ability to perform output on the nonlinear and linear iterations performed
    * by PETSc. To separate theses outputs within the output a pseudo time is defined, this function provides
    * this time and it should be used in place of _time from Outputter.
    */
-  Real time();
+  virtual Real time();
 
 protected:
 
@@ -69,23 +56,17 @@ protected:
   Real _norm;
 
   /// Current non-linear iteration returned from PETSc
-  int _nonlinear_iter;
+  PetscInt _nonlinear_iter;
 
   /// Current linear iteration returned from PETSc
-  int _linear_iter;
-
-  /// True when the user desires output on non-linear iterations
-  bool _output_nonlinear;
-
-  /// True when the user desires output on linear-iterations
-  bool _output_linear;
+  PetscInt _linear_iter;
 
 private:
 
   /**
    * Internal setup function that executes at the beginning of the time step
    */
-  void timestepSetupInternal();
+  void solveSetup();
 
 #ifdef LIBMESH_HAVE_PETSC
   /**
@@ -115,10 +96,10 @@ private:
   /// Psuedo linear time step
   Real _linear_dt;
 
-  /// True if current output calls is on the linear residual
+  /// True if current output calls is on the linear residual (used by time())
   bool _on_linear_residual;
 
-  /// True if current output call is on the non-linear residual
+  /// True if current output call is on the non-linear residual (used by time())
   bool _on_nonlinear_residual;
 
   /// Pseudo non-linear timestep divisor

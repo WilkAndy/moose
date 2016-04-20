@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #include "RichardsPlotQuantity.h"
 #include "RichardsSumQuantity.h"
@@ -15,8 +18,8 @@ InputParameters validParams<RichardsPlotQuantity>()
   return params;
 }
 
-RichardsPlotQuantity::RichardsPlotQuantity(const std::string & name, InputParameters parameters) :
-    GeneralPostprocessor(name, parameters),
+RichardsPlotQuantity::RichardsPlotQuantity(const InputParameters & parameters) :
+    GeneralPostprocessor(parameters),
     _total_mass(getUserObject<RichardsSumQuantity>("uo"))
 {
 }
@@ -40,3 +43,4 @@ RichardsPlotQuantity::getValue()
 {
   return _total_mass.getValue();
 }
+

@@ -97,12 +97,17 @@ YAMLFormatter::printParams(const std::string &prefix, const std::string & /*full
     {
       InputParameters::Parameter<MooseEnum> * enum_type = dynamic_cast<InputParameters::Parameter<MooseEnum>*>(iter->second);
       if (enum_type)
-        oss << "\n" << indent << "    options: " << enum_type->get().getRawNamesNoCommas();
+        oss << "\n" << indent << "    options: " << enum_type->get().getRawNames();
+    }
+    {
+      InputParameters::Parameter<MultiMooseEnum> * enum_type = dynamic_cast<InputParameters::Parameter<MultiMooseEnum>*>(iter->second);
+      if (enum_type)
+        oss << "\n" << indent << "    options: " << enum_type->get().getRawNames();
     }
     {
       InputParameters::Parameter<std::vector<MooseEnum> > * enum_type = dynamic_cast<InputParameters::Parameter<std::vector<MooseEnum> >*>(iter->second);
       if (enum_type)
-        oss << "\n" << indent << "    options: " << (enum_type->get())[0].getRawNamesNoCommas();
+        oss << "\n" << indent << "    options: " << (enum_type->get())[0].getRawNames();
     }
 
     oss << "\n" << indent << "    description: |\n      " << indent
@@ -122,14 +127,17 @@ YAMLFormatter::preTraverse(short depth) const
 
 
 std::string
-YAMLFormatter::printBlockOpen(const std::string &name, short depth, const std::string &type) const
+YAMLFormatter::printBlockOpen(const std::string &name, short depth, const std::string & doc) const
 {
   std::ostringstream oss;
   std::string indent(depth*2, ' ');
 
-  oss << indent << "- name: " << (name == "*" ? type : name) << "\n";
-  oss << indent << "  description: !!str\n";
-  oss << indent << "  type: " << type << "\n";
+  std::string docEscaped = doc;
+  MooseUtils::escape(docEscaped);
+
+  oss << indent << "- name: " << name << "\n";
+  oss << indent << "  description: |\n"
+      << indent << "    " << docEscaped << "\n";
   oss << indent << "  parameters:\n";
 
   return oss.str();

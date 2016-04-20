@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef MODULESAPP_H
 #define MODULESAPP_H
 
@@ -11,7 +17,7 @@ InputParameters validParams<ModulesApp>();
 class ModulesApp : public MooseApp
 {
 public:
-  ModulesApp(const std::string & name, InputParameters parameters);
+  ModulesApp(const InputParameters & parameters);
   virtual ~ModulesApp();
 
   static void registerApps();

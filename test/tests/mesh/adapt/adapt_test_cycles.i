@@ -94,10 +94,5 @@
 
 [Outputs]
   file_base = out_cycles
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

@@ -15,21 +15,26 @@
 #ifndef AUXILIARYSYSTEM_H
 #define AUXILIARYSYSTEM_H
 
-#include <set>
+// MOOSE includes
 #include "SystemBase.h"
-#include "ExecStore.h"
-#include "AuxWarehouse.h"
-#include "TimeIntegrator.h"
+#include "ExecuteMooseObjectWarehouse.h"
 
 // libMesh include
-#include "libmesh/equation_systems.h"
 #include "libmesh/explicit_system.h"
 #include "libmesh/transient_system.h"
 
-#include "libmesh/numeric_vector.h"
-
+// Forward declarations
 class AuxKernel;
 class FEProblem;
+class TimeIntegrator;
+class AuxScalarKernel;
+class AuxKernel;
+
+// libMesh forward declarations
+namespace libMesh
+{
+template <typename T> class NumericVector;
+}
 
 /**
  * A system that holds auxiliary variables
@@ -45,8 +50,10 @@ public:
 
   virtual void initialSetup();
   virtual void timestepSetup();
+  virtual void subdomainSetup();
   virtual void residualSetup();
   virtual void jacobianSetup();
+  virtual void updateActive(THREAD_ID tid);
 
   virtual void addVariable(const std::string & var_name, const FEType & type, Real scale_factor, const std::set< SubdomainID > * const active_subdomains = NULL);
 
@@ -80,21 +87,20 @@ public:
   virtual const NumericVector<Number> * & currentSolution() { _current_solution = _sys.current_local_solution.get(); return _current_solution; }
 
   virtual NumericVector<Number> & solutionUDot();
-  virtual NumericVector<Number> & solutionDuDotDu();
 
   virtual void serializeSolution();
   virtual NumericVector<Number> & serializedSolution();
 
   // This is an empty function since the Aux system doesn't have a matrix!
   virtual void augmentSparsity(SparsityPattern::Graph & /*sparsity*/,
-                               std::vector<unsigned int> & /*n_nz*/,
-                               std::vector<unsigned int> & /*n_oz*/);
+                               std::vector<dof_id_type> & /*n_nz*/,
+                               std::vector<dof_id_type> & /*n_oz*/);
 
   /**
    * Compute auxiliary variables
    * @param type Time flag of which variables should be computed
    */
-  virtual void compute(ExecFlagType type = EXEC_RESIDUAL);
+  virtual void compute(ExecFlagType type);
 
   /**
    * Get a list of dependent UserObjects for this exec type
@@ -102,7 +108,7 @@ public:
    * @return a set of dependent user objects
    */
   std::set<std::string> getDependObjects(ExecFlagType type);
-
+  std::set<std::string> getDependObjects();
   /**
    * Adds a solution length vector to the system.
    *
@@ -127,22 +133,20 @@ public:
   bool needMaterialOnSide(BoundaryID bnd_id);
 
 protected:
-  void computeScalarVars(std::vector<AuxWarehouse> & auxs);
-  void computeNodalVars(std::vector<AuxWarehouse> & auxs);
-  void computeElementalVars(std::vector<AuxWarehouse> & auxs);
+  void computeScalarVars(ExecFlagType type);
+  void computeNodalVars(ExecFlagType type);
+  void computeElementalVars(ExecFlagType type);
 
-  FEProblem & _mproblem;
+  FEProblem & _fe_problem;
 
   /// solution vector from nonlinear solver
   const NumericVector<Number> * _current_solution;
   /// Serialized version of the solution vector
   NumericVector<Number> & _serialized_solution;
   /// Time integrator
-  TimeIntegrator * _time_integrator;
+  MooseSharedPointer<TimeIntegrator> _time_integrator;
   /// solution vector for u^dot
   NumericVector<Number> & _u_dot;
-  /// solution vector for \f$ {du^dot}\over{du} \f$
-  NumericVector<Number> & _du_dot_du;
 
   /// Whether or not a copy of the residual needs to be made
   bool _need_serialized_solution;
@@ -151,7 +155,14 @@ protected:
   std::vector<std::map<std::string, MooseVariable *> > _nodal_vars;
   std::vector<std::map<std::string, MooseVariable *> > _elem_vars;
 
-  ExecStore<AuxWarehouse> _auxs;
+  // Storage for AuxScalarKernel objects
+  ExecuteMooseObjectWarehouse<AuxScalarKernel> _aux_scalar_storage;
+
+  // Storage for AuxKernel objects
+  ExecuteMooseObjectWarehouse<AuxKernel> _nodal_aux_storage;
+
+  // Storage for AuxKernel objects
+  ExecuteMooseObjectWarehouse<AuxKernel> _elemental_aux_storage;
 
   friend class AuxKernel;
   friend class ComputeNodalAuxVarsThread;
@@ -161,6 +172,10 @@ protected:
   friend class ComputeIndicatorThread;
   friend class ComputeMarkerThread;
   friend class FlagElementsThread;
+  friend class ComputeNodalKernelsThread;
+  friend class ComputeNodalKernelBcsThread;
+  friend class ComputeNodalKernelJacobiansThread;
+  friend class ComputeNodalKernelBCJacobiansThread;
 };
 
 #endif /* EXPLICITSYSTEM_H */

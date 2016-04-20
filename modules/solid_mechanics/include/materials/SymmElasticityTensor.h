@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef SYMMELASTICITYTENSOR_H
 #define SYMMELASTICITYTENSOR_H
 
@@ -82,7 +88,7 @@ public:
 
   virtual Real stiffness( const unsigned int i, const unsigned int j,
                           const RealGradient & test,
-                          const RealGradient & phi );
+                          const RealGradient & phi ) const;
 
   SymmElasticityTensor operator+(const SymmElasticityTensor & rhs) const
     {
@@ -184,6 +190,18 @@ protected:
                  // 3 in fourth
                  // 2 in fifth
                  // 1 in sixth
+
+  template<class T>
+  friend void dataStore(std::ostream &, T &, void *);
+
+  template<class T>
+  friend void dataLoad(std::istream &, T &, void *);
 };
+
+template<>
+void dataStore(std::ostream &, SymmElasticityTensor &, void *);
+
+template<>
+void dataLoad(std::istream &, SymmElasticityTensor &, void *);
 
 #endif //SYMMELASTICITYTENSOR_H

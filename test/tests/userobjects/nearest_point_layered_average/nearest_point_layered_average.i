@@ -29,7 +29,7 @@
   [./np_layered_average]
     type = SpatialUserObjectAux
     variable = np_layered_average
-    execute_on = timestep
+    execute_on = timestep_end
     user_object = npla
   [../]
 []
@@ -70,11 +70,5 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

@@ -175,11 +175,6 @@
 
 [Outputs]
   file_base = bl01_adapt
-  output_initial = true
   interval = 10000
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

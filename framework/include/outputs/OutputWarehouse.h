@@ -15,16 +15,12 @@
 #ifndef OUTPUTWAREHOUSE_H
 #define OUTPUTWAREHOUSE_H
 
-// Standard includes
-#include <vector>
-
 // MOOSE includes
-#include "InputParameters.h"
+#include "Output.h"
 
 // Forward declarations
-class Output;
-class Checkpoint;
 class FEProblem;
+class InputParameters;
 
 /**
  * Class for storing and utilizing output objects
@@ -36,7 +32,7 @@ public:
   /**
    * Class constructor
    */
-  OutputWarehouse();
+  OutputWarehouse(MooseApp & app);
 
   /*
    * Class destructor
@@ -50,39 +46,26 @@ public:
    * It is the responsibility of the OutputWarehouse to delete the output objects
    * add using this method
    */
-  void addOutput(Output * output);
+  void addOutput(MooseSharedPointer<Output> & output);
 
   /**
-   * Get a complete list of all output objects
-   * @return A vector of pointers to each of the output objects
+   * Get a complete set of all output object names
+   * @return A set of output names for each output object
+   *
+   * Note, if this method is called prior to the creation of outputs in AddOutputAction it will
+   * create the proxy list of names from the action system. The main use is for the OutputInterface,
+   * specifically, when used with Postprocessors in the UserObjects block of the input file.
+   * UserObjects are created prior to Outputs objects, but OutputInterface needs the list
+   * of output names to operate correctly.
+   *
    */
-  const std::vector<Output *> & getOutputs() const;
+  const std::set<OutputName> & getOutputNames();
 
   /**
    * Returns true if the output object exists
    * @param name The name of the output object for which to test for existence within the warehouse
    */
-  bool hasOutput(const std::string & name);
-
-  /**
-   * Calls the outputInitial method for each of the output objects
-   */
-  void outputInitial();
-
-  /**
-   * Calls the outputFailedStep method for each output object
-   */
-  void outputFailedStep();
-
-  /**
-   * Calls the outputStep method for each output object
-   */
-  void outputStep();
-
-  /**
-   * Calls the outputFinal method for each output object
-   */
-  void outputFinal();
+  bool hasOutput(const std::string & name) const;
 
   /**
    * Calls the meshChanged method for every output object
@@ -90,27 +73,19 @@ public:
   void meshChanged();
 
   /**
-   * Calls the allowOutput method for every output object
-   */
-  void allowOutput(bool state);
-
-  /**
-   * Calls the forceOutput method for every output object
-   */
-  void forceOutput();
-
-  /**
-   * Creates a list of automatically generated material property AuxVariable to hide
-   * @param name The name of the output object to compose the list of hidden variables
+   * Return the list of hidden variables for the given output name
+   * @param output_name The name of the output object for which the variables should be returned
+   * @param hide The set of variables to hide which is built by this method
    *
-   * The Material system has the ability to automatically generate AuxVariables for
-   * material property outputting. This includes the ability to control which output
-   * object the variables are written. This method extracts the list of AuxVariables
-   * that should be hidden for the supplied output object name.
+   * Objects inheriting from the OutputInterface have the ability to control the output of variables
+   * associated with the objects (i.e., Marker elemental variable). This method returns a list
+   * of variables that should be hidden for the supplied object name due to the 'outputs' parameter
+   * being set by the object(s).
    *
-   * @see Output::initOutputList
+   * This method is used by Output::initOutputList to populate the correct hide lists for the
+   * output object, it is not intended for general use.
    */
-  std::vector<std::string> getMaterialOutputHideList(const std::string & name);
+  void buildInterfaceHideVariables(const std::string & output_name, std::set<std::string> & hide);
 
   /**
    * Calls the setFileNumber method for every FileOutput output object
@@ -133,9 +108,9 @@ public:
 
   /**
    * Get a reference to the common output parameters
-   * @return Reference to the common InputParameters object
+   * @return Pointer to the common InputParameters object
    */
-  InputParameters & getCommonParameters();
+  InputParameters * getCommonParameters();
 
   /**
    * Return the sync times for all objects
@@ -143,13 +118,8 @@ public:
   std::set<Real> & getSyncTimes();
 
   /**
-   * Call the init() method for each of the Outputs
-   */
-  void init();
-
-  /**
    * Test that the output names exist
-   * @param A vector of names to check
+   * @param names A vector of names to check
    * This method will produce an error if any of the supplied
    * names do not exist in the warehouse. Reserved names are not considered.
    */
@@ -157,8 +127,8 @@ public:
 
   /**
    * Return an Output object by name
-   * @tparam T The Output object type to return
-   * @param The name of the output object
+   * @tparam T The Out put object type to return
+   * @param name The name of the output object
    * @return A pointer to the output object
    */
   template<typename T>
@@ -179,7 +149,7 @@ public:
    * @return A pointer to the output object
    */
   template<typename T>
-  std::vector<T *> getOutputs();
+  std::vector<T *> getOutputs() const;
 
   /**
    * Return a list of output objects with a given type
@@ -193,7 +163,7 @@ public:
    * Return a set of reserved output names
    * @return A std::set of reserved names
    */
-  const std::set<std::string> & getReservedNames();
+  const std::set<std::string> & getReservedNames() const;
 
   /**
    * Test if the given name is reserved
@@ -202,7 +172,56 @@ public:
    */
   bool isReservedName(const std::string & name);
 
+  /**
+   * Send current output buffer to Console output objects
+   */
+  void mooseConsole();
+
+  /**
+   * The buffered messages stream for Console objects
+   * @return Reference to the stream storing cached messages from calls to _console
+   */
+  std::ostringstream & consoleBuffer() { return _console_buffer; }
+
+  /**
+   * Set if the outputs to Console before its construction are to be buffered or to screen directly
+   * @param buffer Ture to buffer
+   */
+  void bufferConsoleOutputsBeforeConstruction(bool buffer) { _buffer_action_console_outputs = buffer; }
+
 private:
+
+  /**
+   * Calls the outputStep method for each output object
+   * @param type The type execution flag (see Moose.h)
+   *
+   * This is private, users should utilize FEProblem::outputStep()
+   */
+  void outputStep(ExecFlagType type);
+
+  ///@{
+  /**
+   * Ability to enable/disable output calls
+   * This is private, users should utilize FEProblem::allowOutput()
+   * @see FEProblem::allowOutput()
+   */
+  void allowOutput(bool state);
+  template <typename T> void allowOutput(bool state);
+  ///@}
+
+
+  /**
+   * Indicates that the next call to outputStep should be forced
+   * This is private, users should utilize FEProblem::forceOutput()
+   * @see FEProblem::forceOutput()
+   */
+  void forceOutput();
+
+  /**
+   * We are using MooseSharedPointer to handle the cleanup of the pointers at the end of execution.
+   * This is necessary since several warehouses might be sharing a single instance of a MooseObject.
+   */
+  std::vector<MooseSharedPointer<Output> > _all_ptrs;
 
   /**
    * Adds the file name to the list of filenames being output
@@ -210,7 +229,7 @@ private:
    * does not already exist to protect against output files overwriting each other
    * @param filename Name of an output file (extracted from filename() method of the objects)
    */
-  void addOutputFilename(OutFileBase filename);
+  void addOutputFilename(const OutFileBase & filename);
 
   /**
    * Calls the initialSetup function for each of the output objects
@@ -225,38 +244,73 @@ private:
   void timestepSetup();
 
   /**
-   * Method for populating and updating variables associated with automatic material output
-   * @param outputs A vector output object names
-   * @param variables A set of variables names to be output for the given output names
-   *
-   * This is a private function that is called by the friend class MaterialOutputAction, it is not
-   * intended for any other purpose than automatic material property output control.
+   * Calls the timestepSetup function for each of the output objects
+   * @see FEProblem::solve()
    */
-  void updateMaterialOutput(const std::set<OutputName> & outputs, const std::set<AuxVariableName> & variables);
+  void solveSetup();
 
   /**
-   * Method for setting the complete list of auto generated material property output AuxVariables
-   * @param variables The set of variables to store as the complete list
-   *
-   * This complete list is compared with the output specific lists by getMaterialOutputHideList to
-   * generate this variables that should be hidden for a given output object
+   * Calls the jacobianSetup function for each of the output objects
+   * @see FEProblem::computeJacobian
    */
-  void setMaterialOutputVariables(const std::set<AuxVariableName> & variables);
+  void jacobianSetup();
 
-  /// The list of all output objects
-  std::vector<Output *> _object_ptrs;
+  /**
+   * Calls the residualSetup function for each of the output objects
+   * @see FEProblem::computeResidualTyp
+   */
+  void residualSetup();
+
+  /**
+   * Calls the subdomainSetup function for each of the output objects
+   * @see FEProblem::setupSubdomain
+   */
+  void subdomainSetup();
+
+  /**
+   * Insert variable names for hiding via the OutoutInterface
+   * @param output_name The name of the output object on which the variable is to be hidden
+   * @param variable_names The names of the variables to be hidden
+   *
+   * This is a private method used by the OutputInterface system, it is not intended for any
+   * other purpose.
+   */
+  void addInterfaceHideVariables(const std::string & output_name, const std::set<std::string> & variable_names);
+
+  /**
+   * Sets the execution flag type
+   *
+   * This is a private method used by FEProblem, it is not intended for any other purpose
+   */
+  void setOutputExecutionType(ExecFlagType type);
+
+  /**
+   * If content exists in the buffer, write it.
+   * This is used by Console to make sure PETSc related output does not dump
+   * before buffered content. It is private because people shouldn't be messing with it.
+   */
+  void flushConsoleBuffer();
+
+  /// MooseApp
+  MooseApp & _app;
+
+  /// All instances of objects (raw pointers)
+  std::vector<Output *> _all_objects;
+
+  /// True to buffer console outputs in actions
+  bool _buffer_action_console_outputs;
 
   /// A map of the output pointers
   std::map<OutputName, Output *> _object_map;
 
+  /// A set of output names
+  std::set<OutputName> _object_names;
+
   /// List of object names
-  std::set<OutFileBase> _filenames;
+  std::set<OutFileBase> _file_base_set;
 
   /// Pointer to the common InputParameters (@see CommonOutputAction)
   InputParameters * _common_params_ptr;
-
-  /// True if a Console output object is added to the warehouse, used to check for multiple screen outputs
-  bool _has_screen_console;
 
   /// Sync times for all objects
   std::set<Real> _sync_times;
@@ -273,9 +327,30 @@ private:
   /// List of reserved names
   std::set<std::string> _reserved;
 
-  // Allow complete access to FEProblem for calling initial/timestepSetup functions
+  /// The stream for holding messages passed to _console prior to Output object construction
+  std::ostringstream _console_buffer;
+
+  /// Storage for variables to hide as prescribed by the object via the OutputInterface
+  std::map<std::string, std::set<std::string> > _interface_map;
+
+  /// The current output execution flag
+  ExecFlagType _output_exec_flag;
+
+  /// Flag indicating that next call to outputStep is forced
+  bool _force_output;
+
+  // Allow complete access:
+  // FEProblem for calling initial, timestepSetup, outputStep, etc. methods
   friend class FEProblem;
+
+  // MaterialOutputAction for calling addInterfaceHideVariables
   friend class MaterialOutputAction;
+
+  // OutputInterface for calling addInterfaceHideVariables
+  friend class OutputInterface;
+
+  // Console for calling flushConsoleBuffer()
+  friend class PetscOutput;
 };
 
 template<typename T>
@@ -314,7 +389,7 @@ OutputWarehouse::getOutputs(const std::vector<OutputName> & names)
 
 template<typename T>
 std::vector<T *>
-OutputWarehouse::getOutputs()
+OutputWarehouse::getOutputs() const
 {
   // The vector to output
   std::vector<T *> outputs;
@@ -331,11 +406,6 @@ OutputWarehouse::getOutputs()
   return outputs;
 }
 
-/**
- * Return a list of output objects with a given type
- * @tparam T The output object type
- * @return A vector of names
- */
 template<typename T>
 std::vector<OutputName>
 OutputWarehouse::getOutputNames()
@@ -353,6 +423,15 @@ OutputWarehouse::getOutputNames()
 
   // Return the names
   return names;
+}
+
+template<typename T>
+void
+OutputWarehouse::allowOutput(bool state)
+{
+  std::vector<T *> outputs = getOutputs<T>();
+  for (typename std::vector<T *>::iterator it = outputs.begin(); it != outputs.end(); ++it)
+    (*it)->allowOutput(state);
 }
 
 #endif // OUTPUTWAREHOUSE_H

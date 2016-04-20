@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #include "RichardsExcavFlow.h"
 #include "Function.h"
@@ -17,12 +20,11 @@ InputParameters validParams<RichardsExcavFlow>()
   return params;
 }
 
-RichardsExcavFlow::RichardsExcavFlow(const std::string & name, InputParameters parameters) :
-    SideIntegralVariablePostprocessor(name, parameters),
-    FunctionInterface(parameters),
+RichardsExcavFlow::RichardsExcavFlow(const InputParameters & parameters) :
+    SideIntegralVariablePostprocessor(parameters),
 
     _richards_name_UO(getUserObject<RichardsVarNames>("richardsVarNames_UO")),
-    _pvar(_richards_name_UO.richards_var_num(_var.number())),
+    _pvar(_richards_name_UO.richards_var_num(coupled("variable"))),
 
     _flux(getMaterialProperty<std::vector<RealVectorValue> >("flux")),
 
@@ -34,3 +36,4 @@ RichardsExcavFlow::computeQpIntegral()
 {
   return -_func.value(_t, _q_point[_qp])*_normals[_qp]*_flux[_qp][_pvar]*_dt;
 }
+

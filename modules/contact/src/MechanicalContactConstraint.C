@@ -1,28 +1,26 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
-#include "MechanicalContactConstraint.h"
 
+// MOOSE includes
+#include "MechanicalContactConstraint.h"
 #include "SystemBase.h"
 #include "PenetrationLocator.h"
+#include "Assembly.h"
+#include "MooseMesh.h"
+#include "FrictionalContactProblem.h"
 
 // libMesh includes
 #include "libmesh/string_to_enum.h"
+#include "libmesh/sparse_matrix.h"
 
 template<>
 InputParameters validParams<MechanicalContactConstraint>()
 {
-  MooseEnum orders("CONSTANT, FIRST, SECOND, THIRD, FOURTH", "FIRST");
+  MooseEnum orders("CONSTANT FIRST SECOND THIRD FOURTH", "FIRST");
 
   InputParameters params = validParams<NodeFaceConstraint>();
   params.addRequiredParam<BoundaryName>("boundary", "The master boundary");
@@ -38,35 +36,48 @@ InputParameters validParams<MechanicalContactConstraint>()
   params.addParam<Real>("penalty", 1e8, "The penalty to apply.  This can vary depending on the stiffness of your materials");
   params.addParam<Real>("friction_coefficient", 0, "The friction coefficient");
   params.addParam<Real>("tangential_tolerance", "Tangential distance to extend edges of contact surfaces");
+  params.addParam<Real>("capture_tolerance", 0, "Normal distance from surface within which nodes are captured");
   params.addParam<Real>("normal_smoothing_distance", "Distance from edge in parametric coordinates over which to smooth contact normal");
   params.addParam<std::string>("normal_smoothing_method","Method to use to smooth normals (edge_based|nodal_normal_based)");
   params.addParam<MooseEnum>("order", orders, "The finite element order");
 
-  params.addParam<Real>("tension_release", 0.0, "Tension release threshold.  A node in contact will not be released if its tensile load is below this value.  Must be positive.");
+  params.addParam<Real>("tension_release", 0.0, "Tension release threshold.  A node in contact will not be released if its tensile load is below this value.  No tension release if negative.");
 
   params.addParam<std::string>("formulation", "default", "The contact formulation");
+  params.addParam<bool>("normalize_penalty", false, "Whether to normalize the penalty parameter with the nodal area for penalty contact.");
+  params.addParam<bool>("master_slave_jacobian", true, "Whether to include jacobian entries coupling master and slave nodes.");
+  params.addParam<bool>("connected_slave_nodes_jacobian", true, "Whether to include jacobian entries coupling nodes connected to slave nodes.");
+  params.addParam<bool>("non_displacement_variables_jacobian", true, "Whether to include jacobian entries coupling with variables that are not displacement variables.");
+  params.addParam<unsigned int>("stick_lock_iterations", std::numeric_limits<unsigned int>::max(), "Number of times permitted to switch between sticking and slipping in a solution before locking node in a sticked state.");
+  params.addParam<Real>("stick_unlock_factor", 1.5, "Factor by which frictional capacity must be exceeded to permit stick-locked node to slip again.");
   return params;
 }
 
-MechanicalContactConstraint::MechanicalContactConstraint(const std::string & name, InputParameters parameters) :
-  NodeFaceConstraint(name, parameters),
-  _component(getParam<unsigned int>("component")),
-  _model(contactModel(getParam<std::string>("model"))),
-  _formulation(contactFormulation(getParam<std::string>("formulation"))),
-  _penalty(getParam<Real>("penalty")),
-  _friction_coefficient(getParam<Real>("friction_coefficient")),
-  _tension_release(getParam<Real>("tension_release")),
-  _update_contact_set(true),
-  _time_last_called(-std::numeric_limits<Real>::max()),
-  _residual_copy(_sys.residualGhosted()),
-  _x_var(isCoupled("disp_x") ? coupled("disp_x") : 99999),
-  _y_var(isCoupled("disp_y") ? coupled("disp_y") : 99999),
-  _z_var(isCoupled("disp_z") ? coupled("disp_z") : 99999),
-  _mesh_dimension(_mesh.dimension()),
-  _vars(_x_var, _y_var, _z_var),
-  _nodal_area_var(getVar("nodal_area", 0)),
-  _aux_system( _nodal_area_var->sys() ),
-  _aux_solution( _aux_system.currentSolution() )
+MechanicalContactConstraint::MechanicalContactConstraint(const InputParameters & parameters) :
+    NodeFaceConstraint(parameters),
+    _component(getParam<unsigned int>("component")),
+    _model(contactModel(getParam<std::string>("model"))),
+    _formulation(contactFormulation(getParam<std::string>("formulation"))),
+    _normalize_penalty(getParam<bool>("normalize_penalty")),
+    _penalty(getParam<Real>("penalty")),
+    _friction_coefficient(getParam<Real>("friction_coefficient")),
+    _tension_release(getParam<Real>("tension_release")),
+    _capture_tolerance(getParam<Real>("capture_tolerance")),
+    _stick_lock_iterations(getParam<unsigned int>("stick_lock_iterations")),
+    _stick_unlock_factor(getParam<Real>("stick_unlock_factor")),
+    _update_contact_set(true),
+    _residual_copy(_sys.residualGhosted()),
+    _x_var(isCoupled("disp_x") ? coupled("disp_x") : libMesh::invalid_uint),
+    _y_var(isCoupled("disp_y") ? coupled("disp_y") : libMesh::invalid_uint),
+    _z_var(isCoupled("disp_z") ? coupled("disp_z") : libMesh::invalid_uint),
+    _mesh_dimension(_mesh.dimension()),
+    _vars(_x_var, _y_var, _z_var),
+    _nodal_area_var(getVar("nodal_area", 0)),
+    _aux_system(_nodal_area_var->sys()),
+    _aux_solution(_aux_system.currentSolution()),
+    _master_slave_jacobian(getParam<bool>("master_slave_jacobian")),
+    _connected_slave_nodes_jacobian(getParam<bool>("connected_slave_nodes_jacobian")),
+    _non_displacement_vars_jacobian(getParam<bool>("non_displacement_variables_jacobian"))
 {
   _overwrite_slave_residual = false;
 
@@ -79,7 +90,33 @@ MechanicalContactConstraint::MechanicalContactConstraint(const std::string & nam
   if (parameters.isParamValid("normal_smoothing_method"))
     _penetration_locator.setNormalSmoothingMethod(parameters.get<std::string>("normal_smoothing_method"));
 
-  _penetration_locator.setUpdate(false);
+  // The CM_COULOMB_MP option for the contact model is for use only for kinematic
+  // enforcement in an iteration scheme in which a series of "model problems"
+  // are solved where the constraints are treated as glued during the nonlinear
+  // iterations, and then slip is updated after convergence. This is done using
+  // FrictionalContactProblem. Use this option if FrictionalContactProblem is used.
+  FEProblem * fe_problem = getParam<FEProblem *>("_fe_problem");
+  if (dynamic_cast<FrictionalContactProblem *>(fe_problem) != NULL)
+  {
+    if (_model == CM_COULOMB &&
+        _formulation == CF_KINEMATIC)
+      _model = CM_COULOMB_MP;
+    if (_model == CM_COULOMB_MP &&
+        _formulation != CF_KINEMATIC)
+      mooseError("The coulomb_mp contact model is for use only with the kinematic formulation");
+  }
+  else
+  {
+    if (_model == CM_COULOMB_MP)
+      mooseError("The coulomb_mp contact model is for use only with FrictionalContactProblem");
+  }
+
+  if (_model == CM_GLUED ||
+      (_model == CM_COULOMB_MP && _formulation == CF_KINEMATIC))
+    _penetration_locator.setUpdate(false);
+
+  if (_friction_coefficient < 0)
+    mooseError("The friction coefficient must be nonnegative");
 }
 
 void
@@ -87,17 +124,8 @@ MechanicalContactConstraint::timestepSetup()
 {
   if (_component == 0)
   {
-    _penetration_locator._unlocked_this_step.clear();
-    _penetration_locator._locked_this_step.clear();
-    bool beginning_of_step = false;
-    if (_t > _time_last_called)
-    {
-      beginning_of_step = true;
-      _penetration_locator.saveContactStateVars();
-    }
-    updateContactSet(beginning_of_step);
+    updateContactSet(true);
     _update_contact_set = false;
-    _time_last_called = _t;
   }
 }
 
@@ -115,171 +143,112 @@ MechanicalContactConstraint::jacobianSetup()
 void
 MechanicalContactConstraint::updateContactSet(bool beginning_of_step)
 {
-  std::set<unsigned int> & has_penetrated = _penetration_locator._has_penetrated;
-  std::map<unsigned int, unsigned> & unlocked_this_step = _penetration_locator._unlocked_this_step;
-  std::map<unsigned int, unsigned> & locked_this_step = _penetration_locator._locked_this_step;
-  std::map<unsigned int, Real> & lagrange_multiplier = _penetration_locator._lagrange_multiplier;
-
-  std::map<unsigned int, PenetrationInfo *>::iterator it = _penetration_locator._penetration_info.begin();
-  std::map<unsigned int, PenetrationInfo *>::iterator end = _penetration_locator._penetration_info.end();
-
+  std::map<dof_id_type, PenetrationInfo *>::iterator
+    it  = _penetration_locator._penetration_info.begin(),
+    end = _penetration_locator._penetration_info.end();
   for (; it!=end; ++it)
   {
+    const dof_id_type slave_node_num = it->first;
     PenetrationInfo * pinfo = it->second;
-    if (!pinfo)
-      continue;
 
-    const unsigned int slave_node_num = it->first;
-    std::set<unsigned int>::iterator hpit = has_penetrated.find(slave_node_num);
+    // Skip this pinfo if there are no DOFs on this node.
+    if ( ! pinfo || pinfo->_node->n_comp(_sys.number(), _vars(_component)) < 1 )
+      continue;
 
     if (beginning_of_step)
     {
-      if (hpit != has_penetrated.end())
-        pinfo->_penetrated_at_beginning_of_step = true;
-      else
-        pinfo->_penetrated_at_beginning_of_step = false;
-
+      pinfo->_locked_this_step = 0;
+      pinfo->_stick_locked_this_step = 0;
       pinfo->_starting_elem = it->second->_elem;
       pinfo->_starting_side_num = it->second->_side_num;
       pinfo->_starting_closest_point_ref = it->second->_closest_point_ref;
+      pinfo->_contact_force_old = pinfo->_contact_force;
+      pinfo->_accumulated_slip_old = pinfo->_accumulated_slip;
+      pinfo->_frictional_energy_old = pinfo->_frictional_energy;
+      pinfo->_lagrange_multiplier = 0;
+      if (pinfo->isCaptured() && _model == CM_COULOMB)
+        pinfo ->_mech_status_old = PenetrationInfo::MS_STICKING;
     }
+    pinfo->_incremental_slip_prev_iter = pinfo->_incremental_slip;
+    if (pinfo->_mech_status == PenetrationInfo::MS_SLIPPING &&
+        pinfo->_mech_status_old != PenetrationInfo::MS_SLIPPING)
+      ++pinfo->_stick_locked_this_step;
+    pinfo->_mech_status_old = pinfo->_mech_status;
 
-    const Node * node = pinfo->_node;
-    unsigned int dof = node->dof_number(_aux_system.number(), _nodal_area_var->number(), 0);
-    Real area = (*_aux_solution)( dof );
-    if (area == 0)
+    const Real contact_pressure = -(pinfo->_normal * pinfo->_contact_force) / nodalArea(*pinfo);
+    const Real distance = pinfo->_normal * (pinfo->_closest_point - _mesh.node(slave_node_num));
+
+    // Capture
+    if ( ! pinfo->isCaptured() && MooseUtils::absoluteFuzzyGreaterEqual(distance, 0, _capture_tolerance))
     {
-      if (_t_step > 1)
-        mooseError("Zero nodal area found");
-      else
-        area = 1; // Avoid divide by zero during initialization
-    }
+      pinfo->capture();
 
-    if (_model == CM_EXPERIMENTAL ||
-        (_model == CM_COULOMB && _formulation == CF_DEFAULT))
+      // Increment the lock count every time the node comes back into contact from not being in contact.
+      if (_formulation == CF_KINEMATIC)
+        ++pinfo->_locked_this_step;
+    }
+    // Release
+    else if (_model != CM_GLUED &&
+             pinfo->isCaptured() &&
+             _tension_release >= 0 &&
+             -contact_pressure >= _tension_release &&
+             pinfo->_locked_this_step < 2)
     {
-
-      Real resid( -(pinfo->_normal * pinfo->_contact_force) / area );
-
-      // Moose::out << locked_this_step[slave_node_num] << " " << pinfo->_distance << std::endl;
-      const Real distance( pinfo->_normal * (pinfo->_closest_point - _mesh.node(node->id())));
-
-      if (hpit != has_penetrated.end() && resid < -_tension_release && locked_this_step[slave_node_num] < 2)
-      {
-        //Moose::out << "Releasing node " << node->id() << " " << resid << " < " << -_tension_release << std::endl;
-        has_penetrated.erase(hpit);
-        pinfo->_contact_force.zero();
-        pinfo->_mech_status=PenetrationInfo::MS_NO_CONTACT;
-        ++unlocked_this_step[slave_node_num];
-      }
-      else if (distance > 0)
-      {
-        if (hpit == has_penetrated.end())
-        {
-          //Moose::out << "Capturing node " << node->id() << " " << distance << " " << unlocked_this_step[slave_node_num] <<  std::endl;
-          ++locked_this_step[slave_node_num];
-          has_penetrated.insert(slave_node_num);
-        }
-      }
-    }
-    else if (_formulation == CF_PENALTY)
-    {
-      if (pinfo->_distance >= 0)  //Penetrated
-      {
-        if (hpit == has_penetrated.end())
-          has_penetrated.insert(slave_node_num);
-      }
-      else if ((pinfo->_contact_force * pinfo->_normal) / area < 0) //In contact and in compression
-      {
-        // Do nothing.
-      }
-      else
-      {
-        if (hpit != has_penetrated.end())
-          has_penetrated.erase(hpit);
-        pinfo->_contact_force.zero();
-        pinfo->_mech_status=PenetrationInfo::MS_NO_CONTACT;
-      }
-    }
-    else
-    {
-      if (pinfo->_distance >= 0)
-      {
-        if (hpit == has_penetrated.end())
-          has_penetrated.insert(slave_node_num);
-      }
+      pinfo->release();
+      pinfo->_contact_force.zero();
     }
 
-    if (_formulation == CF_AUGMENTED_LAGRANGE && hpit != has_penetrated.end())
-    {
-      const RealVectorValue distance_vec(_mesh.node(slave_node_num) - pinfo->_closest_point);
-      lagrange_multiplier[slave_node_num] += _penalty * pinfo->_normal * distance_vec;
-    }
+    if (_formulation == CF_AUGMENTED_LAGRANGE && pinfo->isCaptured())
+      pinfo->_lagrange_multiplier -= getPenalty(*pinfo) * distance;
   }
 }
 
 bool
 MechanicalContactConstraint::shouldApply()
 {
-  //TODO:  We'll need to do something to call computeContactForce() for the nodes that are
-  //       off-processor.  There are no methods that get called for all nodes (at least
-  //       that I know of), so we can't do this correctly yet, but I'm leaving this here
-  //       to remind us that we need to do this.
+  bool in_contact = false;
 
-//  _point_to_info.clear();
-//
-//  std::set<unsigned int> & has_penetrated = _penetration_locator._has_penetrated;
-//
-//  std::map<unsigned int, PenetrationInfo *>::iterator it = _penetration_locator._penetration_info.begin();
-//  std::map<unsigned int, PenetrationInfo *>::iterator end = _penetration_locator._penetration_info.end();
-//
-//  for (; it!=end; ++it)
-//  {
-//    PenetrationInfo * pinfo = it->second;
-//
-//    if (!pinfo)
-//      continue;
-//
-//    unsigned int slave_node_num = it->first;
-//
-//    std::set<unsigned int>::iterator hpit = has_penetrated.find(slave_node_num);
-//
-//    if ( hpit != has_penetrated.end() )
-//    {
-//      addPoint(pinfo->_elem, pinfo->_closest_point);
-//      _point_to_info[pinfo->_closest_point] = pinfo;
-//      computeContactForce(pinfo);
-//    }
-//  }
+  std::map<dof_id_type, PenetrationInfo *>::iterator found =
+    _penetration_locator._penetration_info.find(_current_node->id());
+  if ( found != _penetration_locator._penetration_info.end() )
+  {
+    PenetrationInfo * pinfo = found->second;
+    if ( pinfo != NULL && pinfo->isCaptured() )
+    {
+      in_contact = true;
 
-  std::set<unsigned int>::iterator hpit = _penetration_locator._has_penetrated.find(_current_node->id());
-  return (hpit != _penetration_locator._has_penetrated.end());
+      // This computes the contact force once per constraint, rather than once per quad point and for
+      // both master and slave cases.
+      if (_component == 0)
+        computeContactForce(pinfo);
+    }
+  }
+
+  return in_contact;
 }
 
 void
 MechanicalContactConstraint::computeContactForce(PenetrationInfo * pinfo)
 {
-  std::map<unsigned int, Real> & lagrange_multiplier = _penetration_locator._lagrange_multiplier;
   const Node * node = pinfo->_node;
 
   RealVectorValue res_vec;
   // Build up residual vector
   for (unsigned int i=0; i<_mesh_dimension; ++i)
   {
-    long int dof_number = node->dof_number(0, _vars(i), 0);
+    dof_id_type dof_number = node->dof_number(0, _vars(i), 0);
     res_vec(i) = _residual_copy(dof_number);
   }
   RealVectorValue distance_vec(_mesh.node(node->id()) - pinfo->_closest_point);
-  RealVectorValue pen_force(_penalty * distance_vec);
-  RealVectorValue tan_residual(0,0,0);
+  const Real penalty = getPenalty(*pinfo);
+  RealVectorValue pen_force(penalty * distance_vec);
 
   switch (_model)
   {
     case CM_FRICTIONLESS:
-    case CM_EXPERIMENTAL:
       switch (_formulation)
       {
-        case CF_DEFAULT:
+        case CF_KINEMATIC:
           pinfo->_contact_force = -pinfo->_normal * (pinfo->_normal * res_vec);
           break;
         case CF_PENALTY:
@@ -287,8 +256,7 @@ MechanicalContactConstraint::computeContactForce(PenetrationInfo * pinfo)
           break;
         case CF_AUGMENTED_LAGRANGE:
           pinfo->_contact_force = (pinfo->_normal * (pinfo->_normal *
-                                  ( pen_force + lagrange_multiplier[node->id()] * pinfo->_normal)));
-                                //( pen_force + (lagrange_multiplier[node->id()]/distance_vec.size())*distance_vec)));
+                                  ( pen_force + pinfo->_lagrange_multiplier * pinfo->_normal)));
           break;
         default:
           mooseError("Invalid contact formulation");
@@ -299,13 +267,66 @@ MechanicalContactConstraint::computeContactForce(PenetrationInfo * pinfo)
     case CM_COULOMB:
       switch (_formulation)
       {
-        case CF_DEFAULT:
-          pinfo->_contact_force =  -res_vec;
+        case CF_KINEMATIC:
+        {
+          // Frictional capacity
+          const Real capacity( _friction_coefficient * (res_vec * pinfo->_normal > 0 ? res_vec * pinfo->_normal : 0) );
+
+          // Normal and tangential components of predictor force
+          pinfo->_contact_force = -res_vec ;
+          RealVectorValue contact_force_normal( (pinfo->_contact_force*pinfo->_normal) * pinfo->_normal );
+          RealVectorValue contact_force_tangential( pinfo->_contact_force - contact_force_normal );
+
+          RealVectorValue tangential_inc_slip = pinfo->_incremental_slip - (pinfo->_incremental_slip * pinfo->_normal) * pinfo->_normal;
+
+          // Magnitude of tangential predictor force
+          const Real tan_mag( contact_force_tangential.size() );
+          const Real tangential_inc_slip_mag = tangential_inc_slip.size();
+          const Real slip_tol = capacity/penalty;
+          pinfo->_slip_tol = slip_tol;
+
+          if ((tangential_inc_slip_mag > slip_tol ||
+               tan_mag > capacity) &&
+              (pinfo->_stick_locked_this_step < _stick_lock_iterations ||
+               tan_mag > capacity * _stick_unlock_factor))
+          {
+            if (pinfo->_stick_locked_this_step >= _stick_lock_iterations)
+              pinfo->_stick_locked_this_step = 0;
+
+            // Check for scenario where node has slipped too far in a previous iteration
+            // for special treatment (only done if the incremental slip is non-trivial)
+            bool slipped_too_far = false;
+            RealVectorValue slip_inc_direction;
+            if (tangential_inc_slip_mag > slip_tol)
+            {
+              slip_inc_direction = tangential_inc_slip / tangential_inc_slip_mag;
+              Real slip_dot_tang_force = slip_inc_direction * contact_force_tangential;
+              if (slip_dot_tang_force < capacity)
+                slipped_too_far = true;
+            }
+
+            if (slipped_too_far) // slip back along slip increment
+              pinfo->_contact_force = contact_force_normal + capacity * slip_inc_direction;
+            else
+            {
+              if (tan_mag > 0) // slip along tangential force direction
+                pinfo->_contact_force = contact_force_normal + capacity * contact_force_tangential / tan_mag;
+              else // treat as frictionless
+                pinfo->_contact_force = contact_force_normal;
+            }
+            if (capacity == 0)
+              pinfo->_mech_status=PenetrationInfo::MS_SLIPPING;
+            else
+              pinfo->_mech_status=PenetrationInfo::MS_SLIPPING_FRICTION;
+          }
+          else
+            pinfo->_mech_status=PenetrationInfo::MS_STICKING;
           break;
+        }
         case CF_PENALTY:
         {
           distance_vec = pinfo->_incremental_slip + (pinfo->_normal * (_mesh.node(node->id()) - pinfo->_closest_point)) * pinfo->_normal;
-          pen_force = _penalty * distance_vec;
+          pen_force = penalty * distance_vec;
 
           // Frictional capacity
           // const Real capacity( _friction_coefficient * (pen_force * pinfo->_normal < 0 ? -pen_force * pinfo->_normal : 0) );
@@ -317,12 +338,15 @@ MechanicalContactConstraint::computeContactForce(PenetrationInfo * pinfo)
           RealVectorValue contact_force_tangential( pinfo->_contact_force - contact_force_normal );
 
           // Tangential magnitude of elastic predictor
-          const Real tan_mag( contact_force_tangential.size() );
+          const Real tan_mag( contact_force_tangential.norm() );
 
           if ( tan_mag > capacity )
           {
             pinfo->_contact_force = contact_force_normal + capacity * contact_force_tangential / tan_mag;
-            pinfo->_mech_status=PenetrationInfo::MS_SLIPPING;
+            if (capacity == 0)
+              pinfo->_mech_status=PenetrationInfo::MS_SLIPPING;
+            else
+              pinfo->_mech_status=PenetrationInfo::MS_SLIPPING_FRICTION;
           }
           else
             pinfo->_mech_status=PenetrationInfo::MS_STICKING;
@@ -330,18 +354,18 @@ MechanicalContactConstraint::computeContactForce(PenetrationInfo * pinfo)
         }
         case CF_AUGMENTED_LAGRANGE:
           pinfo->_contact_force = pen_force +
-                                  lagrange_multiplier[node->id()]*distance_vec/distance_vec.size();
+                                  pinfo->_lagrange_multiplier*distance_vec/distance_vec.norm();
           break;
         default:
           mooseError("Invalid contact formulation");
           break;
       }
       break;
+    case CM_COULOMB_MP:
     case CM_GLUED:
-    case CM_TIED:
       switch (_formulation)
       {
-        case CF_DEFAULT:
+        case CF_KINEMATIC:
           pinfo->_contact_force =  -res_vec;
           break;
         case CF_PENALTY:
@@ -349,7 +373,7 @@ MechanicalContactConstraint::computeContactForce(PenetrationInfo * pinfo)
           break;
         case CF_AUGMENTED_LAGRANGE:
           pinfo->_contact_force = pen_force +
-                                  lagrange_multiplier[node->id()]*distance_vec/distance_vec.size();
+                                  pinfo->_lagrange_multiplier*distance_vec/distance_vec.norm();
           break;
         default:
           mooseError("Invalid contact formulation");
@@ -373,23 +397,31 @@ Real
 MechanicalContactConstraint::computeQpResidual(Moose::ConstraintType type)
 {
   PenetrationInfo * pinfo = _penetration_locator._penetration_info[_current_node->id()];
-  computeContactForce(pinfo);
   Real resid = pinfo->_contact_force(_component);
 
   switch (type)
   {
     case Moose::Slave:
-      if (_formulation == CF_DEFAULT)
+      if (_formulation == CF_KINEMATIC)
       {
-        //Real distance = (*_current_node)(_component) - pinfo->_closest_point(_component);
-        //Real pen_force = _penalty * distance;
         RealVectorValue distance_vec(*_current_node - pinfo->_closest_point);
-        RealVectorValue pen_force(_penalty * distance_vec);
+        const Real penalty = getPenalty(*pinfo);
+        RealVectorValue pen_force(penalty * distance_vec);
 
-        if (_model == CM_FRICTIONLESS || _model == CM_EXPERIMENTAL)
+        if (_model == CM_FRICTIONLESS)
           resid += pinfo->_normal(_component) * pinfo->_normal * pen_force;
 
-        else if (_model == CM_GLUED || _model == CM_TIED || _model == CM_COULOMB)
+        else if (_model == CM_COULOMB)
+        {
+          distance_vec = distance_vec - pinfo->_incremental_slip;
+          pen_force = penalty * distance_vec;
+          if (pinfo->_mech_status == PenetrationInfo::MS_SLIPPING ||
+              pinfo->_mech_status == PenetrationInfo::MS_SLIPPING_FRICTION)
+            resid += pinfo->_normal(_component) * pinfo->_normal * pen_force;
+          else
+            resid += pen_force(_component);
+        }
+        else if (_model == CM_GLUED || _model == CM_COULOMB_MP)
           resid += pen_force(_component);
 
       }
@@ -406,41 +438,76 @@ MechanicalContactConstraint::computeQpJacobian(Moose::ConstraintJacobianType typ
 {
   PenetrationInfo * pinfo = _penetration_locator._penetration_info[_current_node->id()];
 
+  const Real penalty = getPenalty(*pinfo);
+
   switch (type)
   {
     case Moose::SlaveSlave:
       switch (_model)
       {
         case CM_FRICTIONLESS:
-        case CM_EXPERIMENTAL:
           switch (_formulation)
           {
-            case CF_DEFAULT:
+            case CF_KINEMATIC:
             {
-              double curr_jac = (*_jacobian)(_current_node->dof_number(0, _vars(_component), 0), _connected_dof_indices[_j]);
-              //TODO:  Need off-diagonal term/s
-              return (-curr_jac + _phi_slave[_j][_qp] * _penalty * _test_slave[_i][_qp]) * pinfo->_normal(_component) * pinfo->_normal(_component);
+              RealVectorValue jac_vec;
+              for (unsigned int i=0; i<_mesh_dimension; ++i)
+              {
+                dof_id_type dof_number = _current_node->dof_number(0, _vars(i), 0);
+                jac_vec(i) = (*_jacobian)(dof_number, _connected_dof_indices[_j]);
+              }
+              return -pinfo->_normal(_component) * (pinfo->_normal*jac_vec) + (_phi_slave[_j][_qp] * penalty * _test_slave[_i][_qp]) * pinfo->_normal(_component) * pinfo->_normal(_component);
             }
             case CF_PENALTY:
             case CF_AUGMENTED_LAGRANGE:
-              //TODO:  Need off-diagonal terms
-              return _phi_slave[_j][_qp] * _penalty * _test_slave[_i][_qp] * pinfo->_normal(_component) * pinfo->_normal(_component);
+              return _phi_slave[_j][_qp] * penalty * _test_slave[_i][_qp] * pinfo->_normal(_component) * pinfo->_normal(_component);
             default:
               mooseError("Invalid contact formulation");
           }
         case CM_COULOMB:
-        case CM_GLUED:
-        case CM_TIED:
           switch (_formulation)
           {
-            case CF_DEFAULT:
+            case CF_KINEMATIC:
             {
-              double curr_jac = (*_jacobian)(_current_node->dof_number(0, _vars(_component), 0), _connected_dof_indices[_j]);
-              return -curr_jac + _phi_slave[_j][_qp] * _penalty * _test_slave[_i][_qp];
+              if (pinfo->_mech_status == PenetrationInfo::MS_SLIPPING ||
+                  pinfo->_mech_status == PenetrationInfo::MS_SLIPPING_FRICTION)
+              {
+                RealVectorValue jac_vec;
+                for (unsigned int i=0; i<_mesh_dimension; ++i)
+                {
+                  dof_id_type dof_number = _current_node->dof_number(0, _vars(i), 0);
+                  jac_vec(i) = (*_jacobian)(dof_number, _connected_dof_indices[_j]);
+                }
+                return -pinfo->_normal(_component) * (pinfo->_normal*jac_vec) + (_phi_slave[_j][_qp] * penalty * _test_slave[_i][_qp]) * pinfo->_normal(_component) * pinfo->_normal(_component);
+              }
+              else
+              {
+                double curr_jac = (*_jacobian)(_current_node->dof_number(0, _vars(_component), 0), _connected_dof_indices[_j]);
+                return -curr_jac + _phi_slave[_j][_qp] * penalty * _test_slave[_i][_qp];
+              }
             }
             case CF_PENALTY:
             case CF_AUGMENTED_LAGRANGE:
-              return _phi_slave[_j][_qp] * _penalty * _test_slave[_i][_qp];
+              if (pinfo->_mech_status == PenetrationInfo::MS_SLIPPING ||
+                  pinfo->_mech_status == PenetrationInfo::MS_SLIPPING_FRICTION)
+                return _phi_slave[_j][_qp] * penalty * _test_slave[_i][_qp] * pinfo->_normal(_component) * pinfo->_normal(_component);
+              else
+                return _phi_slave[_j][_qp] * penalty * _test_slave[_i][_qp];
+            default:
+              mooseError("Invalid contact formulation");
+          }
+        case CM_COULOMB_MP:
+        case CM_GLUED:
+          switch (_formulation)
+          {
+            case CF_KINEMATIC:
+            {
+              double curr_jac = (*_jacobian)(_current_node->dof_number(0, _vars(_component), 0), _connected_dof_indices[_j]);
+              return -curr_jac + _phi_slave[_j][_qp] * penalty * _test_slave[_i][_qp];
+            }
+            case CF_PENALTY:
+            case CF_AUGMENTED_LAGRANGE:
+              return _phi_slave[_j][_qp] * penalty * _test_slave[_i][_qp];
             default:
               mooseError("Invalid contact formulation");
           }
@@ -452,37 +519,74 @@ MechanicalContactConstraint::computeQpJacobian(Moose::ConstraintJacobianType typ
       switch (_model)
       {
         case CM_FRICTIONLESS:
-        case CM_EXPERIMENTAL:
           switch (_formulation)
           {
-            case CF_DEFAULT:
+            case CF_KINEMATIC:
             {
               Node * curr_master_node = _current_master->get_node(_j);
-              double curr_jac = (*_jacobian)(_current_node->dof_number(0, _vars(_component), 0), curr_master_node->dof_number(0, _vars(_component), 0));
-              //TODO:  Need off-diagonal terms
-              return (-curr_jac - _phi_master[_j][_qp] * _penalty * _test_slave[_i][_qp]) * pinfo->_normal(_component) * pinfo->_normal(_component);
+
+              RealVectorValue jac_vec;
+              for (unsigned int i=0; i<_mesh_dimension; ++i)
+              {
+                dof_id_type dof_number = _current_node->dof_number(0, _vars(i), 0);
+                jac_vec(i) = (*_jacobian)(dof_number, curr_master_node->dof_number(0, _vars(_component), 0));
+              }
+              return -pinfo->_normal(_component)*(pinfo->_normal*jac_vec) - (_phi_master[_j][_qp] * penalty * _test_slave[_i][_qp]) * pinfo->_normal(_component) * pinfo->_normal(_component);
             }
             case CF_PENALTY:
             case CF_AUGMENTED_LAGRANGE:
-              //TODO:  Need off-diagonal terms
-              return -_phi_master[_j][_qp] * _penalty * _test_slave[_i][_qp] * pinfo->_normal(_component) * pinfo->_normal(_component);
+              return -_phi_master[_j][_qp] * penalty * _test_slave[_i][_qp] * pinfo->_normal(_component) * pinfo->_normal(_component);
             default:
               mooseError("Invalid contact formulation");
           }
         case CM_COULOMB:
-        case CM_GLUED:
-        case CM_TIED:
           switch (_formulation)
           {
-            case CF_DEFAULT:
+            case CF_KINEMATIC:
             {
-              Node * curr_master_node = _current_master->get_node(_j);
-              double curr_jac = (*_jacobian)( _current_node->dof_number(0, _vars(_component), 0), curr_master_node->dof_number(0, _vars(_component), 0));
-              return -curr_jac - _phi_master[_j][_qp] * _penalty * _test_slave[_i][_qp];
+              if (pinfo->_mech_status == PenetrationInfo::MS_SLIPPING ||
+                  pinfo->_mech_status == PenetrationInfo::MS_SLIPPING_FRICTION)
+              {
+                Node * curr_master_node = _current_master->get_node(_j);
+
+                RealVectorValue jac_vec;
+                for (unsigned int i=0; i<_mesh_dimension; ++i)
+                {
+                  dof_id_type dof_number = _current_node->dof_number(0, _vars(i), 0);
+                  jac_vec(i) = (*_jacobian)(dof_number, curr_master_node->dof_number(0, _vars(_component), 0));
+                }
+                return -pinfo->_normal(_component)*(pinfo->_normal*jac_vec) - (_phi_master[_j][_qp] * penalty * _test_slave[_i][_qp]) * pinfo->_normal(_component) * pinfo->_normal(_component);
+              }
+              else
+              {
+                Node * curr_master_node = _current_master->get_node(_j);
+                double curr_jac = (*_jacobian)( _current_node->dof_number(0, _vars(_component), 0), curr_master_node->dof_number(0, _vars(_component), 0));
+                return -curr_jac - _phi_master[_j][_qp] * penalty * _test_slave[_i][_qp];
+              }
             }
             case CF_PENALTY:
             case CF_AUGMENTED_LAGRANGE:
-              return -_phi_master[_j][_qp] * _penalty * _test_slave[_i][_qp];
+              if (pinfo->_mech_status == PenetrationInfo::MS_SLIPPING ||
+                  pinfo->_mech_status == PenetrationInfo::MS_SLIPPING_FRICTION)
+                return -_phi_master[_j][_qp] * penalty * _test_slave[_i][_qp] * pinfo->_normal(_component) * pinfo->_normal(_component);
+              else
+                return -_phi_master[_j][_qp] * penalty * _test_slave[_i][_qp];
+            default:
+              mooseError("Invalid contact formulation");
+          }
+        case CM_COULOMB_MP:
+        case CM_GLUED:
+          switch (_formulation)
+          {
+            case CF_KINEMATIC:
+            {
+              Node * curr_master_node = _current_master->get_node(_j);
+              double curr_jac = (*_jacobian)( _current_node->dof_number(0, _vars(_component), 0), curr_master_node->dof_number(0, _vars(_component), 0));
+              return -curr_jac - _phi_master[_j][_qp] * penalty * _test_slave[_i][_qp];
+            }
+            case CF_PENALTY:
+            case CF_AUGMENTED_LAGRANGE:
+              return -_phi_master[_j][_qp] * penalty * _test_slave[_i][_qp];
             default:
               mooseError("Invalid contact formulation");
           }
@@ -494,37 +598,68 @@ MechanicalContactConstraint::computeQpJacobian(Moose::ConstraintJacobianType typ
       switch (_model)
       {
         case CM_FRICTIONLESS:
-        case CM_EXPERIMENTAL:
           switch (_formulation)
           {
-            case CF_DEFAULT:
+            case CF_KINEMATIC:
             {
-              //TODO:  Need off-diagonal terms
-              double slave_jac = (*_jacobian)(_current_node->dof_number(0, _vars(_component), 0), _connected_dof_indices[_j]);
-              //TODO: To get off-diagonal terms correct using an approach like this, we would need to assemble in the rows for
-              //all displacement components times their components of the normal vector.
-              return slave_jac * _test_master[_i][_qp] * pinfo->_normal(_component) * pinfo->_normal(_component);
+              RealVectorValue jac_vec;
+              for (unsigned int i=0; i<_mesh_dimension; ++i)
+              {
+                dof_id_type dof_number = _current_node->dof_number(0, _vars(i), 0);
+                jac_vec(i) = (*_jacobian)(dof_number, _connected_dof_indices[_j]);
+              }
+              return pinfo->_normal(_component)*(pinfo->_normal*jac_vec) * _test_master[_i][_qp];
             }
             case CF_PENALTY:
             case CF_AUGMENTED_LAGRANGE:
-              //TODO:  Need off-diagonal terms
-              return -_test_master[_i][_qp] * _penalty * _phi_slave[_j][_qp] * pinfo->_normal(_component) * pinfo->_normal(_component);
+              return -_test_master[_i][_qp] * penalty * _phi_slave[_j][_qp] * pinfo->_normal(_component) * pinfo->_normal(_component);
             default:
               mooseError("Invalid contact formulation");
           }
         case CM_COULOMB:
-        case CM_GLUED:
-        case CM_TIED:
           switch (_formulation)
           {
-            case CF_DEFAULT:
+            case CF_KINEMATIC:
+            {
+              if (pinfo->_mech_status == PenetrationInfo::MS_SLIPPING ||
+                  pinfo->_mech_status == PenetrationInfo::MS_SLIPPING_FRICTION)
+              {
+                RealVectorValue jac_vec;
+                for (unsigned int i=0; i<_mesh_dimension; ++i)
+                {
+                  dof_id_type dof_number = _current_node->dof_number(0, _vars(i), 0);
+                  jac_vec(i) = (*_jacobian)(dof_number, _connected_dof_indices[_j]);
+                }
+                return pinfo->_normal(_component)*(pinfo->_normal*jac_vec) * _test_master[_i][_qp];
+              }
+              else
+              {
+                double slave_jac = (*_jacobian)(_current_node->dof_number(0, _vars(_component), 0), _connected_dof_indices[_j]);
+                return slave_jac * _test_master[_i][_qp];
+              }
+            }
+            case CF_PENALTY:
+            case CF_AUGMENTED_LAGRANGE:
+              if (pinfo->_mech_status == PenetrationInfo::MS_SLIPPING ||
+                  pinfo->_mech_status == PenetrationInfo::MS_SLIPPING_FRICTION)
+                return -_test_master[_i][_qp] * penalty * _phi_slave[_j][_qp] * pinfo->_normal(_component) * pinfo->_normal(_component);
+              else
+                return -_test_master[_i][_qp] * penalty * _phi_slave[_j][_qp];
+            default:
+              mooseError("Invalid contact formulation");
+          }
+        case CM_COULOMB_MP:
+        case CM_GLUED:
+          switch (_formulation)
+          {
+            case CF_KINEMATIC:
             {
               double slave_jac = (*_jacobian)(_current_node->dof_number(0, _vars(_component), 0), _connected_dof_indices[_j]);
               return slave_jac * _test_master[_i][_qp];
             }
             case CF_PENALTY:
             case CF_AUGMENTED_LAGRANGE:
-              return -_test_master[_i][_qp] * _penalty * _phi_slave[_j][_qp];
+              return -_test_master[_i][_qp] * penalty * _phi_slave[_j][_qp];
             default:
               mooseError("Invalid contact formulation");
           }
@@ -536,28 +671,30 @@ MechanicalContactConstraint::computeQpJacobian(Moose::ConstraintJacobianType typ
       switch (_model)
       {
         case CM_FRICTIONLESS:
-        case CM_EXPERIMENTAL:
           switch (_formulation)
           {
-            case CF_DEFAULT:
+            case CF_KINEMATIC:
               return 0;
             case CF_PENALTY:
             case CF_AUGMENTED_LAGRANGE:
-              //TODO: Need off-diagonal terms
-              return _test_master[_i][_qp] * _penalty * _phi_master[_j][_qp] * pinfo->_normal(_component) * pinfo->_normal(_component);
+              return _test_master[_i][_qp] * penalty * _phi_master[_j][_qp] * pinfo->_normal(_component) * pinfo->_normal(_component);
             default:
               mooseError("Invalid contact formulation");
           }
         case CM_COULOMB:
+        case CM_COULOMB_MP:
         case CM_GLUED:
-        case CM_TIED:
           switch (_formulation)
           {
-            case CF_DEFAULT:
+            case CF_KINEMATIC:
               return 0;
             case CF_PENALTY:
             case CF_AUGMENTED_LAGRANGE:
-              return _test_master[_i][_qp] * _penalty * _phi_master[_j][_qp];
+              if (pinfo->_mech_status == PenetrationInfo::MS_SLIPPING ||
+                  pinfo->_mech_status == PenetrationInfo::MS_SLIPPING_FRICTION)
+                return _test_master[_i][_qp] * penalty * _phi_master[_j][_qp] * pinfo->_normal(_component) * pinfo->_normal(_component);
+              else
+                return _test_master[_i][_qp] * penalty * _phi_master[_j][_qp];
             default:
               mooseError("Invalid contact formulation");
           }
@@ -567,4 +704,386 @@ MechanicalContactConstraint::computeQpJacobian(Moose::ConstraintJacobianType typ
   }
 
   return 0;
+}
+
+Real
+MechanicalContactConstraint::computeQpOffDiagJacobian(Moose::ConstraintJacobianType type,
+                                                      unsigned int jvar)
+{
+  PenetrationInfo * pinfo = _penetration_locator._penetration_info[_current_node->id()];
+
+  const Real penalty = getPenalty(*pinfo);
+
+  unsigned int coupled_component;
+  double normal_component_in_coupled_var_dir = 1.0;
+  if (getCoupledVarComponent(jvar,coupled_component))
+    normal_component_in_coupled_var_dir = pinfo->_normal(coupled_component);
+
+  switch (type)
+  {
+    case Moose::SlaveSlave:
+      switch (_model)
+      {
+        case CM_FRICTIONLESS:
+          switch (_formulation)
+          {
+            case CF_KINEMATIC:
+            {
+              RealVectorValue jac_vec;
+              for (unsigned int i=0; i<_mesh_dimension; ++i)
+              {
+                dof_id_type dof_number = _current_node->dof_number(0, _vars(i), 0);
+                jac_vec(i) = (*_jacobian)(dof_number, _connected_dof_indices[_j]);
+              }
+              return -pinfo->_normal(_component) * (pinfo->_normal*jac_vec) + (_phi_slave[_j][_qp] * penalty * _test_slave[_i][_qp]) * pinfo->_normal(_component) * normal_component_in_coupled_var_dir;
+            }
+            case CF_PENALTY:
+            case CF_AUGMENTED_LAGRANGE:
+              return _phi_slave[_j][_qp] * penalty * _test_slave[_i][_qp] * pinfo->_normal(_component) * normal_component_in_coupled_var_dir;
+            default:
+              mooseError("Invalid contact formulation");
+          }
+        case CM_COULOMB:
+        {
+          if (_formulation == CF_KINEMATIC &&
+              (pinfo->_mech_status == PenetrationInfo::MS_SLIPPING ||
+               pinfo->_mech_status == PenetrationInfo::MS_SLIPPING_FRICTION))
+          {
+            RealVectorValue jac_vec;
+            for (unsigned int i=0; i<_mesh_dimension; ++i)
+            {
+              dof_id_type dof_number = _current_node->dof_number(0, _vars(i), 0);
+              jac_vec(i) = (*_jacobian)(dof_number, _connected_dof_indices[_j]);
+            }
+            return -pinfo->_normal(_component) * (pinfo->_normal*jac_vec) + (_phi_slave[_j][_qp] * penalty * _test_slave[_i][_qp]) * pinfo->_normal(_component) * normal_component_in_coupled_var_dir;
+          }
+          else if ((_formulation == CF_PENALTY || _formulation == CF_AUGMENTED_LAGRANGE) &&
+                   (pinfo->_mech_status == PenetrationInfo::MS_SLIPPING ||
+                    pinfo->_mech_status == PenetrationInfo::MS_SLIPPING_FRICTION))
+            return _phi_slave[_j][_qp] * penalty * _test_slave[_i][_qp] * pinfo->_normal(_component) * normal_component_in_coupled_var_dir;
+          else
+          {
+            double curr_jac = (*_jacobian)(_current_node->dof_number(0, _vars(_component), 0), _connected_dof_indices[_j]);
+            return -curr_jac;
+          }
+        }
+        case CM_COULOMB_MP:
+        case CM_GLUED:
+        {
+          double curr_jac = (*_jacobian)(_current_node->dof_number(0, _vars(_component), 0), _connected_dof_indices[_j]);
+          return -curr_jac;
+        }
+        default:
+          mooseError("Invalid or unavailable contact model");
+      }
+
+    case Moose::SlaveMaster:
+      switch (_model)
+      {
+        case CM_FRICTIONLESS:
+          switch (_formulation)
+          {
+            case CF_KINEMATIC:
+            {
+              Node * curr_master_node = _current_master->get_node(_j);
+
+              RealVectorValue jac_vec;
+              for (unsigned int i=0; i<_mesh_dimension; ++i)
+              {
+                dof_id_type dof_number = _current_node->dof_number(0, _vars(i), 0);
+                jac_vec(i) = (*_jacobian)(dof_number, curr_master_node->dof_number(0, _vars(_component), 0));
+              }
+              return -pinfo->_normal(_component)*(pinfo->_normal*jac_vec) - (_phi_master[_j][_qp] * penalty * _test_slave[_i][_qp]) * pinfo->_normal(_component) * normal_component_in_coupled_var_dir;
+            }
+            case CF_PENALTY:
+            case CF_AUGMENTED_LAGRANGE:
+              return -_phi_master[_j][_qp] * penalty * _test_slave[_i][_qp] * pinfo->_normal(_component) * normal_component_in_coupled_var_dir;
+            default:
+              mooseError("Invalid contact formulation");
+          }
+        case CM_COULOMB:
+          if (_formulation == CF_KINEMATIC &&
+              (pinfo->_mech_status == PenetrationInfo::MS_SLIPPING ||
+               pinfo->_mech_status == PenetrationInfo::MS_SLIPPING_FRICTION))
+          {
+            Node * curr_master_node = _current_master->get_node(_j);
+
+            RealVectorValue jac_vec;
+            for (unsigned int i=0; i<_mesh_dimension; ++i)
+            {
+              dof_id_type dof_number = _current_node->dof_number(0, _vars(i), 0);
+              jac_vec(i) = (*_jacobian)(dof_number, curr_master_node->dof_number(0, _vars(_component), 0));
+            }
+            return -pinfo->_normal(_component)*(pinfo->_normal*jac_vec) - (_phi_master[_j][_qp] * penalty * _test_slave[_i][_qp]) * pinfo->_normal(_component) * normal_component_in_coupled_var_dir;
+          }
+          else if ((_formulation == CF_PENALTY || _formulation == CF_AUGMENTED_LAGRANGE) &&
+                   (pinfo->_mech_status == PenetrationInfo::MS_SLIPPING ||
+                    pinfo->_mech_status == PenetrationInfo::MS_SLIPPING_FRICTION))
+            return -_phi_master[_j][_qp] * penalty * _test_slave[_i][_qp] * pinfo->_normal(_component) * normal_component_in_coupled_var_dir;
+          else
+            return 0;
+        case CM_COULOMB_MP:
+        case CM_GLUED:
+          return 0;
+        default:
+          mooseError("Invalid or unavailable contact model");
+      }
+
+    case Moose::MasterSlave:
+      switch (_model)
+      {
+        case CM_FRICTIONLESS:
+          switch (_formulation)
+          {
+            case CF_KINEMATIC:
+            {
+              RealVectorValue jac_vec;
+              for (unsigned int i=0; i<_mesh_dimension; ++i)
+              {
+                dof_id_type dof_number = _current_node->dof_number(0, _vars(i), 0);
+                jac_vec(i) = (*_jacobian)(dof_number, _connected_dof_indices[_j]);
+              }
+              return pinfo->_normal(_component)*(pinfo->_normal*jac_vec) * _test_master[_i][_qp];
+            }
+            case CF_PENALTY:
+            case CF_AUGMENTED_LAGRANGE:
+              return -_test_master[_i][_qp] * penalty * _phi_slave[_j][_qp] * pinfo->_normal(_component) * normal_component_in_coupled_var_dir;
+            default:
+              mooseError("Invalid contact formulation");
+          }
+        case CM_COULOMB:
+          switch (_formulation)
+          {
+            case CF_KINEMATIC:
+            {
+              if (pinfo->_mech_status == PenetrationInfo::MS_SLIPPING ||
+                  pinfo->_mech_status == PenetrationInfo::MS_SLIPPING_FRICTION)
+              {
+                RealVectorValue jac_vec;
+                for (unsigned int i=0; i<_mesh_dimension; ++i)
+                {
+                  dof_id_type dof_number = _current_node->dof_number(0, _vars(i), 0);
+                  jac_vec(i) = (*_jacobian)(dof_number, _connected_dof_indices[_j]);
+                }
+                return pinfo->_normal(_component)*(pinfo->_normal*jac_vec) * _test_master[_i][_qp];
+              }
+              else
+              {
+                double slave_jac = (*_jacobian)(_current_node->dof_number(0, _vars(_component), 0), _connected_dof_indices[_j]);
+                return slave_jac * _test_master[_i][_qp];
+              }
+            }
+            case CF_PENALTY:
+            case CF_AUGMENTED_LAGRANGE:
+              if (pinfo->_mech_status == PenetrationInfo::MS_SLIPPING ||
+                  pinfo->_mech_status == PenetrationInfo::MS_SLIPPING_FRICTION)
+                return -_test_master[_i][_qp] * penalty * _phi_slave[_j][_qp] * pinfo->_normal(_component) * normal_component_in_coupled_var_dir;
+              else
+                return 0;
+            default:
+              mooseError("Invalid contact formulation");
+          }
+        case CM_COULOMB_MP:
+        case CM_GLUED:
+          switch (_formulation)
+          {
+            case CF_KINEMATIC:
+            {
+              double slave_jac = (*_jacobian)(_current_node->dof_number(0, _vars(_component), 0), _connected_dof_indices[_j]);
+              return slave_jac * _test_master[_i][_qp];
+            }
+            case CF_PENALTY:
+            case CF_AUGMENTED_LAGRANGE:
+              return 0;
+            default:
+              mooseError("Invalid contact formulation");
+          }
+        default:
+          mooseError("Invalid or unavailable contact model");
+      }
+
+    case Moose::MasterMaster:
+      switch (_model)
+      {
+        case CM_FRICTIONLESS:
+          switch (_formulation)
+          {
+            case CF_KINEMATIC:
+              return 0;
+            case CF_PENALTY:
+            case CF_AUGMENTED_LAGRANGE:
+              return _test_master[_i][_qp] * penalty * _phi_master[_j][_qp] * pinfo->_normal(_component) * normal_component_in_coupled_var_dir;
+            default:
+              mooseError("Invalid contact formulation");
+          }
+        case CM_COULOMB:
+        case CM_COULOMB_MP:
+        case CM_GLUED:
+          if ((_formulation == CF_PENALTY || _formulation == CF_AUGMENTED_LAGRANGE) &&
+              (pinfo->_mech_status == PenetrationInfo::MS_SLIPPING ||
+               pinfo->_mech_status == PenetrationInfo::MS_SLIPPING_FRICTION))
+            return _test_master[_i][_qp] * penalty * _phi_master[_j][_qp] * pinfo->_normal(_component) * normal_component_in_coupled_var_dir;
+          else
+            return 0;
+        default:
+          mooseError("Invalid or unavailable contact model");
+      }
+  }
+
+  return 0;
+}
+
+Real
+MechanicalContactConstraint::nodalArea(PenetrationInfo & pinfo)
+{
+  const Node * node = pinfo._node;
+
+  dof_id_type dof = node->dof_number(_aux_system.number(), _nodal_area_var->number(), 0);
+
+  Real area = (*_aux_solution)( dof );
+  if (area == 0)
+  {
+    if (_t_step > 1)
+    {
+      mooseError("Zero nodal area found");
+    }
+    else
+    {
+      area = 1; // Avoid divide by zero during initialization
+    }
+  }
+  return area;
+}
+
+Real
+MechanicalContactConstraint::getPenalty(PenetrationInfo & pinfo)
+{
+  Real penalty = _penalty;
+  if (_normalize_penalty)
+  {
+    penalty *= nodalArea(pinfo);
+  }
+  return penalty;
+}
+
+void
+MechanicalContactConstraint::computeJacobian()
+{
+  getConnectedDofIndices(_var.number());
+
+  DenseMatrix<Number> & Knn = _assembly.jacobianBlockNeighbor(Moose::NeighborNeighbor, _master_var.number(), _var.number());
+
+  _Kee.resize(_test_slave.size(), _connected_dof_indices.size());
+
+  for (_i = 0; _i < _test_slave.size(); _i++)
+    // Loop over the connected dof indices so we can get all the jacobian contributions
+    for (_j=0; _j<_connected_dof_indices.size(); _j++)
+      _Kee(_i,_j) += computeQpJacobian(Moose::SlaveSlave);
+
+  if (_master_slave_jacobian)
+  {
+    DenseMatrix<Number> & Ken = _assembly.jacobianBlockNeighbor(Moose::ElementNeighbor, _var.number(), _var.number());
+    if (Ken.m() && Ken.n())
+      for (_i=0; _i<_test_slave.size(); _i++)
+        for (_j=0; _j<_phi_master.size(); _j++)
+          Ken(_i,_j) += computeQpJacobian(Moose::SlaveMaster);
+
+    _Kne.resize(_test_master.size(), _connected_dof_indices.size());
+    for (_i=0; _i<_test_master.size(); _i++)
+      // Loop over the connected dof indices so we can get all the jacobian contributions
+      for (_j=0; _j<_connected_dof_indices.size(); _j++)
+        _Kne(_i,_j) += computeQpJacobian(Moose::MasterSlave);
+  }
+
+  if (Knn.m() && Knn.n())
+    for (_i=0; _i<_test_master.size(); _i++)
+      for (_j=0; _j<_phi_master.size(); _j++)
+        Knn(_i,_j) += computeQpJacobian(Moose::MasterMaster);
+}
+
+void
+MechanicalContactConstraint::computeOffDiagJacobian(unsigned int jvar)
+{
+  getConnectedDofIndices(jvar);
+
+  _Kee.resize(_test_slave.size(), _connected_dof_indices.size());
+
+  DenseMatrix<Number> & Knn = _assembly.jacobianBlockNeighbor(Moose::NeighborNeighbor, _master_var.number(), jvar);
+
+  for (_i=0; _i<_test_slave.size(); _i++)
+    // Loop over the connected dof indices so we can get all the jacobian contributions
+    for (_j=0; _j<_connected_dof_indices.size(); _j++)
+      _Kee(_i,_j) += computeQpOffDiagJacobian(Moose::SlaveSlave, jvar);
+
+  if (_master_slave_jacobian)
+  {
+    DenseMatrix<Number> & Ken = _assembly.jacobianBlockNeighbor(Moose::ElementNeighbor, _var.number(), jvar);
+    for (_i=0; _i<_test_slave.size(); _i++)
+      for (_j=0; _j<_phi_master.size(); _j++)
+        Ken(_i,_j) += computeQpOffDiagJacobian(Moose::SlaveMaster, jvar);
+
+    _Kne.resize(_test_master.size(), _connected_dof_indices.size());
+    if (_Kne.m() && _Kne.n())
+      for (_i=0; _i<_test_master.size(); _i++)
+        // Loop over the connected dof indices so we can get all the jacobian contributions
+        for (_j=0; _j<_connected_dof_indices.size(); _j++)
+          _Kne(_i,_j) += computeQpOffDiagJacobian(Moose::MasterSlave, jvar);
+  }
+
+  for (_i=0; _i<_test_master.size(); _i++)
+    for (_j=0; _j<_phi_master.size(); _j++)
+      Knn(_i,_j) += computeQpOffDiagJacobian(Moose::MasterMaster, jvar);
+}
+
+void
+MechanicalContactConstraint::getConnectedDofIndices(unsigned int var_num)
+{
+  unsigned int component;
+  if (getCoupledVarComponent(var_num,component) || _non_displacement_vars_jacobian)
+  {
+    if (_master_slave_jacobian && _connected_slave_nodes_jacobian)
+      NodeFaceConstraint::getConnectedDofIndices(var_num);
+    else
+    {
+      _connected_dof_indices.clear();
+      MooseVariable & var = _sys.getVariable(0, var_num);
+      _connected_dof_indices.push_back(var.nodalDofIndex());
+    }
+  }
+
+  _phi_slave.resize(_connected_dof_indices.size());
+  //dof_id_type current_node_var_dof_index = _sys.getVariable(0, _vars(component)).nodalDofIndex();
+  dof_id_type current_node_var_dof_index = _sys.getVariable(0, var_num).nodalDofIndex();
+  _qp = 0;
+
+  // Fill up _phi_slave so that it is 1 when j corresponds to the dof associated with this node
+  // and 0 for every other dof
+  // This corresponds to evaluating all of the connected shape functions at _this_ node
+  for (unsigned int j=0; j<_connected_dof_indices.size(); j++)
+  {
+    _phi_slave[j].resize(1);
+
+    if (_connected_dof_indices[j] == current_node_var_dof_index)
+      _phi_slave[j][_qp] = 1.0;
+    else
+      _phi_slave[j][_qp] = 0.0;
+  }
+}
+
+bool
+MechanicalContactConstraint::getCoupledVarComponent(unsigned int var_num,
+                                                    unsigned int &component)
+{
+  component = std::numeric_limits<unsigned int>::max();
+  bool coupled_var_is_disp_var = false;
+  for (unsigned int i=0; i<LIBMESH_DIM; ++i)
+  {
+    if (var_num == _vars(i))
+    {
+      coupled_var_is_disp_var = true;
+      component = i;
+      break;
+    }
+  }
+  return coupled_var_is_disp_var;
 }

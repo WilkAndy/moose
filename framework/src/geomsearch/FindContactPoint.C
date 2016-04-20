@@ -15,6 +15,7 @@
 // Moose
 #include "FindContactPoint.h"
 #include "LineSegment.h"
+#include "PenetrationInfo.h"
 
 // libMesh
 #include "libmesh/boundary_info.h"
@@ -24,6 +25,8 @@
 #include "libmesh/dense_matrix.h"
 #include "libmesh/dense_vector.h"
 #include "libmesh/fe_base.h"
+#include "libmesh/vector_value.h"
+
 
 namespace Moose
 {
@@ -117,7 +120,7 @@ findContactPoint(PenetrationInfo & p_info,
   _fe->reinit(side, &points);
   RealGradient d = slave_point - phys_point[0];
 
-  Real update_size = 9999999;
+  Real update_size = std::numeric_limits<Real>::max();
 
   //Least squares
   for (unsigned int it=0; it<3 && update_size > TOLERANCE*1e3; ++it)
@@ -158,7 +161,7 @@ findContactPoint(PenetrationInfo & p_info,
     update_size = update.l2_norm();
   }
 
-  update_size = 9999999;
+  update_size = std::numeric_limits<Real>::max();
 
   unsigned nit=0;
 
@@ -209,17 +212,18 @@ findContactPoint(PenetrationInfo & p_info,
 
   p_info._closest_point_ref = ref_point;
   p_info._closest_point = phys_point[0];
-  p_info._distance = d.size();
+  p_info._distance = d.norm();
 
   if (dim-1 == 2)
   {
     p_info._normal = dxyz_dxi[0].cross(dxyz_deta[0]);
-    p_info._normal /= p_info._normal.size();
+    p_info._normal /= p_info._normal.norm();
   }
   else
   {
     p_info._normal = RealGradient(dxyz_dxi[0](1),-dxyz_dxi[0](0));
-    p_info._normal /= p_info._normal.size();
+    if (std::fabs(p_info._normal.norm()) > 1e-15)
+      p_info._normal /= p_info._normal.norm();
   }
 
   // If the point has not penetrated the face, make the distance negative
@@ -241,7 +245,7 @@ findContactPoint(PenetrationInfo & p_info,
     Point closest_point_on_face(phys_point[0]);
 
     RealGradient off_face = closest_point_on_face - p_info._closest_point;
-    Real tangential_distance = off_face.size();
+    Real tangential_distance = off_face.norm();
     p_info._tangential_distance = tangential_distance;
     if (tangential_distance <= tangential_tolerance)
     {

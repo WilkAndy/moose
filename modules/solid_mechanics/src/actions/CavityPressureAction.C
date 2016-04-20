@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "CavityPressureAction.h"
 
 #include "Factory.h"
@@ -22,8 +28,8 @@ InputParameters validParams<CavityPressureAction>()
   return params;
 }
 
-CavityPressureAction::CavityPressureAction(const std::string & name, InputParameters params) :
-  Action(name, params),
+CavityPressureAction::CavityPressureAction(const InputParameters & params) :
+  Action(params),
   _boundary(getParam<std::vector<BoundaryName> >("boundary")),
   _disp_x(getParam<NonlinearVariableName>("disp_x")),
   _disp_y(getParam<NonlinearVariableName>("disp_y")),
@@ -62,12 +68,8 @@ CavityPressureAction::act()
   }
   else
   {
-    std::string short_name(_name);
-    // Chop off "BCs/CavityPressure/"
-    short_name.erase(0, 19);
-    ppname = short_name;
+    ppname = _name;
   }
-
 
   std::vector<NonlinearVariableName> vars;
   vars.push_back(_disp_x);
@@ -88,7 +90,7 @@ CavityPressureAction::act()
 
     params.set<bool>("use_displaced_mesh") = _use_displaced_mesh;
 
-    params.set<int>("component") = i;
+    params.set<unsigned int>("component") = i;
     params.set<NonlinearVariableName>("variable") = vars[i];
     if (_has_save_in_vars[i])
     {

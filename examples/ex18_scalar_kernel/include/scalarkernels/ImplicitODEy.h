@@ -44,7 +44,7 @@ public:
   /**
    * Constructor
    */
-  ImplicitODEy(const std::string & name, InputParameters parameters);
+  ImplicitODEy(const InputParameters & parameters);
 
 protected:
   /**
@@ -77,7 +77,7 @@ protected:
   /**
    * Coupled scalar variable values
    */
-  VariableValue & _x;
+  const VariableValue & _x;
 };
 
 

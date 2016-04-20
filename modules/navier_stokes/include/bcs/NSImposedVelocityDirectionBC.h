@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSIMPOSEDVELOCITYDIRECTIONBC_H
 #define NSIMPOSEDVELOCITYDIRECTIONBC_H
 
@@ -10,8 +16,6 @@ class NSImposedVelocityDirectionBC;
 // Specialization required of all user-level Moose objects
 template<>
 InputParameters validParams<NSImposedVelocityDirectionBC>();
-
-
 
 /**
  * This class imposes a velocity direction component as a
@@ -31,33 +35,27 @@ InputParameters validParams<NSImposedVelocityDirectionBC>();
  * where:
  * u1  = the x-momentum component
  * |u| = velocity magnitude
- * u1_hat_desired = The desired velocity direction, \in (0,1)
+ * u1_hat_desired = The desired velocity direction, \f$ \in (0,1) \f$
  */
 class NSImposedVelocityDirectionBC : public NodalBC
 {
 public:
-  // Constructor
-  NSImposedVelocityDirectionBC(const std::string & name, InputParameters parameters);
-
-  // Destructor, better be virtual
-  virtual ~NSImposedVelocityDirectionBC(){}
+  NSImposedVelocityDirectionBC(const InputParameters & parameters);
 
 protected:
-
   // NodalBC's can (currently) only specialize the computeQpResidual function,
   // the computeQpJacobian() function automatically assembles a "1" onto the main
   // diagonal for this DoF.
   virtual Real computeQpResidual();
 
   // Coupled variables
-  VariableValue& _rho;
-  VariableValue& _u_vel;
-  VariableValue& _v_vel;
-  VariableValue& _w_vel;
+  const VariableValue & _rho;
+  const VariableValue & _u_vel;
+  const VariableValue & _v_vel;
+  const VariableValue & _w_vel;
 
   // The desired value for the unit velocity component
   Real _desired_unit_velocity_component;
 };
-
 
 #endif // NSIMPOSEDVELOCITYDIRECTIONBC_H

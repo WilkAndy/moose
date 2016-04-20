@@ -22,7 +22,7 @@
     type = FunctionAux
     variable = t
     function = t
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
 []
 
@@ -43,11 +43,5 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

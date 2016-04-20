@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSRELPERMVG_H
 #define RICHARDSRELPERMVG_H
@@ -20,8 +23,8 @@ InputParameters validParams<RichardsRelPermVG>();
  */
 class RichardsRelPermVG : public RichardsRelPerm
 {
- public:
-  RichardsRelPermVG(const std::string & name, InputParameters parameters);
+public:
+  RichardsRelPermVG(const InputParameters & parameters);
 
   /**
    * relative permeability as a function of effective saturation
@@ -41,7 +44,7 @@ class RichardsRelPermVG : public RichardsRelPerm
    */
   Real d2relperm(Real seff) const;
 
- protected:
+protected:
 
   /// immobile saturation
   Real _simm;

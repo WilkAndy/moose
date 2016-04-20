@@ -19,6 +19,11 @@ class Tester(MooseObject):
     params.addParam('group',       [], "A list of groups for which this test belongs.")
     params.addParam('prereq',      [], "A list of prereq tests that need to run successfully before launching this test.")
     params.addParam('skip_checks', False, "Tells the TestHarness to skip additional checks (This parameter is set automatically by the TestHarness during recovery tests)")
+    params.addParam('scale_refine',    0, "The number of refinements to do when scaling")
+
+    params.addParam('cli_args',       [], "Additional arguments to be passed to the test.")
+
+    params.addParam('valgrind', 'NONE', "Set to (NONE, NORMAL, HEAVY) to determine which configurations where valgrind will run.")
 
     # Test Filters
     params.addParam('platform',      ['ALL'], "A list of platforms for which this test will run on. ('ALL', 'DARWIN', 'LINUX', 'SL', 'LION', 'ML')")
@@ -32,6 +37,15 @@ class Tester(MooseObject):
     params.addParam('recover',       True,    "A test that runs with '--recover' mode enabled")
     params.addParam('vtk',           ['ALL'], "A test that runs only if VTK is detected ('ALL', 'TRUE', 'FALSE')")
     params.addParam('tecplot',       ['ALL'], "A test that runs only if Tecplot is detected ('ALL', 'TRUE', 'FALSE')")
+    params.addParam('dof_id_bytes',  ['ALL'], "A test that runs only if libmesh is configured --with-dof-id-bytes = a specific number, e.g. '4', '8'")
+    params.addParam('petsc_debug',   ['ALL'], "{False,True} -> test only runs when PETSc is configured with --with-debugging={0,1}, otherwise test always runs.")
+    params.addParam('curl',          ['ALL'], "A test that runs only if CURL is detected ('ALL', 'TRUE', 'FALSE')")
+    params.addParam('tbb',           ['ALL'], "A test that runs only if TBB is available ('ALL', 'TRUE', 'FALSE')")
+    params.addParam('superlu',       ['ALL'], "A test that runs only if SuperLU is available via PETSc ('ALL', 'TRUE', 'FALSE')")
+    params.addParam('unique_id',     ['ALL'], "A test that runs only if libmesh is configured with --enable-unique-id ('ALL', 'TRUE', 'FALSE')")
+    params.addParam('cxx11',         ['ALL'], "A test that runs only if CXX11 is available ('ALL', 'TRUE', 'FALSE')")
+    params.addParam('asio',          ['ALL'], "A test that runs only if ASIO is available ('ALL', 'TRUE', 'FALSE')")
+    params.addParam('depend_files',  [], "A test that only runs if all depend files exist (files listed are expected to be relative to the base directory, not the test directory")
 
     return params
 
@@ -39,13 +53,17 @@ class Tester(MooseObject):
     MooseObject.__init__(self, name, params)
     self.specs = params
 
+  # Method to return the input file if applicable to this Tester
+  def getInputFile(self):
+    return None
+
 
   def setValgrindMode(self, mode):
     # Increase the alloted time for tests when running with the valgrind option
     if mode == 'NORMAL':
       self.specs['max_time'] = self.specs['max_time'] * 2
-    elif mode == 'NORMAL':
-      self.specs['max_time'] = self.specs['max_time'] * 4
+    elif mode == 'HEAVY':
+      self.specs['max_time'] = self.specs['max_time'] * 6
 
 
   # Override this method to tell the harness whether or not this test should run.
@@ -65,6 +83,11 @@ class Tester(MooseObject):
   # This method should return the executable command that will be executed by the tester
   def getCommand(self, options):
     return
+
+
+  # This method is called to return the commands (list) used for processing results
+  def processResultsCommand(self, moose_dir, options):
+    return []
 
 
   # This method will be called to process the results of running the test.  Any post-test
@@ -117,7 +140,7 @@ class Tester(MooseObject):
       reason = 'skipped (' + test_reason + ')'
       return (False, reason)
     # If were testing for SCALE_REFINE, then only run tests with a SCALE_REFINE set
-    elif options.store_time and self.specs['scale_refine'] == 0:
+    elif (options.store_time or options.scaling) and self.specs['scale_refine'] == 0:
       return (False, reason)
     # If we're testing with valgrind, then skip tests that require parallel or threads or don't meet the valgrind setting
     elif options.valgrind_mode != '':
@@ -141,7 +164,8 @@ class Tester(MooseObject):
       return (False, reason)
 
     # PETSc is being explicitly checked above
-    local_checks = ['platform', 'compiler', 'mesh_mode', 'method', 'library_mode', 'dtk', 'unique_ids', 'vtk', 'tecplot']
+    local_checks = ['platform', 'compiler', 'mesh_mode', 'method', 'library_mode', 'dtk', 'unique_ids', 'vtk', 'tecplot', \
+                    'petsc_debug', 'curl', 'tbb', 'superlu', 'cxx11', 'asio', 'unique_id']
     for check in local_checks:
       test_platforms = set()
       for x in self.specs[check]:
@@ -162,6 +186,17 @@ class Tester(MooseObject):
     # Check for positive scale refine values when using store timing options
     if self.specs['scale_refine'] == 0 and options.store_time:
       return (False, reason)
+
+    # There should only be one entry in self.specs['dof_id_bytes']
+    for x in self.specs['dof_id_bytes']:
+      if x != 'ALL' and not x in checks['dof_id_bytes']:
+        return (False, 'skipped (--with-dof-id-bytes!=' + x + ')')
+
+    # Check to make sure depend files exist
+    for file in self.specs['depend_files']:
+      if not os.path.isfile(os.path.join(self.specs['base_dir'], file)):
+        reason = 'skipped (DEPEND FILES)'
+        return (False, reason)
 
     # Check the return values of the derived classes
     return self.checkRunnable(options)

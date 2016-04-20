@@ -12,10 +12,9 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 
+// MOOSE includes
 #include "NearestPointLayeredAverage.h"
-
-// libmesh includes
-#include "libmesh/mesh_tools.h"
+#include "LayeredAverage.h"
 
 template<>
 InputParameters validParams<NearestPointLayeredAverage>()
@@ -29,8 +28,8 @@ InputParameters validParams<NearestPointLayeredAverage>()
   return params;
 }
 
-NearestPointLayeredAverage::NearestPointLayeredAverage(const std::string & name, InputParameters parameters) :
-    ElementIntegralVariableUserObject(name, parameters)
+NearestPointLayeredAverage::NearestPointLayeredAverage(const InputParameters & parameters) :
+    ElementIntegralVariableUserObject(parameters)
 {
   const std::vector<Real> & points_vec = getParam<std::vector<Real> >("points");
 
@@ -50,7 +49,7 @@ NearestPointLayeredAverage::NearestPointLayeredAverage(const std::string & name,
 
   // Build each of the LayeredAverage objects:
   for (unsigned int i=0; i<_points.size(); i++)
-    _layered_averages.push_back(new LayeredAverage(name, parameters));
+    _layered_averages.push_back(new LayeredAverage(parameters));
 }
 
 NearestPointLayeredAverage::~NearestPointLayeredAverage()
@@ -88,6 +87,12 @@ NearestPointLayeredAverage::threadJoin(const UserObject & y)
     _layered_averages[i]->threadJoin(*npla._layered_averages[i]);
 }
 
+Real
+NearestPointLayeredAverage::spatialValue(const Point & p) const
+{
+  return nearestLayeredAverage(p)->integralValue(p);
+}
+
 LayeredAverage *
 NearestPointLayeredAverage::nearestLayeredAverage(const Point & p) const
 {
@@ -98,7 +103,7 @@ NearestPointLayeredAverage::nearestLayeredAverage(const Point & p) const
   {
     const Point & current_point = _points[i];
 
-    Real current_distance = (p - current_point).size();
+    Real current_distance = (p - current_point).norm();
 
     if (current_distance < closest_distance)
     {
@@ -109,3 +114,4 @@ NearestPointLayeredAverage::nearestLayeredAverage(const Point & p) const
 
   return _layered_averages[closest];
 }
+

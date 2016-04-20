@@ -16,53 +16,19 @@
 #define PENETRATIONLOCATOR_H
 
 // Moose includes
-#include "GeometricSearchInterface.h"
 #include "Restartable.h"
 #include "PenetrationInfo.h"
 
 // libmesh includes
-#include "libmesh/libmesh_common.h"
-#include "MooseMesh.h"
 #include "libmesh/vector_value.h"
 #include "libmesh/point.h"
-#include "libmesh/fe_type.h"
 #include "libmesh/fe.h"
 
-#include <vector>
-#include <map>
-
-//Forward Declarations
+// Forward Declarations
 class SubProblem;
 class MooseMesh;
 class GeometricSearchData;
-
-/**
- * We have to have a specialization for this map because the PenetrationInfo
- * objects MUST get deleted before the ones are loaded from a file or it's a memory leak.
- */
-template<>
-inline void
-dataLoad(std::istream & stream, std::map<unsigned int, PenetrationInfo *> & m, void * context)
-{
-  std::map<unsigned int, PenetrationInfo *>::iterator it = m.begin();
-  std::map<unsigned int, PenetrationInfo *>::iterator end = m.end();
-
-  for (; it != end; ++it)
-    delete it->second;
-
-  m.clear();
-
-  // First read the size of the map
-  unsigned int size = 0;
-  stream.read((char *) &size, sizeof(size));
-
-  for (unsigned int i = 0; i < size; i++)
-  {
-    unsigned int key;
-    loadHelper(stream, key, context);
-    loadHelper(stream, m[key], context);
-  }
-}
+class NearestNodeLocator;
 
 class PenetrationLocator : Restartable
 {
@@ -77,8 +43,8 @@ public:
    */
   void reinit();
 
-  Real penetrationDistance(unsigned int node_id);
-  RealVectorValue penetrationNormal(unsigned int node_id);
+  Real penetrationDistance(dof_id_type node_id);
+  RealVectorValue penetrationNormal(dof_id_type node_id);
 
   enum NORMAL_SMOOTHING_METHOD
   {
@@ -105,26 +71,53 @@ public:
   NearestNodeLocator & _nearest_node;
 
   /// Data structure of nodes and their associated penetration information
-  std::map<unsigned int, PenetrationInfo *> & _penetration_info;
+  std::map<dof_id_type, PenetrationInfo *> & _penetration_info;
 
-  std::set<unsigned int> & _has_penetrated;
-  std::map<unsigned int, unsigned> & _locked_this_step;
-  std::map<unsigned int, unsigned> & _unlocked_this_step;
-  std::map<unsigned int, Real> & _lagrange_multiplier;
+  std::set<dof_id_type> & _has_penetrated; // This is only hanging around for legacy code. Don't use it!
 
+  void setCheckWhetherReasonable(bool state);
   void setUpdate(bool update);
   void setTangentialTolerance(Real tangential_tolerance);
   void setNormalSmoothingDistance(Real normal_smoothing_distance);
   void setNormalSmoothingMethod(std::string nsmString);
-  void saveContactStateVars();
   Real getTangentialTolerance() {return _tangential_tolerance;}
 
 protected:
+  /// Check whether found candidates are reasonable
+  bool _check_whether_reasonable;
   bool & _update_location; // Update the penetration location for nodes found last time
   Real _tangential_tolerance; // Tangential distance a node can be from a face and still be in contact
   bool _do_normal_smoothing;  // Should we do contact normal smoothing?
   Real _normal_smoothing_distance; // Distance from edge (in parametric coords) within which to perform normal smoothing
   NORMAL_SMOOTHING_METHOD _normal_smoothing_method;
 };
+
+/**
+ * We have to have a specialization for this map because the PenetrationInfo
+ * objects MUST get deleted before the ones are loaded from a file or it's a memory leak.
+ */
+template<>
+inline void
+dataLoad(std::istream & stream, std::map<dof_id_type, PenetrationInfo *> & m, void * context)
+{
+  std::map<dof_id_type, PenetrationInfo *>::iterator it = m.begin();
+  std::map<dof_id_type, PenetrationInfo *>::iterator end = m.end();
+
+  for (; it != end; ++it)
+    delete it->second;
+
+  m.clear();
+
+  // First read the size of the map
+  unsigned int size = 0;
+  stream.read((char *) &size, sizeof(size));
+
+  for (unsigned int i = 0; i < size; i++)
+  {
+    dof_id_type key;
+    loadHelper(stream, key, context);
+    loadHelper(stream, m[key], context);
+  }
+}
 
 #endif //PENETRATIONLOCATOR_H

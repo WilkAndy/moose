@@ -136,6 +136,13 @@
   [../]
   [./seffwater]
   [../]
+
+  # the following "dummy" variable is simply used for exception testing RichardsMultiphaseProblem
+  # It is not part of the "gravity head" simulation
+  [./dummy_var]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
 []
 
 [AuxKernels]
@@ -169,18 +176,18 @@
   [./mwater_fin]
     type = RichardsMass
     variable = pwater
-    execute_on = timestep
+    execute_on = timestep_end
     outputs = none
   [../]
   [./mgas_fin]
     type = RichardsMass
     variable = pgas
-    execute_on = timestep
+    execute_on = timestep_end
     outputs = none
   [../]
 
   [./mass_error_water]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = fcn_mass_error_w
   [../]
 
@@ -197,7 +204,7 @@
     outputs = none
   [../]
   [./error_water]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = fcn_error_water
   [../]
 []
@@ -233,9 +240,8 @@
   [./andy]
     type = SMP
     full = true
-    #petsc_options = '-snes_test_display'
-    petsc_options_iname = '-ksp_type -pc_type -snes_atol -snes_rtol -snes_max_it'
-    petsc_options_value = 'bcgs bjacobi 1E-15 1E-15 10000'
+    petsc_options_iname = '-pc_factor_shift_type'
+    petsc_options_value = 'nonzero'
   [../]
 []
 
@@ -244,19 +250,15 @@
   solve_type = Newton
   end_time = 1E6
   dt = 1E6
+  dtmin = 1E6
+  line_search = bt
 
-  #[./TimeStepper]
-  #  type = FunctionDT
-  #  time_dt = '1E-2 1E-1 1E0 1E1 1E3 1E4 1E5 1E6 1E7'
-  #  time_t = '0 1E-1 1E0 1E1 1E2 1E3 1E4 1E5 1E6'
-  #[../]
+  nl_rel_tol = 1.e-6
+  nl_max_its = 10
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = gh_bounded_17
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

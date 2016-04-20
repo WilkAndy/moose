@@ -15,9 +15,10 @@
 #ifndef SIDEINTEGRALUSEROBJECT_H
 #define SIDEINTEGRALUSEROBJECT_H
 
-#include "SidePostprocessor.h"
+// MOOSE includes
+#include "SideUserObject.h"
 
-//Forward Declarations
+// Forward Declarations
 class SideIntegralUserObject;
 
 template<>
@@ -32,7 +33,7 @@ InputParameters validParams<SideIntegralUserObject>();
 class SideIntegralUserObject : public SideUserObject
 {
 public:
-  SideIntegralUserObject(const std::string & name, InputParameters parameters);
+  SideIntegralUserObject(const InputParameters & parameters);
 
   virtual void initialize();
   virtual void execute();

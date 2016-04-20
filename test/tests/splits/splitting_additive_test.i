@@ -98,11 +98,5 @@
 
 [Outputs]
   file_base = splitting_additive_out
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

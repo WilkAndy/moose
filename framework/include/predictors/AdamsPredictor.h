@@ -15,27 +15,35 @@
 #ifndef ADAMSPREDICTOR_H
 #define ADAMSPREDICTOR_H
 
+// MOOSE includes
 #include "Predictor.h"
-#include "libmesh/numeric_vector.h"
 
+// Forward declarations
 class AdamsPredictor;
+
+namespace libMesh
+{
+template <typename T> class NumericVector;
+}
 
 template<>
 InputParameters validParams<AdamsPredictor>();
 
 /**
- *
+ * Implements an explicit Adams predictor based on two old solution
+ * vectors.
  */
 class AdamsPredictor : public Predictor
 {
 public:
-  AdamsPredictor(const std::string & name, InputParameters parameters);
+  AdamsPredictor(const InputParameters & parameters);
   virtual ~AdamsPredictor();
 
   virtual int order() { return _order; }
+  virtual void timestepSetup();
+  virtual bool shouldApply();
   virtual void apply(NumericVector<Number> & sln);
   virtual NumericVector<Number> & solutionPredictor() { return _solution_predictor; }
-  virtual void historyControl();
 
 protected:
   int _order;

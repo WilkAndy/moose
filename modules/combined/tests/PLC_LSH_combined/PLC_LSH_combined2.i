@@ -321,11 +321,5 @@
 
 [Outputs]
   file_base = PLC_LSH_combined_out
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

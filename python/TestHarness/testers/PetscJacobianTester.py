@@ -12,14 +12,20 @@ class PetscJacobianTester(RunApp):
 
     return params
 
+  def checkRunnable(self, options):
+    if options.enable_recover:
+      reason = 'skipped (PetscJacTester RECOVER)'
+      return (False, reason)
+    return RunApp.checkRunnable(self, options)
+
   def __init__(self, name, params):
     RunApp.__init__(self, name, params)
     self.specs['cli_args'].append('-snes_type test')
 
   def processResults(self, moose_dir, retcode, options, output):
-    m = re.search("Norm of matrix ratio (\S+) difference (\S+) \(user-defined state\)", output, re.MULTILINE | re.DOTALL);
+    m = re.search("Norm of matrix ratio (\S+?),? difference (\S+) \(user-defined state\)", output, re.MULTILINE | re.DOTALL);
     if m:
-      if float(m.group(1)) < self.specs['ratio_tol'] and float(m.group(2)) < self.specs['difference_tol']:
+      if float(m.group(1)) < float(self.specs['ratio_tol']) and float(m.group(2)) < float(self.specs['difference_tol']):
         reason = ''
       else:
         reason = 'INCORRECT JACOBIAN'

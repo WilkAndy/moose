@@ -15,11 +15,16 @@
 #ifndef BLOCKRESTRICTABLE_H
 #define BLOCKRESTRICTABLE_H
 
+// MOOSE includes
 #include "InputParameters.h"
-#include "MooseTypes.h"
-#include "FEProblem.h"
+#include "ParallelUniqueId.h"
+#include "MaterialData.h"
+#include "MooseObject.h"
 
+// Forward declarations
 class BlockRestrictable;
+class FEProblem;
+class MooseMesh;
 
 template<>
 InputParameters validParams<BlockRestrictable>();
@@ -56,13 +61,28 @@ InputParameters validParams<BlockRestrictable>();
 class BlockRestrictable
 {
 public:
+
   /**
    * Class constructor
    * Populates the 'block' input parameters, see the general class documentation for details.
-   * @param name The name of the class
-   * @param params The input parameters (see the detailed help for additional information)
+   * @param parameters The input parameters (see the detailed help for additional information)
    */
-  BlockRestrictable(const std::string name, InputParameters & params);
+  BlockRestrictable(const InputParameters & parameters);
+
+  /**
+   * Class constructor
+   * Populates the 'block' input parameters when an object is also boundary restricted,
+   * see the general class documentation for details.
+   * @param parameters The input parameters (see the detailed help for additional information)
+   * @param boundary_ids The boundary ids that the object is restricted to
+   */
+  BlockRestrictable(const InputParameters & parameters, const std::set<BoundaryID> & boundary_ids);
+
+  /**
+   * Destructor: does nothing but needs to be marked as virtual since
+   * this class defines virtual functions.
+   */
+  virtual ~BlockRestrictable() {}
 
   /**
    * Return the block names for this object
@@ -82,9 +102,10 @@ public:
 
   /**
    * Return the block subdomain ids for this object
+   * @param mesh_ids When true, this will return all mesh ids rather than ANY_BLOCK_ID (@see MooseObjectWarehouse)
    * @return a set of SudomainIDs that are valid for this object
    */
-  const std::set<SubdomainID> & blockIDs() const;
+  const virtual std::set<SubdomainID> & blockIDs() const;
 
   /**
    * Test if the supplied block name is valid for this object
@@ -141,22 +162,40 @@ public:
   /**
    * Check if a material property is valid for all blocks of this object
    *
-   * This method returns true if the block ids for this object are a subset of the blocks
-   * associated with the material property for the supplied property name. This function
-   * will return false it the getMaterialPropertyBlocks for the same name is empty.
+   * This method returns true if the supplied property name has been declared
+   * in a Material object on the block ids for this object.
    *
-   * @param name the name of the property to query
+   * @tparam T The type of material property
+   * @param prop_name the name of the property to query
    * @return true if the property exists for all block ids of the object, otherwise false
-   * \see MaterialPropertyInterface::getMaterialPropertyBlocks
-   * \see isBlockSubet
+   *
+   * @see Material::hasBlockMaterialProperty
    */
-  bool hasBlockMaterialProperty(const std::string & name) const;
+  template<typename T> bool hasBlockMaterialProperty(const std::string & prop_name);
 
   /**
    * Return all of the SubdomainIDs for the mesh
-   * @return A set of all subdomians for the entire domain
+   * @return A set of all subdomians for the entire mesh
    */
-  const std::set<SubdomainID> & meshBlockIDs();
+  const std::set<SubdomainID> & meshBlockIDs() const;
+
+  /**
+   * Returns true if this object has been restricted to a boundary
+   * @see MooseObject
+   */
+  virtual bool blockRestricted();
+
+protected:
+
+  /// Pointer to the MaterialData class for this object
+  MooseSharedPointer<MaterialData> _blk_material_data;
+
+  /**
+   * A helper method to allow the Material object to specialize the behavior
+   * of hasBlockMaterialProperty. It also avoid circular \#include problems.
+   * @see hasBlockMaterialProperty
+   */
+  virtual bool hasBlockMaterialPropertyHelper(const std::string & prop_name);
 
 private:
 
@@ -175,12 +214,34 @@ private:
   /// Pointer to Mesh
   MooseMesh * _blk_mesh;
 
+  /// An empty set for referencing when boundary_ids is not included
+  const std::set<BoundaryID> _empty_boundary_ids;
+
+  /// Reference to the boundary_ids, defaults to an empty set if not provided
+  const std::set<BoundaryID> & _boundary_ids;
+
+  /// Thread id for this object
+  THREAD_ID _blk_tid;
+
+  /**
+   * An initialization routine needed for dual constructors
+   */
+  void initializeBlockRestrictable(const InputParameters & parameters);
+
   /**
    * A helper function for extracting the subdomain IDs for a variable
    * @param parameters A reference to the input parameters supplied to the object
    */
-  std::set<SubdomainID> variableSubdomianIDs(InputParameters & parameters) const;
+  std::set<SubdomainID> variableSubdomainIDs(const InputParameters & parameters) const;
 
 };
+
+template<typename T>
+bool
+BlockRestrictable::hasBlockMaterialProperty(const std::string & prop_name)
+{
+  mooseAssert(_blk_material_data != NULL, "MaterialData pointer is not defined");
+  return hasBlockMaterialPropertyHelper(prop_name) && _blk_material_data->haveProperty<T>(prop_name);
+}
 
 #endif // BLOCKRESTRICTABLE_H

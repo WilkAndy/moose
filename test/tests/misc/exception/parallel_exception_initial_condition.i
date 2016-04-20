@@ -13,13 +13,11 @@
   [./exception]
     type = ExceptionKernel
     variable = u
-    block = 1
     when = initial_condition
   [../]
   [./diff]
     type = Diffusion
     variable = u
-    block = 2
   [../]
 []
 
@@ -39,18 +37,10 @@
 []
 
 [Executioner]
-  type = ExceptionSteady
-
-  # Preconditioned JFNK (default)
+  type = TestSteady
   solve_type = 'PJFNK'
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

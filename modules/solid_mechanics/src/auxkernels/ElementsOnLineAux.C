@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "ElementsOnLineAux.h"
 
 template<>
@@ -10,12 +16,12 @@ InputParameters validParams<ElementsOnLineAux>()
   params.addRequiredParam<Real>("dist_tol", "Tolerance for distance between element and line");
   params.addParam<int>("line_id", 1, "ID of the line along which to pick elements");
 
-  params.set<MooseEnum>("execute_on") = "initial";
+  params.set<MultiMooseEnum>("execute_on") = "initial";
 
   return params;
 }
 
-ElementsOnLineAux::ElementsOnLineAux(const std::string & name, InputParameters parameters) : AuxKernel(name, parameters),
+ElementsOnLineAux::ElementsOnLineAux(const InputParameters & parameters) : AuxKernel(parameters),
 
   _line1( getParam<RealVectorValue>("line1") ),
   _line2( getParam<RealVectorValue>("line2") ),
@@ -33,7 +39,7 @@ ElementsOnLineAux::compute()
   const Point elem_pos(_current_elem->centroid());
 
   const Point line_vec(_line2 - _line1);
-  const Real length(line_vec.size());
+  const Real length(line_vec.norm());
   const Point line_unit_vec(line_vec / length);
 
   const Point line1_to_elem_vec(elem_pos - _line1);
@@ -41,7 +47,7 @@ ElementsOnLineAux::compute()
   const Point proj_vec(proj * line_unit_vec);
   const Point dist_vec(line1_to_elem_vec - proj_vec);
 
-  const Real distance(dist_vec.size());
+  const Real distance(dist_vec.norm());
 
   if (distance < _dist_tol)
   {

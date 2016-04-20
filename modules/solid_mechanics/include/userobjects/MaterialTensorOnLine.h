@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef MATERIALTENSORONLINE_H
 #define MATERIALTENSORONLINE_H
 
@@ -13,7 +19,7 @@ InputParameters validParams<MaterialTensorOnLine>();
 class MaterialTensorOnLine : public ElementUserObject
 {
 public:
-  MaterialTensorOnLine(const std::string & name, InputParameters parameters);
+  MaterialTensorOnLine(const InputParameters & parameters);
 
   ~MaterialTensorOnLine(); // the destructor closes the output file
 
@@ -30,7 +36,7 @@ protected:
   std::map<std::pair<unsigned int,unsigned int>,Real> _value;
 
   MaterialTensorCalculator _material_tensor_calculator;
-  MaterialProperty<SymmTensor> & _tensor;
+  const MaterialProperty<SymmTensor> & _tensor;
 
   const Point _lp1;
   const Point _lp2;
@@ -41,11 +47,7 @@ protected:
   bool _stream_open;
 
 private:
-  VariableValue & _elem_line_id;
+  const VariableValue & _elem_line_id;
 };
 
 #endif
-
-
-
-

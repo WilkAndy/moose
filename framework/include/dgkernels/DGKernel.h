@@ -18,21 +18,22 @@
 // local includes
 #include "MooseArray.h"
 #include "MooseObject.h"
+#include "BlockRestrictable.h"
+#include "BoundaryRestrictable.h"
 #include "SetupInterface.h"
 #include "TransientInterface.h"
 #include "UserObjectInterface.h"
 #include "NeighborCoupleableMooseVariableDependencyIntermediateInterface.h"
 #include "FunctionInterface.h"
-#include "MooseVariableInterface.h"
 #include "TwoMaterialPropertyInterface.h"
-#include "Assembly.h"
 #include "Restartable.h"
+#include "MeshChangedInterface.h"
 
+// Forward Declarations
 class MooseMesh;
-class Problem;
 class SubProblem;
+class Assembly;
 
-//Forward Declarations
 class DGKernel;
 
 template<>
@@ -45,13 +46,16 @@ InputParameters validParams<DGKernel>();
  */
 class DGKernel :
   public MooseObject,
+  public BlockRestrictable,
+  public BoundaryRestrictable,
   public SetupInterface,
   public TransientInterface,
   public FunctionInterface,
   public UserObjectInterface,
   public NeighborCoupleableMooseVariableDependencyIntermediateInterface,
   protected TwoMaterialPropertyInterface,
-  public Restartable
+  public Restartable,
+  public MeshChangedInterface
 {
 public:
 
@@ -59,10 +63,9 @@ public:
    * Factory constructor initializes all internal references needed for residual computation.
    *
    *
-   * @param name The name of this kernel.
    * @param parameters The parameters object for holding additional parameters for kernels and derived kernels
    */
-  DGKernel(const std::string & name, InputParameters parameters);
+  DGKernel(const InputParameters & parameters);
 
   virtual ~DGKernel();
 
@@ -77,14 +80,29 @@ public:
   SubProblem & subProblem();
 
   /**
+   * Computes the residual for this element or the neighbor
+   */
+  virtual void computeElemNeighResidual(Moose::DGResidualType type);
+
+  /**
    * Computes the residual for the current side.
    */
   virtual void computeResidual();
 
   /**
+   * Computes the element/neighbor-element/neighbor Jacobian
+   */
+  virtual void computeElemNeighJacobian(Moose::DGJacobianType type);
+
+  /**
    * Computes the jacobian for the current side.
    */
   virtual void computeJacobian();
+
+  /**
+   * Computes the element-element off-diagonal Jacobian
+   */
+  virtual void computeOffDiagElemNeighJacobian(Moose::DGJacobianType type,unsigned int jvar);
 
   /**
    * Computes d-residual / d-jvar...
@@ -134,10 +152,10 @@ protected:
   BoundaryID _boundary_id;
 
   /// Holds the current solution at the current quadrature point on the face.
-  VariableValue & _u;
+  const VariableValue & _u;
 
   /// Holds the current solution gradient at the current quadrature point on the face.
-  VariableGradient & _grad_u;
+  const VariableGradient & _grad_u;
   // shape functions
   const VariablePhiValue & _phi;
   const VariablePhiGradient & _grad_phi;
@@ -161,9 +179,9 @@ protected:
   const VariableTestGradient & _grad_test_neighbor;
 
   /// Holds the current solution at the current quadrature point
-  VariableValue & _u_neighbor;
+  const VariableValue & _u_neighbor;
   /// Holds the current solution gradient at the current quadrature point
-  VariableGradient & _grad_u_neighbor;
+  const VariableGradient & _grad_u_neighbor;
 
   /**
    * This is the virtual that derived classes should override for computing the residual on neighboring element.

@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSSEFFVG_H
 #define RICHARDSSEFFVG_H
@@ -17,8 +20,7 @@
  */
 class RichardsSeffVG
 {
- public:
-  RichardsSeffVG();
+public:
 
   /**
    * effective saturation as a fcn of porepressure

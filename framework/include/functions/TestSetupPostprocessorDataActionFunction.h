@@ -34,10 +34,9 @@ public:
 
   /**
    * Class constructor
-   * @param name
-   * @param parameters
+   * @param parameters The parameters object holding data for the class to use.
    */
-  TestSetupPostprocessorDataActionFunction(const std::string & name, InputParameters parameters);
+  TestSetupPostprocessorDataActionFunction(const InputParameters & parameters);
 
   /**
    * Class destructor

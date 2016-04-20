@@ -19,20 +19,20 @@ InputParameters validParams<RandomElementalUserObject>()
 {
   InputParameters params = validParams<ElementUserObject>();
 
-  MooseEnum setup_options(SetupInterface::getExecuteOptions());
+  MultiMooseEnum setup_options(SetupInterface::getExecuteOptions());
   setup_options = "timestep_begin";
-  params.set<MooseEnum>("execute_on") = setup_options;
+  params.set<MultiMooseEnum>("execute_on") = setup_options;
   return params;
 }
 
-RandomElementalUserObject::RandomElementalUserObject(const std::string & name, InputParameters parameters) :
-    ElementUserObject(name, parameters)
+RandomElementalUserObject::RandomElementalUserObject(const InputParameters & parameters) :
+    ElementUserObject(parameters)
 {
   /**
    * This call turns on Random Number generation for this object, it can be called either in
    * the constructor or in initialSetup().
    */
-  setRandomResetFrequency(EXEC_RESIDUAL);
+  setRandomResetFrequency(EXEC_LINEAR);
 }
 
 RandomElementalUserObject::~RandomElementalUserObject()

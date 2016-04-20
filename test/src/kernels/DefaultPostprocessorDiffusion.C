@@ -1,3 +1,16 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #include "DefaultPostprocessorDiffusion.h"
 
 template<>
@@ -10,13 +23,13 @@ InputParameters validParams<DefaultPostprocessorDiffusion>()
 }
 
 
-DefaultPostprocessorDiffusion::DefaultPostprocessorDiffusion(const std::string & name, InputParameters parameters) :
-    Kernel(name, parameters),
+DefaultPostprocessorDiffusion::DefaultPostprocessorDiffusion(const InputParameters & parameters) :
+    Kernel(parameters),
     _pps_value(getPostprocessorValue("pps_name"))
 {
   // Test the error message for defaultPostprocessorValue
   if (getParam<bool>("test_default_error"))
-    parameters.defaultPostprocessorValue("invalid_postprocessor_name");
+    parameters.getDefaultPostprocessorValue("invalid_postprocessor_name");
 }
 
 Real

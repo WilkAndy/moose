@@ -60,18 +60,22 @@
 [Postprocessors]
   [./nodes]
     type = NumNodes
+    execute_on = 'initial timestep_end'
   [../]
 
   [./elements]
     type = NumElems
+    execute_on = 'initial timestep_end'
   [../]
 
   [./dofs]
     type = NumDOFs
+    execute_on = 'initial timestep_end'
   [../]
 
   [./residuals]
     type = NumResidualEvaluations
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -79,9 +83,4 @@
   file_base = out
   exodus = false
   csv = true
-  output_initial = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

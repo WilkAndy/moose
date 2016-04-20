@@ -86,7 +86,6 @@
     fluxes = '200 200'
     point_file = th01.points
     SumQuantityUO = total_outflow_mass
-    mesh_adaptivity = false
     variable = pressure
   [../]
 []
@@ -101,7 +100,7 @@
     type = PointValue
     variable = pressure
     point = '50 0 0'
-    execute_on = timestep
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -159,8 +158,6 @@
 
   [./TimeStepper]
     type = FunctionDT
-    #time_dt = '0.1 0.5 1 2'
-    #time_t = '0 1 10 100'
     time_dt = '1 2 4 20'
     time_t = '0 1 10 100'
   [../]
@@ -170,10 +167,5 @@
 
 [Outputs]
   file_base = th02
-  output_initial = true
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "CLSHPlasticModel.h"
 
 #include "SymmIsotropicElasticityTensor.h"
@@ -14,9 +20,8 @@ InputParameters validParams<CLSHPlasticModel>()
    return params;
 }
 
-CLSHPlasticModel::CLSHPlasticModel(std::string name,
-                                         InputParameters parameters)
-  :ReturnMappingModel(name, parameters),
+CLSHPlasticModel::CLSHPlasticModel(const InputParameters & parameters)
+  :ReturnMappingModel(parameters),
    _yield_stress(parameters.get<Real>("yield_stress")),
    _hardening_constant(parameters.get<Real>("hardening_constant")),
    _c_alpha(parameters.get<Real>("c_alpha")),

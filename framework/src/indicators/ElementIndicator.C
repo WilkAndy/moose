@@ -15,9 +15,6 @@
 #include "ElementIndicator.h"
 #include "Assembly.h"
 #include "MooseVariable.h"
-#include "Problem.h"
-#include "SubProblem.h"
-#include "SystemBase.h"
 
 // libmesh includes
 #include "libmesh/threads.h"
@@ -26,10 +23,10 @@ template<>
 InputParameters validParams<ElementIndicator>()
 {
   InputParameters params = validParams<Indicator>();
+  params += validParams<MaterialPropertyInterface>();
   params.addRequiredParam<VariableName>("variable", "The name of the variable that this Indicator operates on");
 
-  std::vector<SubdomainName> everywhere(1);
-  everywhere[0] = "ANY_BLOCK_ID";
+  std::vector<SubdomainName> everywhere(1, "ANY_BLOCK_ID");
   params.addParam<std::vector<SubdomainName> >("block", everywhere, "block ID or name where the object works");
 
   params += validParams<TransientInterface>();
@@ -37,17 +34,17 @@ InputParameters validParams<ElementIndicator>()
 }
 
 
-ElementIndicator::ElementIndicator(const std::string & name, InputParameters parameters) :
-    Indicator(name, parameters),
-    TransientInterface(parameters, name, "indicators"),
-    PostprocessorInterface(parameters),
+ElementIndicator::ElementIndicator(const InputParameters & parameters) :
+    Indicator(parameters),
+    TransientInterface(this),
+    PostprocessorInterface(this),
     Coupleable(parameters, false),
     ScalarCoupleable(parameters),
     MooseVariableInterface(parameters, false),
-    MaterialPropertyInterface(parameters),
+    MaterialPropertyInterface(this),
     ZeroInterface(parameters),
 
-    _field_var(_sys.getVariable(_tid, name)),
+    _field_var(_sys.getVariable(_tid, name())),
 
     _current_elem(_field_var.currentElem()),
     _current_elem_volume(_assembly.elemVolume()),

@@ -28,7 +28,7 @@ InputParameters validParams<MatTestNeumannBC>();
 class MatTestNeumannBC : public NeumannBC
 {
 public:
-  MatTestNeumannBC(const std::string & name, InputParameters parameters);
+  MatTestNeumannBC(const InputParameters & parameters);
 
 protected:
 
@@ -36,7 +36,7 @@ protected:
 
   const std::string _prop_name;
 
-  MaterialProperty<Real> * _value;
+  const MaterialProperty<Real> * _value;
 };
 
 #endif /* MATTESTNEUMANNBC_H */

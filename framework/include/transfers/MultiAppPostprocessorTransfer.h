@@ -17,27 +17,36 @@
 
 #include "MultiAppTransfer.h"
 
-class MooseVariable;
+// Forward declarations
 class MultiAppPostprocessorTransfer;
 
 template<>
 InputParameters validParams<MultiAppPostprocessorTransfer>();
 
 /**
- * Copies the value of a Postprocessor from the Master to a MultiApp
+ * Copies the value of a Postprocessor from the Master to a MultiApp.
  */
 class MultiAppPostprocessorTransfer :
   public MultiAppTransfer
 {
 public:
-  MultiAppPostprocessorTransfer(const std::string & name, InputParameters parameters);
+  MultiAppPostprocessorTransfer(const InputParameters & parameters);
   virtual ~MultiAppPostprocessorTransfer() {}
 
   virtual void execute();
 
+  enum
+  {
+    AVERAGE,
+    SUM,
+    MAXIMUM,
+    MINIMUM
+  };
+
 protected:
   PostprocessorName _from_pp_name;
   PostprocessorName _to_pp_name;
+  MooseEnum _reduction_type;
 };
 
 #endif /* MULTIAPPPOSTPROCESSORTRANSFER_H */

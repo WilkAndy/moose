@@ -1,14 +1,16 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSEXCAVFLOW_H
 #define RICHARDSEXCAVFLOW_H
 
 #include "SideIntegralVariablePostprocessor.h"
 #include "MaterialPropertyInterface.h"
-#include "FunctionInterface.h"
 #include "RichardsVarNames.h"
 
 //Forward Declarations
@@ -22,11 +24,10 @@ InputParameters validParams<RichardsExcavFlow>();
  * Records total mass flow into an excavation defined by a RichardsExcavGeom function
  */
 class RichardsExcavFlow :
-public SideIntegralVariablePostprocessor,
-public FunctionInterface
+  public SideIntegralVariablePostprocessor
 {
 public:
-  RichardsExcavFlow(const std::string & name, InputParameters parameters);
+  RichardsExcavFlow(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpIntegral();
@@ -38,7 +39,7 @@ protected:
   unsigned int _pvar;
 
   /// mass-flux of fluid (a vector in the multicomponent case)
-  MaterialProperty<std::vector<RealVectorValue> > &_flux;
+  const MaterialProperty<std::vector<RealVectorValue> > &_flux;
 
   /// the RichardsExcavGeom that defines where on the boundary we'll compute the mass flux
   Function & _func;

@@ -49,14 +49,8 @@
 
 [Outputs]
   file_base = out_displaced
-  output_initial = true
   [./exodus]
     type = Exodus
     use_displaced = true
-  [../]
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
   [../]
 []

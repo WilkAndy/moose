@@ -16,6 +16,7 @@
 #define ACTION_H
 
 #include "InputParameters.h"
+#include "ConsoleStreamInterface.h"
 
 #include <string>
 #include <ostream>
@@ -35,51 +36,61 @@ InputParameters validParams<Action>();
 /**
  * Base class for actions.
  */
-class Action
+class Action : public ConsoleStreamInterface
 {
 public:
-  Action(const std::string & name, InputParameters params);
+  Action(InputParameters parameters);
   virtual ~Action() {}                  // empty virtual destructor for proper memory release
 
   virtual void act() = 0;
 
+  /**
+   * The name of the action
+   */
   const std::string & name() const { return _name; }
+
+  ///@{
+  /**
+   * Deprecated name methods, use name()
+   */
+  std::string getBaseName() const;
+  std::string getShortName() const;
+  ///@}
 
   const std::string & type() const { return _action_type; }
 
   InputParameters & parameters() { return _pars; }
+  const InputParameters & parameters() const { return _pars; }
 
   const std::string & specificTaskName() const { return _specific_task_name; }
 
   const std::set<std::string> & getAllTasks() const { return _all_tasks; }
 
+  ///@{
+  /**
+   * Retrieve a parameter for the object
+   * @param name The name of the parameter
+   * @return The value of the parameter
+   */
   template <typename T>
-  const T & getParam(const std::string & name) { return _pars.get<T>(name); }
-
-  template <typename T>
-  const T & getParam(const std::string & name) const { return _pars.get<T>(name); }
+  const T & getParam(const std::string & name) const;
+  ///@}
 
   inline bool isParamValid(const std::string &name) const { return _pars.isParamValid(name); }
 
-  inline InputParameters & getParams() { return _pars; }
-
-  /**
-   * Returns the short name which is the final string after the last delimiter for the
-   * current ParserBlock
-   */
-  std::string getShortName() const;
-
   void appendTask(const std::string & task) { _all_tasks.insert(task); }
 
+
 protected:
-  /// The name of the action
-  std::string _name;
 
   /// Input parameters for the action
   InputParameters _pars;
 
   // The registered syntax for this block if any
   std::string _registered_identifier;
+
+  /// The name of the action
+  std::string _name;
 
   // The type name of this Action instance
   std::string _action_type;
@@ -112,16 +123,24 @@ protected:
   ActionWarehouse & _awh;
 
   /// The current action (even though we have seperate instances for each action)
-  const std::string & _current_action;
+  const std::string & _current_task;
 
-  MooseMesh * & _mesh;
-  MooseMesh * & _displaced_mesh;
+  MooseSharedPointer<MooseMesh> & _mesh;
+  MooseSharedPointer<MooseMesh> & _displaced_mesh;
+
   /// Convenience reference to a problem this action works on
+  MooseSharedPointer<FEProblem> & _problem;
 
-public:
-  FEProblem * & _problem;
   /// Convenience reference to an executioner
-  Executioner * & _executioner;
+  MooseSharedPointer<Executioner> & _executioner;
+
 };
+
+template <typename T>
+const T &
+Action::getParam(const std::string & name) const
+{
+  return InputParameters::getParamHelper(name, _pars, static_cast<T *>(0));
+}
 
 #endif // ACTION_H

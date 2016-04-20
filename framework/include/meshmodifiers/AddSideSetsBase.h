@@ -16,10 +16,18 @@
 #define ADDSIDESETSBASE_H
 
 #include "MeshModifier.h"
-#include "libmesh/fe.h"
 
+// libMesh includes
+#include "libmesh/fe_base.h"
+
+// Forward declarations
 class AddSideSetsBase;
-namespace libMesh { class QGauss; }
+
+// libMesh forward declarations
+namespace libMesh
+{
+class QGauss;
+}
 
 template<>
 InputParameters validParams<AddSideSetsBase>();
@@ -27,7 +35,7 @@ InputParameters validParams<AddSideSetsBase>();
 class AddSideSetsBase : public MeshModifier
 {
 public:
-  AddSideSetsBase(const std::string & name, InputParameters parameters);
+  AddSideSetsBase(const InputParameters & parameters);
 
   virtual ~AddSideSetsBase();
 

@@ -182,22 +182,22 @@
 [Postprocessors]
   [./ref_resid_x]
     type = NodalL2Norm
-    execute_on = timestep
+    execute_on = timestep_end
     variable = saved_x
   [../]
   [./ref_resid_y]
     type = NodalL2Norm
-    execute_on = timestep
+    execute_on = timestep_end
     variable = saved_y
   [../]
   [./ref_resid_z]
     type = NodalL2Norm
-    execute_on = timestep
+    execute_on = timestep_end
     variable = saved_z
   [../]
   [./ref_resid_t]
     type = NodalL2Norm
-    execute_on = timestep
+    execute_on = timestep_end
     variable = saved_t
   [../]
   [./nonlinear_its]
@@ -207,11 +207,5 @@
 
 [Outputs]
   file_base = out
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

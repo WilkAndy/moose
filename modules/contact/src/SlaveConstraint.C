@@ -1,8 +1,16 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 #include "SlaveConstraint.h"
 #include "FrictionalContactProblem.h"
 
 // Moose includes
 #include "SystemBase.h"
+#include "MooseMesh.h"
 
 // libmesh includes
 #include "libmesh/plane.h"
@@ -12,7 +20,7 @@
 template<>
 InputParameters validParams<SlaveConstraint>()
 {
-  MooseEnum orders("CONSTANT, FIRST, SECOND, THIRD, FOURTH", "FIRST");
+  MooseEnum orders("CONSTANT FIRST SECOND THIRD FOURTH", "FIRST");
 
   InputParameters params = validParams<DiracKernel>();
   params.addRequiredParam<BoundaryName>("boundary", "The slave boundary");
@@ -21,6 +29,7 @@ InputParameters validParams<SlaveConstraint>()
   params.addRequiredCoupledVar("disp_x", "The x displacement");
   params.addCoupledVar("disp_y", "The y displacement");
   params.addCoupledVar("disp_z", "The z displacement");
+  params.addRequiredCoupledVar("nodal_area", "The nodal area");
   params.addParam<std::string>("model", "frictionless", "The contact model to use");
 
   params.set<bool>("use_displaced_mesh") = true;
@@ -31,23 +40,28 @@ InputParameters validParams<SlaveConstraint>()
   params.addParam<std::string>("normal_smoothing_method","Method to use to smooth normals (edge_based|nodal_normal_based)");
   params.addParam<MooseEnum>("order", orders, "The finite element order");
   params.addParam<std::string>("formulation", "default", "The contact formulation");
+  params.addParam<bool>("normalize_penalty", false, "Whether to normalize the penalty parameter with the nodal area for penalty contact.");
   return params;
 }
 
-SlaveConstraint::SlaveConstraint(const std::string & name, InputParameters parameters)
-  :DiracKernel(name, parameters),
-   _component(getParam<unsigned int>("component")),
-   _model(contactModel(getParam<std::string>("model"))),
-   _formulation(contactFormulation(getParam<std::string>("formulation"))),
-   _penetration_locator(getPenetrationLocator(getParam<BoundaryName>("master"), getParam<BoundaryName>("boundary"), Utility::string_to_enum<Order>(getParam<MooseEnum>("order")))),
-   _penalty(getParam<Real>("penalty")),
-   _friction_coefficient(getParam<Real>("friction_coefficient")),
-   _residual_copy(_sys.residualGhosted()),
-   _x_var(coupled("disp_x")),
-   _y_var(isCoupled("disp_y") ? coupled("disp_y") : 99999),
-   _z_var(isCoupled("disp_z") ? coupled("disp_z") : 99999),
-   _mesh_dimension(_mesh.dimension()),
-   _vars(_x_var, _y_var, _z_var)
+SlaveConstraint::SlaveConstraint(const InputParameters & parameters) :
+    DiracKernel(parameters),
+    _component(getParam<unsigned int>("component")),
+    _model(contactModel(getParam<std::string>("model"))),
+    _formulation(contactFormulation(getParam<std::string>("formulation"))),
+    _normalize_penalty(getParam<bool>("normalize_penalty")),
+    _penetration_locator(getPenetrationLocator(getParam<BoundaryName>("master"), getParam<BoundaryName>("boundary"), Utility::string_to_enum<Order>(getParam<MooseEnum>("order")))),
+    _penalty(getParam<Real>("penalty")),
+    _friction_coefficient(getParam<Real>("friction_coefficient")),
+    _residual_copy(_sys.residualGhosted()),
+    _x_var(coupled("disp_x")),
+    _y_var(isCoupled("disp_y") ? coupled("disp_y") : libMesh::invalid_uint),
+    _z_var(isCoupled("disp_z") ? coupled("disp_z") : libMesh::invalid_uint),
+    _vars(_x_var, _y_var, _z_var),
+    _mesh_dimension(_mesh.dimension()),
+    _nodal_area_var(getVar("nodal_area", 0)),
+    _aux_system(_nodal_area_var->sys()),
+    _aux_solution(_aux_system.currentSolution())
 {
   if (parameters.isParamValid("tangential_tolerance"))
   {
@@ -68,29 +82,25 @@ SlaveConstraint::addPoints()
 {
   _point_to_info.clear();
 
-  std::set<unsigned int> & has_penetrated = _penetration_locator._has_penetrated;
-
-  std::map<unsigned int, PenetrationInfo *>::iterator it = _penetration_locator._penetration_info.begin();
-  std::map<unsigned int, PenetrationInfo *>::iterator end = _penetration_locator._penetration_info.end();
+  std::map<dof_id_type, PenetrationInfo *>::iterator
+    it  = _penetration_locator._penetration_info.begin(),
+    end = _penetration_locator._penetration_info.end();
   for (; it!=end; ++it)
   {
     PenetrationInfo * pinfo = it->second;
 
-    if (!pinfo)
-    {
+    // Skip this pinfo if there are no DOFs on this node.
+    if ( ! pinfo || pinfo->_node->n_comp(_sys.number(), _vars(_component)) < 1 )
       continue;
-    }
 
-    unsigned int slave_node_num = it->first;
-
+    dof_id_type slave_node_num = it->first;
     const Node * node = pinfo->_node;
 
-    std::set<unsigned int>::iterator hpit( has_penetrated.find( slave_node_num ) );
-    if (hpit != has_penetrated.end() && node->processor_id() == processor_id())
+    if (pinfo->isCaptured() && node->processor_id() == processor_id())
     {
       // Find an element that is connected to this node that and that is also on this processor
 
-      std::vector<unsigned int> & connected_elems = _mesh.nodeToElemMap()[slave_node_num];
+      std::vector<dof_id_type> & connected_elems = _mesh.nodeToElemMap()[slave_node_num];
 
       Elem * elem = NULL;
 
@@ -117,19 +127,21 @@ SlaveConstraint::computeQpResidual()
 
   Real resid = pinfo->_contact_force(_component);
 
+  const Real area = nodalArea(*pinfo);
+
   if (_formulation == CF_DEFAULT)
   {
     RealVectorValue distance_vec(_mesh.node(node->id()) - pinfo->_closest_point);
     RealVectorValue pen_force(_penalty * distance_vec);
+    if (_normalize_penalty)
+      pen_force *= area;
 
-    if (_model == CM_FRICTIONLESS || _model == CM_EXPERIMENTAL)
-    {
+    if (_model == CM_FRICTIONLESS)
       resid += pinfo->_normal(_component) * pinfo->_normal * pen_force;
-    }
-    else if (_model == CM_GLUED || _model == CM_TIED || _model == CM_COULOMB)
-    {
+
+    else if (_model == CM_GLUED || _model == CM_COULOMB)
       resid += pen_force(_component);
-    }
+
   }
 
   return _test[_i][_qp] * resid;
@@ -169,14 +181,17 @@ SlaveConstraint::computeQpJacobian()
 
   RealVectorValue normal(pinfo->_normal);
 
+  Real penalty = _penalty;
+  if (_normalize_penalty)
+    penalty *= nodalArea(*pinfo);
+
   Real term(0);
 
-  if ( CM_FRICTIONLESS == _model ||
-       CM_EXPERIMENTAL == _model )
+  if ( CM_FRICTIONLESS == _model )
   {
 
     const Real nnTDiag = normal(_component) * normal(_component);
-    term =  _penalty * nnTDiag;
+    term =  penalty * nnTDiag;
 
     const RealGradient & A1( pinfo->_dxyzdxi [0] );
     RealGradient A2;
@@ -233,25 +248,21 @@ SlaveConstraint::computeQpJacobian()
     const Real AinvDAT33( AinvD31*A1(2) + AinvD32*A2(2) );
 
     if ( _component == 0 )
-    {
-      term += _penalty * ( 1 - nnTDiag + AinvDAT11 );
-    }
+      term += penalty * ( 1 - nnTDiag + AinvDAT11 );
+
     else if ( _component == 1 )
-    {
-      term += _penalty * ( 1 - nnTDiag + AinvDAT22 );
-    }
+      term += penalty * ( 1 - nnTDiag + AinvDAT22 );
+
     else
-    {
-      term += _penalty * ( 1 - nnTDiag + AinvDAT33 );
-    }
+      term += penalty * ( 1 - nnTDiag + AinvDAT33 );
+
   }
   else if ( CM_GLUED == _model ||
-            CM_TIED == _model ||
             CM_COULOMB == _model )
   {
     normal.zero();
     normal(_component) = 1;
-    term = _penalty;
+    term = penalty;
   }
   else
   {
@@ -260,3 +271,24 @@ SlaveConstraint::computeQpJacobian()
 
   return _test[_i][_qp] * term * _phi[_j][_qp];
 }
+
+Real
+SlaveConstraint::nodalArea(PenetrationInfo & pinfo)
+{
+  const Node * node = pinfo._node;
+
+  dof_id_type dof = node->dof_number(_aux_system.number(), _nodal_area_var->number(), 0);
+
+  Real area = (*_aux_solution)( dof );
+  if (area == 0)
+  {
+    if (_t_step > 1)
+      mooseError("Zero nodal area found");
+
+    else
+      area = 1; // Avoid divide by zero during initialization
+
+  }
+  return area;
+}
+

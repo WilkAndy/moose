@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  This post processor returns the saturation of a region.
 //
@@ -17,10 +20,10 @@ InputParameters validParams<RichardsSatPrimeAux>()
   return params;
 }
 
-RichardsSatPrimeAux::RichardsSatPrimeAux(const std::string & name, InputParameters parameters) :
-  AuxKernel(name, parameters),
-  _seff_var(coupledValue("seff_var")),
-  _sat_UO(getUserObject<RichardsSat>("sat_UO"))
+RichardsSatPrimeAux::RichardsSatPrimeAux(const InputParameters & parameters) :
+    AuxKernel(parameters),
+    _seff_var(coupledValue("seff_var")),
+    _sat_UO(getUserObject<RichardsSat>("sat_UO"))
 {}
 
 
@@ -29,3 +32,4 @@ RichardsSatPrimeAux::computeValue()
 {
   return _sat_UO.dsat(_seff_var[_qp]);
 }
+

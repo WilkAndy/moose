@@ -1,9 +1,14 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSENERGYVISCOUSFLUX_H
 #define NSENERGYVISCOUSFLUX_H
 
 #include "NSKernel.h"
 #include "NSViscStressTensorDerivs.h"
-
 
 // Forward Declarations
 class NSEnergyViscousFlux;
@@ -11,15 +16,13 @@ class NSEnergyViscousFlux;
 template<>
 InputParameters validParams<NSEnergyViscousFlux>();
 
-
 /**
  * Viscous flux terms in energy equation.
  */
 class NSEnergyViscousFlux : public NSKernel
 {
 public:
-
-  NSEnergyViscousFlux(const std::string & name, InputParameters parameters);
+  NSEnergyViscousFlux(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();

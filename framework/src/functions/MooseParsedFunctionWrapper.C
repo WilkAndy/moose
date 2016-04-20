@@ -13,25 +13,30 @@
 /****************************************************************/
 
 #include "MooseParsedFunctionWrapper.h"
+#include "FEProblem.h"
 
 MooseParsedFunctionWrapper::MooseParsedFunctionWrapper(FEProblem & feproblem,
                                                      const std::string & function_str,
                                                      const std::vector<std::string> & vars,
-                                                     const std::vector<std::string> & vals) :
+                                                     const std::vector<std::string> & vals,
+                                                     const THREAD_ID tid) :
     _feproblem(feproblem),
     _function_str(function_str),
     _vars(vars),
-    _vals_input(vals)
+    _vals_input(vals),
+    _tid(tid)
 {
   // Initialize (prepares Postprocessor values)
   initialize();
 
   // Create the libMesh::ParsedFunction
-  _function_ptr = new ParsedFunction<Real>(_function_str, &_vars, &_vals);
+  _function_ptr = new ParsedFunction<Real,RealGradient>(_function_str, &_vars, &_vals);
 
-  // Loop through the Postprocessor variables and point the libMesh::ParsedFunction to the PostprocessorValue
+  // Loop through the Postprocessor and Scalar variables and point the libMesh::ParsedFunction to the PostprocessorValue
   for (unsigned int i = 0; i < _pp_index.size(); ++i)
     _addr.push_back(&_function_ptr->getVarAddress(_vars[_pp_index[i]]));
+  for (unsigned int i = 0; i < _scalar_index.size(); ++i)
+    _addr.push_back(&_function_ptr->getVarAddress(_vars[_scalar_index[i]]));
 }
 
 MooseParsedFunctionWrapper::~MooseParsedFunctionWrapper()
@@ -76,6 +81,26 @@ MooseParsedFunctionWrapper::evaluate(Real t, const Point & p)
     );
 }
 
+RealGradient
+MooseParsedFunctionWrapper::evaluateGradient(Real t, const Point & p)
+{
+  // Update the postprocessor / libMesh::ParsedFunction references for the desired function
+  update();
+
+  // Evalute the gradient of the function
+  return _function_ptr->gradient(p, t);
+}
+
+Real
+MooseParsedFunctionWrapper::evaluateDot(Real t, const Point & p)
+{
+  // Update the postprocessor / libMesh::ParsedFunction references for the desired function
+  update();
+
+  // Evalute the time derivative
+  return _function_ptr->dot(p, t);
+}
+
 void
 MooseParsedFunctionWrapper::initialize()
 {
@@ -88,14 +113,33 @@ MooseParsedFunctionWrapper::initialize()
     // Case when a Postprocessor is found by the name given in the input values
     if (_feproblem.hasPostprocessor(_vals_input[i]))
     {
+      // The PP value
+      Real & pp_val = _feproblem.getPostprocessorValue(_vals_input[i]);
+
       // Store a pointer to the Postprocessor value
-      _pp_vals.push_back(&_feproblem.getPostprocessorValue(_vals_input[i]));
+      _pp_vals.push_back(&pp_val);
 
       // Store the value for passing to the the libMesh::ParsedFunction
-      _vals.push_back(_feproblem.getPostprocessorValue(_vals_input[i]));
+      _vals.push_back(pp_val);
 
       // Store the location of this variable
       _pp_index.push_back(i);
+    }
+
+    // Case when a scalar variable is bound by the naem given in the input vales
+    else if (_feproblem.hasScalarVariable(_vals_input[i]))
+    {
+      // The scalar variable
+      Real & scalar_val = _feproblem.getScalarVariable(_tid, _vals_input[i]).sln()[0];
+
+      // Store a pointer to the scalar value
+      _scalar_vals.push_back(&scalar_val);
+
+      // Store the value for passing to the the libMesh::ParsedFunction
+      _vals.push_back(scalar_val);
+
+      // Store the location of this variable
+      _scalar_index.push_back(i);
     }
 
     // Case when a Real is supplied, convert std::string to Real
@@ -115,4 +159,7 @@ MooseParsedFunctionWrapper::update()
 {
   for (unsigned int i = 0; i < _pp_index.size(); ++i)
     (*_addr[i]) = (*_pp_vals[i]);
+
+  for (unsigned int i = 0; i < _scalar_index.size(); ++i)
+    (*_addr[i]) = (*_scalar_vals[i]);
 }

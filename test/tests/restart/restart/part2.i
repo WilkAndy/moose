@@ -53,15 +53,13 @@
 
   # Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-  restart_file_base = out_part1_cp/0005
 []
 
 [Outputs]
   file_base = out_part2
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
+[]
+
+[Problem]
+  restart_file_base = out_part1_cp/LATEST
 []

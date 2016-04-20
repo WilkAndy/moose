@@ -1,13 +1,20 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef SOLIDMODEL_H
 #define SOLIDMODEL_H
 
-#include "Material.h"
+#include "DerivativeMaterialInterface.h"
 #include "SymmTensor.h"
 
 // Forward declarations
 class ConstitutiveModel;
 class SolidModel;
 class SymmElasticityTensor;
+class PiecewiseLinear;
 class VolumetricModel;
 namespace SolidMechanics
 {
@@ -21,11 +28,10 @@ InputParameters validParams<SolidModel>();
 /**
  * SolidModel is the base class for all this module's solid mechanics material models.
  */
-class SolidModel : public Material
+class SolidModel : public DerivativeMaterialInterface<Material>
 {
 public:
-  SolidModel( const std::string & name,
-              InputParameters parameters );
+  SolidModel( const InputParameters & parameters);
   virtual ~SolidModel();
 
   virtual void initStatefulProperties( unsigned n_points );
@@ -74,12 +80,14 @@ protected:
   Real _shear_modulus;
   Real _youngs_modulus;
 
-  Function * const _youngs_modulus_function;
-  Function * const _poissons_ratio_function;
+  Function * _youngs_modulus_function;
+  Function * _poissons_ratio_function;
 
   const CRACKING_RELEASE _cracking_release;
-  const Real _cracking_stress;
+  Real _cracking_stress;
   const Real _cracking_residual_stress;
+  Function * const _cracking_stress_function;
+
   Real _cracking_alpha;
   std::vector<unsigned int> _active_crack_planes;
   const unsigned int _max_cracks;
@@ -88,16 +96,19 @@ protected:
   // std::map<Point, unsigned> _cracked_this_step;
 
   const bool _has_temp;
-  VariableValue & _temperature;
-  VariableValue & _temperature_old;
+  const VariableValue & _temperature;
+  const VariableValue & _temperature_old;
+  const VariableGradient & _temp_grad;
   const Real _alpha;
-  Function * const _alpha_function;
+  Function * _alpha_function;
+  PiecewiseLinear * _piecewise_linear_alpha_function;
   bool _has_stress_free_temp;
   Real _stress_free_temp;
+  bool _mean_alpha_function;
+  Real _ref_temp;
 
-  std::map<SubdomainID, std::vector<VolumetricModel*> > _volumetric_models;
-  std::vector<MaterialProperty<Real>*> _volumetric_strain;
-  std::vector<MaterialProperty<Real>*> _volumetric_strain_old;
+  std::map<SubdomainID, std::vector<MooseSharedPointer<VolumetricModel> > > _volumetric_models;
+  std::set<std::string> _dep_matl_props;
 
   MaterialProperty<SymmTensor> & _stress;
 private:
@@ -136,10 +147,14 @@ protected:
   SymmTensor _total_strain_increment;
   SymmTensor _strain_increment;
 
-  MaterialProperty<Real> & _SED;
-  MaterialProperty<Real> & _SED_old;
   const bool _compute_JIntegral;
-  MaterialProperty<ColumnMajorMatrix> & _Eshelby_tensor;
+  bool _store_stress_older;
+
+  //These are used in calculation of the J integral
+  MaterialProperty<Real> * _SED;
+  MaterialProperty<Real> * _SED_old;
+  MaterialProperty<ColumnMajorMatrix> * _Eshelby_tensor;
+  MaterialProperty<RealVectorValue> * _J_thermal_term_vec;
 
   virtual void initQpStatefulProperties();
 
@@ -171,8 +186,14 @@ protected:
     mooseError("SolidModel::computeStress must be defined by the derived class");
   }
 
+  // Compute Eshelby tensor, used in J Integral calculation
   virtual void computeEshelby();
+
+  // Compute strain energy density, used in Eshelby tensor calculation
   virtual void computeStrainEnergyDensity();
+
+  // Compute quantity used in thermal term of J Integral
+  virtual void computeThermalJvec();
 
   /*
    * Determine whether new cracks have formed.
@@ -229,23 +250,22 @@ protected:
 
   std::vector<SubdomainID> _block_id;
 
-  std::map<SubdomainID, ConstitutiveModel*> _constitutive_model;
+  std::map<SubdomainID, MooseSharedPointer<ConstitutiveModel> > _constitutive_model;
   // This set keeps track of the dynamic memory allocated in this object
-  std::set<ConstitutiveModel *> _models_to_free;
+  std::set<MooseSharedPointer<ConstitutiveModel> > _models_to_free;
   bool _constitutive_active;
 
   /// Compute the stress (sigma += deltaSigma)
   virtual void computeConstitutiveModelStress();
 
-  void createConstitutiveModel(const std::string & cm_name, const InputParameters & params);
+  void createConstitutiveModel(const std::string & cm_name);
 
 
 private:
 
   void computeCrackStrainAndOrientation( ColumnMajorMatrix & principal_strain );
 
-  SolidMechanics::Element * createElement( const std::string & name,
-                                           InputParameters & parameters );
+  SolidMechanics::Element * createElement();
 
   SolidMechanics::Element * _element;
 

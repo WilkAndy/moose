@@ -40,11 +40,13 @@
     value = 2
     operator = +
     coupled = u
+    execute_on = 'initial timestep_end'
   [../]
   [./constant]
     variable = one
     type = ConstantAux
     value = 1
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -74,30 +76,29 @@
  [./int2_u]
    type = ElementL2Norm
    variable = u
+   execute_on = 'initial timestep_end'
  [../]
  [./int2_ho]
    type = ElementL2Norm
    variable = high_order
+   execute_on = 'initial timestep_end'
  [../]
  [./int_u]
    type = ElementIntegralVariablePostprocessor
    variable = u
+   execute_on = 'initial timestep_end'
  [../]
  [./int_ho]
    type = ElementIntegralVariablePostprocessor
    variable = high_order
+   execute_on = 'initial timestep_end'
  [../]
 []
 
 [Outputs]
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
   [./ex_out]
     type = Exodus
     file_base = ho
-    output_initial = true
     elemental_as_nodal = true
   [../]
 []

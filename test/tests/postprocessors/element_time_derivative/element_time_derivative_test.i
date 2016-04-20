@@ -100,10 +100,7 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = out_elm_time_deriv
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

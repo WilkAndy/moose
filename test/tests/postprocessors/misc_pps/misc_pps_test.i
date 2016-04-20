@@ -108,7 +108,7 @@
 []
 
 [Materials]
-  [./constant]
+  [./constant_block]
     type = GenericConstantMaterial
     prop_names = diffusivity
     prop_values = 1
@@ -127,14 +127,10 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = pps_out
-  output_initial = false
   [./exodus]
     type = Exodus
-    output_scalar_variables = false
-  [../]
-  [./console]
-    type = Console
-    perf_log = true
+    execute_scalars_on = none
   [../]
 []

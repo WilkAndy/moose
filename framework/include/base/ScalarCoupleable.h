@@ -20,7 +20,7 @@
 #include "InputParameters.h"
 
 /**
- * Interface for objects that needs scakar coupling capabilities
+ * Interface for objects that needs scalar coupling capabilities
  *
  */
 class ScalarCoupleable
@@ -30,7 +30,7 @@ public:
    * Constructing the object
    * @param parameters Parameters that come from constructing the object
    */
-  ScalarCoupleable(InputParameters & parameters);
+  ScalarCoupleable(const InputParameters & parameters);
 
   /**
    * Destructor for object
@@ -67,6 +67,14 @@ protected:
   virtual unsigned int coupledScalar(const std::string & var_name, unsigned int comp = 0);
 
   /**
+   * Returns the order for a scalar coupled variable by name
+   * @param var_name Name of coupled variable
+   * @param comp Component number for vector of coupled variables
+   * @return Order of coupled variable
+   */
+  virtual Order coupledScalarOrder(const std::string & var_name, unsigned int comp = 0);
+
+  /**
    * Returns value of a scalar coupled variable
    * @param var_name Name of coupled variable
    * @param comp Component number for vector of coupled variables
@@ -99,14 +107,31 @@ protected:
   virtual VariableValue & coupledScalarDotDu(const std::string & var_name, unsigned int comp = 0);
 
 protected:
+  // Reference to FEProblem
+  FEProblem & _sc_fe_problem;
+
   /// Coupled vars whose values we provide
   std::map<std::string, std::vector<MooseVariableScalar *> > _coupled_scalar_vars;
+
+  /// Will hold the default value for optional coupled scalar variables.
+  std::map<std::string, VariableValue *> _default_value;
 
   /// Vector of coupled variables
   std::vector<MooseVariableScalar *> _coupled_moose_scalar_vars;
 
   /// True if implicit value is required
   bool _sc_is_implicit;
+
+  /// Local InputParameters
+  const InputParameters & _coupleable_params;
+
+  /**
+   * Helper method to return (and insert if necessary) the default value
+   * for an uncoupled variable.
+   * @param var_name the name of the variable for which to retrieve a default value
+   * @return VariableValue * a pointer to the associated VarirableValue.
+   */
+  VariableValue * getDefaultValue(const std::string & var_name);
 
   /**
    * Extract pointer to a scalar coupled variable

@@ -23,8 +23,8 @@ InputParameters validParams<ImplicitEuler>()
   return params;
 }
 
-ImplicitEuler::ImplicitEuler(const std::string & name, InputParameters parameters) :
-    TimeIntegrator(name, parameters)
+ImplicitEuler::ImplicitEuler(const InputParameters & parameters) :
+    TimeIntegrator(parameters)
 {
 }
 
@@ -41,7 +41,6 @@ ImplicitEuler::computeTimeDerivatives()
   _u_dot.close();
 
   _du_dot_du = 1.0 / _dt;
-  _du_dot_du.close();
 }
 
 void

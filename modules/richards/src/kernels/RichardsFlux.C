@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #include "RichardsFlux.h"
 #include "Material.h"
@@ -18,9 +21,8 @@ InputParameters validParams<RichardsFlux>()
   return params;
 }
 
-RichardsFlux::RichardsFlux(const std::string & name,
-                                             InputParameters parameters) :
-    Kernel(name,parameters),
+RichardsFlux::RichardsFlux(const InputParameters & parameters) :
+    Kernel(parameters),
     _richards_name_UO(getUserObject<RichardsVarNames>("richardsVarNames_UO")),
     _pvar(_richards_name_UO.richards_var_num(_var.number())),
 
@@ -36,9 +38,8 @@ RichardsFlux::RichardsFlux(const std::string & name,
     _second_phi(getParam<bool>("linear_shape_fcns") ? _second_phi_zero : secondPhi()),
 
     _tauvel_SUPG(getMaterialProperty<std::vector<RealVectorValue> >("tauvel_SUPG")),
-    _dtauvel_SUPG_dgradv(getMaterialProperty<std::vector<RealTensorValue> >("dtauvel_SUPG_dgradv")),
-    _dtauvel_SUPG_dv(getMaterialProperty<std::vector<RealVectorValue> >("dtauvel_SUPG_dv"))
-
+    _dtauvel_SUPG_dgradv(getMaterialProperty<std::vector<std::vector<RealTensorValue> > >("dtauvel_SUPG_dgradv")),
+    _dtauvel_SUPG_dv(getMaterialProperty<std::vector<std::vector<RealVectorValue> > >("dtauvel_SUPG_dv"))
 {
 }
 
@@ -52,6 +53,11 @@ RichardsFlux::computeQpResidual()
   Real supg_kernel = 0.0;
   if (supg_test != 0)
     // NOTE: Libmesh does not correctly calculate grad(_grad_u) correctly, so following might not be correct
+    // NOTE: The following is -divergence(flux)
+    // NOTE: The following must be generalised if a non PPPP formalism is used
+    // NOTE: The generalisation will look like
+    // supg_kernel = sum_j {-(_dflux_dgradv[_qp][_pvar][j]*_second_u[_qp][j]).tr() - _dflux_dv[_qp][_pvar][j]*_grad_u[_qp][j]}
+    // where _grad_u[_qp][j] is the gradient of the j^th variable at the quadpoint.
     supg_kernel = -(_dflux_dgradv[_qp][_pvar][_pvar]*_second_u[_qp]).tr() - _dflux_dv[_qp][_pvar][_pvar]*_grad_u[_qp];
 
   return flux_part + supg_test*supg_kernel;
@@ -59,25 +65,34 @@ RichardsFlux::computeQpResidual()
 
 
 Real
-RichardsFlux::computeQpJacobian()
+RichardsFlux::computeQpJac(unsigned int wrt_num)
 {
-  Real dflux_dp = _grad_test[_i][_qp]*(_dflux_dgradv[_qp][_pvar][_pvar]*_grad_phi[_j][_qp] + _dflux_dv[_qp][_pvar][_pvar]*_phi[_j][_qp]);
+  Real flux_prime = _grad_test[_i][_qp]*(_dflux_dgradv[_qp][_pvar][wrt_num]*_grad_phi[_j][_qp] + _dflux_dv[_qp][_pvar][wrt_num]*_phi[_j][_qp]);
 
   Real supg_test = _tauvel_SUPG[_qp][_pvar]*_grad_test[_i][_qp];
-  Real supg_test_prime = _grad_phi[_j][_qp]*(_dtauvel_SUPG_dgradv[_qp][_pvar]*_grad_test[_i][_qp]) + _phi[_j][_qp]*_dtauvel_SUPG_dv[_qp][_pvar]*_grad_test[_i][_qp];
+  Real supg_test_prime = _grad_phi[_j][_qp]*(_dtauvel_SUPG_dgradv[_qp][_pvar][wrt_num]*_grad_test[_i][_qp]) + _phi[_j][_qp]*_dtauvel_SUPG_dv[_qp][_pvar][wrt_num]*_grad_test[_i][_qp];
   Real supg_kernel = 0.0;
   Real supg_kernel_prime = 0.0;
 
   if (supg_test != 0)
-    {
-      // NOTE: since Libmesh does not correctly calculate grad(_grad_u) correctly, so following might not be correct
-      supg_kernel = -(_dflux_dgradv[_qp][_pvar][_pvar]*_second_u[_qp]).tr() - _dflux_dv[_qp][_pvar][_pvar]*_grad_u[_qp];
+  {
+    // NOTE: since Libmesh does not correctly calculate grad(_grad_u) correctly, so following might not be correct
+    supg_kernel = -(_dflux_dgradv[_qp][_pvar][_pvar]*_second_u[_qp]).tr() - _dflux_dv[_qp][_pvar][_pvar]*_grad_u[_qp];
 
-      supg_kernel_prime = -(_d2flux_dvdv[_qp][_pvar][_pvar][_pvar]*_phi[_j][_qp]*_grad_u[_qp] + _dflux_dv[_qp][_pvar][_pvar]*_grad_phi[_j][_qp] + _phi[_j][_qp]*(_d2flux_dgradvdv[_qp][_pvar][_pvar][_pvar]*_second_u[_qp]).tr() + (_d2flux_dvdgradv[_qp][_pvar][_pvar][_pvar]*_grad_u[_qp])*_grad_phi[_j][_qp]);
-      //supg_kernel_prime -= (_dflux_dgradv[_qp][_pvar][_pvar]*_second_phi[_j][_qp]).tr(); // crashes because _second_phi_zero is not done correctly
-    }
+    // NOTE: just like supg_kernel, this must be generalised for non-PPPP formulations
+    supg_kernel_prime = -(_d2flux_dvdv[_qp][_pvar][_pvar][wrt_num]*_phi[_j][_qp]*_grad_u[_qp] + _phi[_j][_qp]*(_d2flux_dgradvdv[_qp][_pvar][_pvar][wrt_num]*_second_u[_qp]).tr() + (_d2flux_dvdgradv[_qp][_pvar][_pvar][wrt_num]*_grad_u[_qp])*_grad_phi[_j][_qp]);
+    if (wrt_num == _pvar)
+      supg_kernel_prime -= _dflux_dv[_qp][_pvar][_pvar]*_grad_phi[_j][_qp];
+    supg_kernel_prime -= (_dflux_dgradv[_qp][_pvar][_pvar]*_second_phi[_j][_qp]).tr();
+  }
 
-  return dflux_dp + supg_test_prime*supg_kernel + supg_test*supg_kernel_prime;
+  return flux_prime + supg_test_prime*supg_kernel + supg_test*supg_kernel_prime;
+}
+
+Real
+RichardsFlux::computeQpJacobian()
+{
+  return computeQpJac(_pvar);
 }
 
 
@@ -87,14 +102,5 @@ RichardsFlux::computeQpOffDiagJacobian(unsigned int jvar)
   if (_richards_name_UO.not_richards_var(jvar))
     return 0.0;
   unsigned int dvar = _richards_name_UO.richards_var_num(jvar);
-  Real flux_prime = _grad_test[_i][_qp]*(_dflux_dgradv[_qp][_pvar][dvar]*_grad_phi[_j][_qp] + _dflux_dv[_qp][_pvar][dvar]*_phi[_j][_qp]);
-
-
-  Real supg_test = _tauvel_SUPG[_qp][_pvar]*_grad_test[_i][_qp];
-  Real supg_test_prime = 0.0;  // doesn't depend on other variables
-  Real supg_kernel = 0.0;
-  Real supg_kernel_prime = 0.0;
-  if (supg_test != 0)
-    supg_kernel_prime = -(_d2flux_dvdv[_qp][_pvar][_pvar][dvar]*_phi[_j][_qp]*_grad_u[_qp] +  _phi[_j][_qp]*(_d2flux_dgradvdv[_qp][_pvar][_pvar][dvar]*_second_u[_qp]).tr() + (_d2flux_dvdgradv[_qp][_pvar][_pvar][dvar]*_grad_u[_qp])*_grad_phi[_j][_qp]);
-  return flux_prime + (supg_test_prime*supg_kernel + supg_test*supg_kernel_prime);
+  return computeQpJac(dvar);
 }

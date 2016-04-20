@@ -1,10 +1,23 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #include "MatConvection.h"
 
 template<>
 InputParameters validParams<MatConvection>()
 {
   InputParameters params = validParams<Kernel>();
-  params.addRequiredParam<std::string>("mat_prop", "Name of the property (scalar) to multiply the MatConvection kernel with");
+  params.addRequiredParam<MaterialPropertyName>("mat_prop", "Name of the property (scalar) to multiply the MatConvection kernel with");
 
   params.addRequiredParam<Real>("x", "Component of velocity in the x direction");
   params.addRequiredParam<Real>("y", "Component of velocity in the y direction");
@@ -12,10 +25,9 @@ InputParameters validParams<MatConvection>()
   return params;
 }
 
-MatConvection::MatConvection(const std::string & name, InputParameters parameters) :
-    Kernel(name, parameters),
-    _conv_prop_name(getParam<std::string>("mat_prop")),
-    _conv_prop(getMaterialProperty<Real>(_conv_prop_name)),
+MatConvection::MatConvection(const InputParameters & parameters) :
+    Kernel(parameters),
+    _conv_prop(getMaterialProperty<Real>("mat_prop")),
     _x(getParam<Real>("x")),
     _y(getParam<Real>("y")),
     _z(getParam<Real>("z"))

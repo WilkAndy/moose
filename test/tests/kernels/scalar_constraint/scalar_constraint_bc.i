@@ -91,11 +91,6 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  hide = 'alpha'
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
+  hide = alpha
 []

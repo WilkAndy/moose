@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  Base class for Richards SUPG
 //
@@ -15,8 +18,8 @@ InputParameters validParams<RichardsSUPG>()
   return params;
 }
 
-RichardsSUPG::RichardsSUPG(const std::string & name, InputParameters parameters) :
-  GeneralUserObject(name, parameters)
+RichardsSUPG::RichardsSUPG(const InputParameters & parameters) :
+    GeneralUserObject(parameters)
 {}
 
 void
@@ -29,3 +32,4 @@ RichardsSUPG::execute()
 
 void RichardsSUPG::finalize()
 {}
+

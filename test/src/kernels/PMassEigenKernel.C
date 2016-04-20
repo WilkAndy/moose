@@ -1,3 +1,16 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #include "PMassEigenKernel.h"
 
 template<>
@@ -8,8 +21,8 @@ InputParameters validParams<PMassEigenKernel>()
   return params;
 }
 
-PMassEigenKernel::PMassEigenKernel(const std::string & name, InputParameters parameters) :
-    EigenKernel(name,parameters),
+PMassEigenKernel::PMassEigenKernel(const InputParameters & parameters) :
+    EigenKernel(parameters),
     _p(getParam<Real>("p")-2.0)
 {
 }

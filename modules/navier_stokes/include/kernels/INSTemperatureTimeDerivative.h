@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef INSTEMPERATURETIMEDERIVATIVE_H
 #define INSTEMPERATURETIMEDERIVATIVE_H
 
@@ -17,7 +23,7 @@ InputParameters validParams<INSTemperatureTimeDerivative>();
 class INSTemperatureTimeDerivative : public TimeDerivative
 {
 public:
-  INSTemperatureTimeDerivative(const std::string & name, InputParameters parameters);
+  INSTemperatureTimeDerivative(const InputParameters & parameters);
 
   virtual ~INSTemperatureTimeDerivative(){}
 

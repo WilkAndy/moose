@@ -15,24 +15,27 @@
 #ifndef FORMATTEDTABLE_H
 #define FORMATTEDTABLE_H
 
+// MOOSE includes
 #include "Moose.h"
 #include "MooseEnum.h"
 #include "DataIO.h"
 
-#include "libmesh/libmesh_common.h"
-#include "libmesh/exodusII_io.h"
-
-#include <string>
-#include <map>
-#include <set>
-#include <ostream>
+// C++ includes
 #include <fstream>
 
+// Forward declarations
 class FormattedTable;
+namespace libMesh
+{
+class ExodusII_IO;
+}
 
 template<> void dataStore(std::ostream & stream, FormattedTable & table, void * context);
 template<> void dataLoad(std::istream & stream, FormattedTable & v, void * context);
 
+/**
+ * This class is used for building, formatting, and outputting tables of numbers.
+ */
 class FormattedTable
 {
 public:
@@ -86,13 +89,24 @@ public:
    *
    * Note: Only call this on processor 0!
    */
-  void printCSV(const std::string & file_name, int interval=1);
+  void printCSV(const std::string & file_name, int interval=1, bool align = false);
 
   void printEnsight(const std::string & file_name);
   void writeExodus(ExodusII_IO * ex_out, Real time);
   void makeGnuplot(const std::string & base_file, const std::string & format);
 
   static MooseEnum getWidthModes();
+
+  /**
+   * By default printCSV places "," between each entry, this allows this to be changed
+   */
+  void setDelimiter(std::string delimiter){ _csv_delimiter = delimiter; }
+
+  /**
+   * By default printCSV prints output to a precision of 14, this allows this to be changed
+   */
+  void setPrecision(unsigned int precision){ _csv_precision = precision; }
+
 
 protected:
   void printTablePiece(std::ostream & out, unsigned int last_n_entries, std::map<std::string, unsigned short> & col_widths,
@@ -139,6 +153,14 @@ protected:
 
   /// Whether or not to output the Time column
   bool _output_time;
+
+private:
+
+  /// *.csv file delimiter, defaults to ","
+  std::string _csv_delimiter;
+
+  /// *.csv file precision, defaults to 14
+  unsigned int _csv_precision;
 
   friend void dataStore<FormattedTable>(std::ostream & stream, FormattedTable & table, void * context);
   friend void dataLoad<FormattedTable>(std::istream & stream, FormattedTable & v, void * context);

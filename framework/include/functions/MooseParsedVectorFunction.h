@@ -18,10 +18,10 @@
 // MOOSE includes
 #include "Function.h"
 #include "MooseParsedFunctionBase.h"
-#include "MooseParsedFunctionWrapper.h"
 
 // Forward decleratrions
 class MooseParsedVectorFunction;
+class MooseParsedFunctionWrapper;
 
 template<>
 InputParameters validParams<MooseParsedVectorFunction>();
@@ -37,10 +37,9 @@ class MooseParsedVectorFunction :
 public:
   /**
    * Class constructor
-   * @param name The name of the function
    * @param parameters The input parameters
    */
-  MooseParsedVectorFunction(const std::string & name, InputParameters parameters);
+  MooseParsedVectorFunction(const InputParameters & parameters);
 
   /**
    * Class destructor
@@ -73,7 +72,6 @@ protected:
 
   // Pointer to the wrapper object for parsed functions
   MooseParsedFunctionWrapper * _function_ptr;
-
 };
 
 #endif //MOOSEPARSEDVECTORFUNCTION_H

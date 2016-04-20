@@ -129,13 +129,10 @@
 []
 
 [Outputs]
-  output_initial = true
   interval = 4
   exodus = true
   [./console]
     type = Console
     interval = 3
-    perf_log = true
-    linear_residuals = true
   [../]
 []

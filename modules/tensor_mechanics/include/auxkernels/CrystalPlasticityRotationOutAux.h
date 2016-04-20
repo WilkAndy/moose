@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef CRYSTALPLASTICITYROTATIONOUTAUX_H
 #define CRYSTALPLASTICITYROTATIONOUTAUX_H
 
@@ -12,8 +18,7 @@ InputParameters validParams<CrystalPlasticityRotationOutAux>();
 class CrystalPlasticityRotationOutAux : public AuxKernel
 {
 public:
-  CrystalPlasticityRotationOutAux ( const std::string & name, InputParameters parameters );
-
+  CrystalPlasticityRotationOutAux(const InputParameters & parameters);
   virtual ~CrystalPlasticityRotationOutAux() {}
 
 protected:
@@ -21,8 +26,8 @@ protected:
 
 private:
   std::string _rotout_file_name;
-  int _out_freq;
-  MaterialProperty<RankTwoTensor> & _update_rot;
+  unsigned int _out_freq;
+  const MaterialProperty<RankTwoTensor> & _update_rot;
 };
 
 #endif //CRYSTALPLASTICITYROTATIONOUTAUX_H//

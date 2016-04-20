@@ -82,10 +82,5 @@
 
 [Outputs]
   file_base = out_adv_coupled2
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

@@ -92,30 +92,18 @@
   petsc_options_value = 'hypre boomeramg'
 []
 
-##! [MultipleOutputBlocks]
 [Outputs]
-  output_initial = false                # common output_initial
+  execute_on = 'timestep_end'
   [./out]
-    # Setup the output system to output only aux2 and aux3 as nodal variables
     type = Exodus
-    hide = 'u v aux0 aux1'              # disables variables
-    output_postprocessors = false       # disables postprocessors
-    output_scalar_variables = false     # disables scalar variables
-    output_elemental_variables = false  # disables elemental variables
-    scalar_as_nodal = true              # converts aux2 to nodal
-    elemental_as_nodal = true           # converts aux3 to nodal
-    output_nodal_variables = true       # enable nodal variables (optional, this is the default)
-  [../]
-  [./screen]
-    # Setup the screen output
-    type = Console
-    output_input = true                 # override the common parameter for this output object
-    nonlinear_residuals =  true         # enable printing non-linear residuals (optional, this is the default)
-    linear_residuals = false            # disable printing linear residuals
-    perf_log = true                     # display performance log
+    hide = 'u v aux0 aux1'
+    scalar_as_nodal = true
+    elemental_as_nodal = true
+    execute_elemental_on = none
+    execute_scalars_on = none
+    execute_postprocessors_on = none
   [../]
 []
-##! [MultipleOutputBlocks]
 
 [ICs]
   [./aux0_IC]

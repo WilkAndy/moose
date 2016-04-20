@@ -18,18 +18,20 @@
 #include "MooseVariableBase.h"
 #include "ParallelUniqueId.h"
 
-// libMesh
-#include "libmesh/quadrature.h"
-#include "libmesh/dense_vector.h"
-#include "libmesh/dense_matrix.h"
-#include "libmesh/numeric_vector.h"
-#include "libmesh/sparse_matrix.h"
-#include "libmesh/elem.h"
-#include "libmesh/node.h"
-
+// Forward declarations
 class Assembly;
 class SubProblem;
 class SystemBase;
+
+// libMesh forward declarations
+namespace libMesh
+{
+class Elem;
+class Node;
+class QBase;
+template <typename T> class NumericVector;
+template <typename T> class DenseVector;
+}
 
 /**
  * Class for stuff related to variables
@@ -59,6 +61,7 @@ public:
   void reinitAuxNeighbor();
 
   void reinitNodes(const std::vector<dof_id_type> & nodes);
+  void reinitNodesNeighbor(const std::vector<dof_id_type> & nodes);
 
   const std::set<SubdomainID> & activeSubdomains();
 
@@ -68,16 +71,6 @@ public:
    * @return true if active on subdomain, false otherwise
    */
   bool activeOnSubdomain(SubdomainID subdomain) const;
-
-  /**
-   * Get the type of finite element object
-   */
-  const FEType feType() const { return _fe_type; }
-
-  /**
-   * Get the order of this variable
-   */
-  Order getOrder() const { return _fe_type.order; }
 
   /**
    * Is this variable nodal
@@ -122,44 +115,59 @@ public:
   // damping
   VariableValue & increment() { return _increment; }
 
-  VariableValue & sln() { return _u; }
-  VariableValue & slnOld() { _need_u_old = true; return _u_old; }
-  VariableValue & slnOlder() { _need_u_older = true;return _u_older; }
-  VariableGradient  & gradSln() { return _grad_u; }
-  VariableGradient  & gradSlnOld() { _need_grad_old = true; return _grad_u_old; }
-  VariableGradient  & gradSlnOlder() { _need_grad_older = true; return _grad_u_older; }
-  VariableSecond & secondSln() { _need_second = true; secondPhi(); secondPhiFace(); return _second_u; }
-  VariableSecond & secondSlnOld() { _need_second_old = true; secondPhi(); secondPhiFace(); return _second_u_old; }
-  VariableSecond & secondSlnOlder() { _need_second_older = true; secondPhi(); secondPhiFace(); return _second_u_older; }
+  const VariableValue & sln() { return _u; }
+  const VariableValue & slnOld() { _need_u_old = true; return _u_old; }
+  const VariableValue & slnOlder() { _need_u_older = true;return _u_older; }
+  const VariableGradient & gradSln() { return _grad_u; }
+  const VariableGradient & gradSlnOld() { _need_grad_old = true; return _grad_u_old; }
+  const VariableGradient & gradSlnOlder() { _need_grad_older = true; return _grad_u_older; }
+  const VariableSecond & secondSln() { _need_second = true; secondPhi(); secondPhiFace(); return _second_u; }
+  const VariableSecond & secondSlnOld() { _need_second_old = true; secondPhi(); secondPhiFace(); return _second_u_old; }
+  const VariableSecond & secondSlnOlder() { _need_second_older = true; secondPhi(); secondPhiFace(); return _second_u_older; }
 
-  VariableValue & uDot() { return _u_dot; }
-  VariableValue & duDotDu() { return _du_dot_du; }
+  const VariableValue & uDot() { return _u_dot; }
+  const VariableValue & duDotDu() { return _du_dot_du; }
 
   const Node * & node() { return _node; }
   dof_id_type & nodalDofIndex() { return _nodal_dof_index; }
   bool isNodalDefined() { return _is_defined; }
-  VariableValue & nodalSln() { return _nodal_u; }
-  VariableValue & nodalSlnOld() { return _nodal_u_old; }
-  VariableValue & nodalSlnOlder() { return _nodal_u_older; }
-  VariableValue & nodalSlnDot() { return _nodal_u_dot; }
-  VariableValue & nodalSlnDuDotDu() { return _nodal_du_dot_du; }
+  const VariableValue & nodalSln() { return _nodal_u; }
+  const VariableValue & nodalSlnOld() { return _nodal_u_old; }
+  const VariableValue & nodalSlnOlder() { return _nodal_u_older; }
+  const VariableValue & nodalSlnDot() { return _nodal_u_dot; }
+  const VariableValue & nodalSlnDuDotDu() { return _nodal_du_dot_du; }
 
-  VariableValue & slnNeighbor() { return _u_neighbor; }
-  VariableValue & slnOldNeighbor() { _need_u_old_neighbor = true; return _u_old_neighbor; }
-  VariableValue & slnOlderNeighbor() { _need_u_older_neighbor = true; return _u_older_neighbor; }
-  VariableGradient & gradSlnNeighbor() { return _grad_u_neighbor; }
-  VariableGradient & gradSlnOldNeighbor() { _need_grad_old_neighbor = true; return _grad_u_old_neighbor; }
-  VariableGradient & gradSlnOlderNeighbor() { _need_grad_older_neighbor = true; return _grad_u_older_neighbor; }
-  VariableSecond & secondSlnNeighbor() { _need_second_neighbor = true; secondPhiFaceNeighbor(); return _second_u_neighbor; }
-  VariableSecond & secondSlnOldNeighbor() { _need_second_old_neighbor = true; secondPhiFaceNeighbor(); return _second_u_old_neighbor; }
-  VariableSecond & secondSlnOlderNeighbor() { _need_second_older_neighbor = true; secondPhiFaceNeighbor(); return _second_u_older_neighbor; }
+  const VariableValue & nodalValue();
+  const VariableValue & nodalValueOld();
+  const VariableValue & nodalValueOlder();
+  const VariableValue & nodalValueDot();
+
+  const VariableValue & nodalValueNeighbor();
+  const VariableValue & nodalValueOldNeighbor();
+  const VariableValue & nodalValueOlderNeighbor();
+  const VariableValue & nodalValueDotNeighbor();
+
+  const VariableValue & slnNeighbor() { return _u_neighbor; }
+  const VariableValue & slnOldNeighbor() { _need_u_old_neighbor = true; return _u_old_neighbor; }
+  const VariableValue & slnOlderNeighbor() { _need_u_older_neighbor = true; return _u_older_neighbor; }
+  const VariableGradient & gradSlnNeighbor() { return _grad_u_neighbor; }
+  const VariableGradient & gradSlnOldNeighbor() { _need_grad_old_neighbor = true; return _grad_u_old_neighbor; }
+  const VariableGradient & gradSlnOlderNeighbor() { _need_grad_older_neighbor = true; return _grad_u_older_neighbor; }
+  const VariableSecond & secondSlnNeighbor() { _need_second_neighbor = true; secondPhiFaceNeighbor(); return _second_u_neighbor; }
+  const VariableSecond & secondSlnOldNeighbor() { _need_second_old_neighbor = true; secondPhiFaceNeighbor(); return _second_u_old_neighbor; }
+  const VariableSecond & secondSlnOlderNeighbor() { _need_second_older_neighbor = true; secondPhiFaceNeighbor(); return _second_u_older_neighbor; }
+
+  const VariableValue & uDotNeighbor() { return _u_dot_neighbor; }
+  const VariableValue & duDotDuNeighbor() { return _du_dot_du_neighbor; }
 
   const Node * & nodeNeighbor() { return _node_neighbor; }
   dof_id_type & nodalDofIndexNeighbor() { return _nodal_dof_index_neighbor; }
   bool isNodalNeighborDefined() { return _is_defined_neighbor; }
-  VariableValue & nodalSlnNeighbor() { return _nodal_u_neighbor; }
-  VariableValue & nodalSlnOldNeighbor() { return _nodal_u_old_neighbor; }
-  VariableValue & nodalSlnOlderNeighbor() { return _nodal_u_older_neighbor; }
+  const VariableValue & nodalSlnNeighbor() { return _nodal_u_neighbor; }
+  const VariableValue & nodalSlnOldNeighbor() { return _nodal_u_old_neighbor; }
+  const VariableValue & nodalSlnOlderNeighbor() { return _nodal_u_older_neighbor; }
+  const VariableValue & nodalSlnDotNeighbor() { return _nodal_u_dot_neighbor; }
+  const VariableValue & nodalSlnDuDotDuNeighbor() { return _nodal_du_dot_du_neighbor; }
 
   /**
    * Compute values at interior quadrature points
@@ -219,9 +227,9 @@ public:
   void setNodalValueNeighbor(const DenseVector<Number> & value);
 
   /**
-   * Compute damping for this variable based on increment_vec
+   * Compute and store incremental change based on increment_vec
    */
-  void computeDamping(const NumericVector<Number> & increment_vec);
+  void computeIncrement(const NumericVector<Number> & increment_vec);
 
   /**
    * Get DOF indices for currently selected element
@@ -292,8 +300,6 @@ protected:
 protected:
   /// Thread ID
   THREAD_ID _tid;
-  /// The FEType associated with this variable
-  FEType _fe_type;
 
   /// Quadrature rule for interior
   QBase * & _qrule;
@@ -334,6 +340,16 @@ protected:
   bool _need_second_neighbor;
   bool _need_second_old_neighbor;
   bool _need_second_older_neighbor;
+
+  bool _need_nodal_u;
+  bool _need_nodal_u_old;
+  bool _need_nodal_u_older;
+  bool _need_nodal_u_dot;
+
+  bool _need_nodal_u_neighbor;
+  bool _need_nodal_u_old_neighbor;
+  bool _need_nodal_u_older_neighbor;
+  bool _need_nodal_u_dot_neighbor;
 
   // Shape function values, gradients. second derivatives
   const VariablePhiValue & _phi;
@@ -377,8 +393,11 @@ protected:
 
   /// u_dot (time derivative)
   VariableValue _u_dot, _u_dot_bak;
+  VariableValue _u_dot_neighbor, _u_dot_bak_neighbor;
+
   /// derivative of u_dot wrt u
   VariableValue _du_dot_du, _du_dot_du_bak;
+  VariableValue _du_dot_du_neighbor, _du_dot_du_bak_neighbor;
 
   // nodal stuff
 
@@ -392,6 +411,7 @@ protected:
   VariableValue _nodal_u;
   VariableValue _nodal_u_old;
   VariableValue _nodal_u_older;
+
   /// nodal values of u_dot
   VariableValue _nodal_u_dot;
   /// nodal values of derivative of u_dot wrt u
@@ -404,6 +424,8 @@ protected:
   VariableValue _nodal_u_neighbor;
   VariableValue _nodal_u_old_neighbor;
   VariableValue _nodal_u_older_neighbor;
+  VariableValue _nodal_u_dot_neighbor;
+  VariableValue _nodal_du_dot_du_neighbor;
 
   /// if variable is nodal
   bool _is_nodal;

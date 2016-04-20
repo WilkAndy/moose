@@ -17,12 +17,11 @@
   [../]
 []
 
-# This is our new custom Convection Diffusion "Meta" block
-# that adds multiple kernels into our simulation
-#
-# Convection and Diffusion kernels on the first variable
-# Diffusion kernel on the second variable
-# The Convection kernel is coupled to the Diffusion kernel on the second variable
+#This is our new custom Convection Diffusion "Meta" block
+#that adds multiple kernels into our simulation
+#Convection and Diffusion kernels on the first variable
+#Diffusion kernel on the second variable
+#The Convection kernel is coupled to the Diffusion kernel on the second variable
 [ConvectionDiffusion]
     variables = 'convected diffused'
 []
@@ -64,19 +63,10 @@
 
 [Executioner]
   type = Steady
-
-  #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-
-
 []
 
 [Outputs]
-  file_base = out
+  execute_on = 'timestep_end'
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

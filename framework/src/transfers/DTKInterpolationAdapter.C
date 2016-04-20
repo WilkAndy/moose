@@ -11,22 +11,25 @@
 /*                                                              */
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
+
 #include "libmesh/libmesh_config.h"
 
-#ifdef LIBMESH_HAVE_DTK
+#ifdef LIBMESH_TRILINOS_HAVE_DTK
 
+// MOOSE includes
 #include "Moose.h"
-
 #include "DTKInterpolationEvaluator.h"
 #include "DTKInterpolationAdapter.h"
+#include "Transfer.h"
 
+// libMesh includes
 #include "libmesh/mesh.h"
 #include "libmesh/numeric_vector.h"
 #include "libmesh/elem.h"
+#include "libmesh/equation_systems.h"
 
+// DTK includes
 #include <DTK_MeshTypes.hpp>
-
-#include <vector>
 
 DTKInterpolationAdapter::DTKInterpolationAdapter(Teuchos::RCP<const Teuchos::MpiComm<int> > in_comm, EquationSystems & in_es, const Point & offset, unsigned int from_dim):
     comm(in_comm),
@@ -204,7 +207,7 @@ DTKInterpolationAdapter::get_variable_evaluator(std::string var_name)
 {
   if (evaluators.find(var_name) == evaluators.end()) // We haven't created an evaluator for the variable yet
   {
-    System * sys = find_sys(var_name);
+    System * sys = Transfer::find_sys(es, var_name);
 
     // Create the FieldEvaluator
     evaluators[var_name] = Teuchos::rcp(new DTKInterpolationEvaluator(*sys, var_name, _offset));
@@ -218,7 +221,7 @@ DTKInterpolationAdapter::get_values_to_fill(std::string var_name)
 {
   if (values_to_fill.find(var_name) == values_to_fill.end())
   {
-    System * sys = find_sys(var_name);
+    System * sys = Transfer::find_sys(es, var_name);
     unsigned int var_num = sys->variable_number(var_name);
     bool is_nodal = sys->variable_type(var_num).family == LAGRANGE;
 
@@ -241,7 +244,7 @@ DTKInterpolationAdapter::update_variable_values(std::string var_name, Teuchos::A
 {
   MPI_Comm old_comm = Moose::swapLibMeshComm(*comm->getRawMpiComm());
 
-  System * sys = find_sys(var_name);
+  System * sys = Transfer::find_sys(es, var_name);
   unsigned int var_num = sys->variable_number(var_name);
 
   bool is_nodal = sys->variable_type(var_num).family == LAGRANGE;
@@ -291,32 +294,6 @@ DTKInterpolationAdapter::update_variable_values(std::string var_name, Teuchos::A
   Moose::swapLibMeshComm(old_comm);
 }
 
-
-/**
- * Small helper function for finding the system containing the variable.
- *
- * Note that this implies that variable names are unique across all systems!
- */
-System *
-DTKInterpolationAdapter::find_sys(std::string var_name)
-{
-  System * sys = NULL;
-
-  // Find the system this variable is from
-  for (unsigned int i=0; i<es.n_systems(); i++)
-  {
-    if (es.get_system(i).has_variable(var_name))
-    {
-      sys = &es.get_system(i);
-      break;
-    }
-  }
-
-  libmesh_assert(sys);
-
-  return sys;
-}
-
 DataTransferKit::DTK_ElementTopology
 DTKInterpolationAdapter::get_element_topology(const Elem * elem)
 {
@@ -328,9 +305,15 @@ DTKInterpolationAdapter::get_element_topology(const Elem * elem)
     return DataTransferKit::DTK_TRIANGLE;
   else if (type == QUAD4)
     return DataTransferKit::DTK_QUADRILATERAL;
+  else if (type == QUAD8)
+    return DataTransferKit::DTK_QUADRILATERAL;
+  else if (type == QUAD9)
+    return DataTransferKit::DTK_QUADRILATERAL;
   else if (type == TET4)
     return DataTransferKit::DTK_TETRAHEDRON;
   else if (type == HEX8)
+    return DataTransferKit::DTK_HEXAHEDRON;
+  else if (type == HEX27)
     return DataTransferKit::DTK_HEXAHEDRON;
   else if (type == PYRAMID5)
     return DataTransferKit::DTK_PYRAMID;
@@ -354,4 +337,4 @@ DTKInterpolationAdapter::get_semi_local_nodes(std::set<GlobalOrdinal> & semi_loc
   }
 }
 
-#endif // #ifdef LIBMESH_HAVE_DTK
+#endif // #ifdef LIBMESH_TRILINOS_HAVE_DTK

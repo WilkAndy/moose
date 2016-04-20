@@ -59,11 +59,5 @@
 [Outputs]
   # Request that we output the initial condition so we can inspect
   # the values with our visualization tool
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

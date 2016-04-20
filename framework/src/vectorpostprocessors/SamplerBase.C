@@ -12,21 +12,23 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 
+// MOOSE includes
 #include "SamplerBase.h"
 #include "IndirectSort.h"
+#include "VectorPostprocessor.h"
 
 template<>
 InputParameters validParams<SamplerBase>()
 {
   InputParameters params = emptyInputParameters();
 
-  MooseEnum sort_options("x,y,z,id");
+  MooseEnum sort_options("x y z id");
   params.addRequiredParam<MooseEnum>("sort_by", sort_options, "What to sort the samples by");
 
   return params;
 }
 
-SamplerBase::SamplerBase(const std::string & /*name*/, InputParameters parameters, VectorPostprocessor * vpp, const libMesh::Parallel::Communicator & comm) :
+SamplerBase::SamplerBase(const InputParameters & parameters, VectorPostprocessor * vpp, const libMesh::Parallel::Communicator & comm) :
     _sampler_params(parameters),
     _vpp(vpp),
     _comm(comm),
@@ -39,7 +41,7 @@ SamplerBase::SamplerBase(const std::string & /*name*/, InputParameters parameter
 }
 
 void
-SamplerBase::setupVariables(std::vector<std::string> variable_names)
+SamplerBase::setupVariables(const std::vector<std::string> & variable_names)
 {
   _variable_names = variable_names;
 
@@ -122,7 +124,7 @@ SamplerBase::finalize()
 
   for (unsigned int i=0; i<sorted_indices.size(); i++)
   {
-    unsigned int index = sorted_indices[i];
+    size_t index = sorted_indices[i];
 
     _x[i] = _x_tmp[index];
     _y[i] = _y_tmp[index];

@@ -13,12 +13,14 @@
 /****************************************************************/
 
 #include "NearestNodeThread.h"
+#include "MooseMesh.h"
 
 // libmesh includes
 #include "libmesh/threads.h"
 
 NearestNodeThread::NearestNodeThread(const MooseMesh & mesh,
-                                     std::map<unsigned int, std::vector<unsigned int> > & neighbor_nodes) :
+                                     std::map<dof_id_type, std::vector<dof_id_type> > & neighbor_nodes) :
+  _max_patch_percentage(0.0),
   _mesh(mesh),
   _neighbor_nodes(neighbor_nodes)
 {
@@ -26,6 +28,7 @@ NearestNodeThread::NearestNodeThread(const MooseMesh & mesh,
 
 // Splitting Constructor
 NearestNodeThread::NearestNodeThread(NearestNodeThread & x, Threads::split /*split*/) :
+  _max_patch_percentage(x._max_patch_percentage),
   _mesh(x._mesh),
   _neighbor_nodes(x._neighbor_nodes)
 {
@@ -41,24 +44,30 @@ NearestNodeThread::operator() (const NodeIdRange & range)
 {
   for (NodeIdRange::const_iterator nd = range.begin() ; nd != range.end(); ++nd)
   {
-    unsigned int node_id = *nd;
+    dof_id_type node_id = *nd;
 
     const Node & node = _mesh.node(node_id);
 
     const Node * closest_node = NULL;
     Real closest_distance = std::numeric_limits<Real>::max();
 
-    const std::vector<unsigned int> & neighbor_nodes = _neighbor_nodes[node_id];
+    const std::vector<dof_id_type> & neighbor_nodes = _neighbor_nodes[node_id];
 
     unsigned int n_neighbor_nodes = neighbor_nodes.size();
 
     for (unsigned int k=0; k<n_neighbor_nodes; k++)
     {
       const Node * cur_node = &_mesh.node(neighbor_nodes[k]);
-      Real distance = ((*cur_node) - node).size();
+      Real distance = ((*cur_node) - node).norm();
 
       if (distance < closest_distance)
       {
+        Real patch_percentage = static_cast<Real>(k) / static_cast<Real>(n_neighbor_nodes);
+
+        // Save off the maximum we had to go through the patch to find the closes node
+        if (patch_percentage > _max_patch_percentage)
+          _max_patch_percentage = patch_percentage;
+
         closest_distance = distance;
         closest_node = cur_node;
       }
@@ -77,5 +86,9 @@ NearestNodeThread::operator() (const NodeIdRange & range)
 void
 NearestNodeThread::join(const NearestNodeThread & other)
 {
+  // Did the other one go further through the patch than this one?
+  if (other._max_patch_percentage > _max_patch_percentage)
+    _max_patch_percentage = other._max_patch_percentage;
+
   _nearest_node_info.insert(other._nearest_node_info.begin(), other._nearest_node_info.end());
 }

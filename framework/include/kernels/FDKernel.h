@@ -16,7 +16,6 @@
 #define FDKERNEL_H
 
 #include "Kernel.h"
-#include "MooseObject.h"
 
 class FDKernel;
 
@@ -27,7 +26,7 @@ class FDKernel :
   public Kernel
 {
 public:
-  FDKernel(const std::string & name, InputParameters parameters);
+  FDKernel(const InputParameters & parameters);
 
   virtual ~FDKernel(){};
 

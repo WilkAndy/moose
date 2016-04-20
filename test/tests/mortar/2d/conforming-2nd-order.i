@@ -63,12 +63,6 @@
     boundary = '1 2 3 4'
     function = exact_sln
   [../]
-
-  [./mortar]
-    type = DiffusionFluxBC
-    variable = u
-    boundary = '100 101'
-  [../]
 []
 
 [Postprocessors]
@@ -77,6 +71,7 @@
     variable = u
     function = exact_sln
     block = '1 2'
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -95,10 +90,5 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

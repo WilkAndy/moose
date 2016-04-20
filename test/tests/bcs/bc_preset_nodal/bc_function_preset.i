@@ -66,11 +66,5 @@
 
 [Outputs]
   file_base = bc_func_out
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

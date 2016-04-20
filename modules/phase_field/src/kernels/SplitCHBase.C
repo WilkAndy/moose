@@ -1,5 +1,11 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "SplitCHBase.h"
-// The couple, SplitCHBase and SplitCHWRes, splits the CH equation by replacing chemical potential with 'w'.
+
 template<>
 InputParameters validParams<SplitCHBase>()
 {
@@ -8,8 +14,8 @@ InputParameters validParams<SplitCHBase>()
   return params;
 }
 
-SplitCHBase::SplitCHBase(const std::string & name, InputParameters parameters) :
-    Kernel(name, parameters)
+SplitCHBase::SplitCHBase(const InputParameters & parameters) :
+    Kernel(parameters)
 {
 }
 
@@ -27,7 +33,7 @@ SplitCHBase::computeDFDC(PFFunctionType type)
   }
 
   mooseError("Invalid type passed in");
-  }*/
+}*/
 
 Real
 SplitCHBase::computeQpResidual()
@@ -68,3 +74,4 @@ SplitCHBase::computeDEDC(PFFunctionType /*type*/)
 {
   return 0.0;
 }
+

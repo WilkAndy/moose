@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSSEFFAUX_H
 #define RICHARDSSEFFAUX_H
@@ -22,7 +25,7 @@ InputParameters validParams<RichardsSeffAux>();
 class RichardsSeffAux: public AuxKernel
 {
 public:
-  RichardsSeffAux(const std::string & name, InputParameters parameters);
+  RichardsSeffAux(const InputParameters & parameters);
 
 protected:
   virtual Real computeValue();
@@ -39,7 +42,7 @@ protected:
    * where N is the number of arguments that the _seff_UO requires)
    * Eg, for twophase simulations N=2
    */
-  std::vector<VariableValue *> _pressure_vals;
+  std::vector<const VariableValue *> _pressure_vals;
 };
 
 #endif // RICHARDSSEFFAUX_H

@@ -26,8 +26,8 @@ InputParameters validParams<DGDiffusion>()
   return params;
 }
 
-DGDiffusion::DGDiffusion(const std::string & name, InputParameters parameters) :
-    DGKernel(name, parameters),
+DGDiffusion::DGDiffusion(const InputParameters & parameters) :
+    DGKernel(parameters),
     _epsilon(getParam<Real>("epsilon")),
     _sigma(getParam<Real>("sigma"))
 {
@@ -38,7 +38,7 @@ DGDiffusion::computeQpResidual(Moose::DGResidualType type)
 {
   Real r = 0;
 
-  const unsigned int elem_b_order = static_cast<unsigned int> (_var.getOrder());
+  const unsigned int elem_b_order = _var.order();
   const double h_elem = _current_elem->volume()/_current_side_elem->volume() * 1./std::pow(elem_b_order, 2.);
 
   switch (type)
@@ -66,7 +66,7 @@ DGDiffusion::computeQpJacobian(Moose::DGJacobianType type)
 {
   Real r = 0;
 
-  const unsigned int elem_b_order = static_cast<unsigned int> (_var.getOrder());
+  const unsigned int elem_b_order = _var.order();
   const double h_elem = _current_elem->volume()/_current_side_elem->volume() * 1./std::pow(elem_b_order, 2.);
 
   switch (type)
@@ -99,3 +99,4 @@ DGDiffusion::computeQpJacobian(Moose::DGJacobianType type)
 
   return r;
 }
+

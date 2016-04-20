@@ -45,6 +45,13 @@
     type = GenericConstantMaterial
     block = 0
     prop_names = diffusivity
+    prop_values = 2
+  [../]
+
+  [./mat_props_bnd]
+    type = GenericConstantMaterial
+    boundary = right
+    prop_names = diffusivity
     prop_values = 1
   [../]
 []
@@ -68,11 +75,5 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

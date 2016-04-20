@@ -14,11 +14,15 @@
 
 // MOOSE includes
 #include "Console.h"
+#include "ConsoleUtils.h"
 #include "FEProblem.h"
 #include "Postprocessor.h"
 #include "PetscSupport.h"
 #include "Executioner.h"
 #include "MooseApp.h"
+#include "Moose.h"
+#include "FormattedTable.h"
+#include "NonlinearSystem.h"
 
 template<>
 InputParameters validParams<Console>()
@@ -28,29 +32,29 @@ InputParameters validParams<Console>()
 
   // Get the parameters from the base class
   InputParameters params = validParams<TableOutput>();
-
-  params.suppressParameter<bool>("output_vector_postprocessors");
+  params += TableOutput::enableOutputTypes("system_information scalar postprocessor input");
 
   // Screen and file output toggles
   params.addParam<bool>("output_screen", true, "Output to the screen");
   params.addParam<bool>("output_file", false, "Output to the file");
+  params.addParam<bool>("show_multiapp_name", false, "Indent multiapp output using the multiapp name");
 
   // Table fitting options
   params.addParam<unsigned int>("max_rows", 15, "The maximum number of postprocessor/scalar values displayed on screen during a timestep (set to 0 for unlimited)");
   params.addParam<MooseEnum>("fit_mode", pps_fit_mode, "Specifies the wrapping mode for post-processor tables that are printed to the screen (ENVIRONMENT: Read \"MOOSE_PPS_WIDTH\" for desired width, AUTO: Attempt to determine width automatically (serial only), <n>: Desired width");
 
-  // Timestep verbosity
+  // Verbosity
   params.addParam<bool>("verbose", false, "Print detailed diagnostics on timestep calculation");
 
   // Basic table output controls
-  params.addParam<bool>("use_color", true, "If true, color will be added to the output");
   params.addParam<bool>("scientific_time", false, "Control the printing of time and dt in scientific notation");
   params.addParam<unsigned int>("time_precision", "The number of significant digits that are printed on time related outputs");
 
   // Performance Logging
   params.addParam<bool>("perf_log", false, "If true, all performance logs will be printed. The individual log settings will override this option.");
-  params.addParam<bool>("setup_log_early", false, "Specifies whether or not the Setup Performance log should be printed before the first time step.  It will still be printed at the end if ""perf_log"" is also enabled and likewise disabled if ""perf_log"" is false");
-  params.addParam<bool>("setup_log", "Toggles the printing of the 'Setup Performance' log");
+  params.addParam<unsigned int>("perf_log_interval", 0, "If set, the performance log will be printed every n time steps");
+  params.addDeprecatedParam<bool>("setup_log_early", false, "Specifies whether or not the Setup Performance log should be printed before the first time step.  It will still be printed at the end if ""perf_log"" is also enabled and likewise disabled if ""perf_log"" is false", "This parameter is being removed due to lack of usage.");
+  params.addDeprecatedParam<bool>("setup_log", "Toggles the printing of the 'Setup Performance' log", "This parameter is being removed due to lack of usage.");
   params.addParam<bool>("solve_log", "Toggles the printing of the 'Moose Test Performance' log");
   params.addParam<bool>("perf_header", "Print the libMesh performance log header (requires that 'perf_log = true')");
 
@@ -58,7 +62,10 @@ InputParameters validParams<Console>()
   params.addParam<bool>("libmesh_log", true, "Print the libMesh performance log, requires libMesh to be configured with --enable-perflog");
 #endif
 
-  // Toggle for printing variable normals
+  // Toggle printing of mesh information on adaptivity steps
+  params.addParam<bool>("print_mesh_changed_info", false, "When true, each time the mesh is changed the mesh information is printed");
+
+  // Toggle for printing variable norms
   params.addParam<bool>("outlier_variable_norms", true, "If true, outlier variable norms will be printed after each solve");
   params.addParam<bool>("all_variable_norms", false, "If true, all variable norms will be printed after each solve");
 
@@ -68,8 +75,12 @@ InputParameters validParams<Console>()
   multiplier.push_back(2);
   params.addParam<std::vector<Real> >("outlier_multiplier", multiplier, "Multiplier utilized to determine if a residual norm is an outlier. If the variable residual is less than multiplier[0] times the total residual it is colored red. If the variable residual is less than multiplier[1] times the average residual it is colored yellow.");
 
+  // System information controls
+  MultiMooseEnum info("framework mesh aux nonlinear execution output", "framework mesh aux nonlinear execution");
+  params.addParam<MultiMooseEnum>("system_info", info, "List of information types to display ('framework', 'mesh', 'aux', 'nonlinear', 'execution', 'output')");
+
   // Advanced group
-  params.addParamNamesToGroup("max_rows fit_node verbose", "Advanced");
+  params.addParamNamesToGroup("max_rows verbose show_multiapp_name system_info", "Advanced");
 
   // Performance log group
   params.addParamNamesToGroup("perf_log setup_log_early setup_log solve_log perf_header", "Perf Log");
@@ -80,27 +91,35 @@ InputParameters validParams<Console>()
   // Variable norms group
   params.addParamNamesToGroup("outlier_variable_norms all_variable_norms outlier_multiplier", "Norms");
 
-  // By default the Console object outputs non linear iterations
-  params.set<bool>("nonlinear_residuals") = true;
+  /*
+   * The following modifies the default behavior from base class parameters. Notice the extra flag on
+   * the set method. This enables "quiet mode". This is done to allow for the proper detection
+   * of user-modified parameters
+   */
+  // By default set System Information to output on initial
+  params.set<MultiMooseEnum>("execute_system_information_on", /*quiet_mode=*/true) = "initial";
 
-  // Set outputting of failed solves to true for Console outputters
-  params.set<bool>("output_failed") = true;
+  // Change the default behavior of 'execute_on' to included nonlinear iterations and failed timesteps
+  params.set<MultiMooseEnum>("execute_on", /*quiet_mode=*/true).push_back("initial timestep_begin linear nonlinear failed");
+
+  // By default postprocessors and scalar are only output at the end of a timestep
+  params.set<MultiMooseEnum>("execute_postprocessors_on", /*quiet_mode=*/true) = "initial timestep_end";
+  params.set<MultiMooseEnum>("execute_vector_postprocessors_on", /*quiet_mode=*/true) = "initial timestep_end";
+  params.set<MultiMooseEnum>("execute_scalars_on", /*quiet_mode=*/true) = "initial timestep_end";
 
   return params;
 }
 
-Console::Console(const std::string & name, InputParameters parameters) :
-    TableOutput(name, parameters),
+Console::Console(const InputParameters & parameters) :
+    TableOutput(parameters),
     _max_rows(getParam<unsigned int>("max_rows")),
     _fit_mode(getParam<MooseEnum>("fit_mode")),
-    _use_color(false),
     _scientific_time(getParam<bool>("scientific_time")),
     _write_file(getParam<bool>("output_file")),
     _write_screen(getParam<bool>("output_screen")),
     _verbose(getParam<bool>("verbose")),
-    _old_linear_norm(std::numeric_limits<Real>::max()),
-    _old_nonlinear_norm(std::numeric_limits<Real>::max()),
     _perf_log(getParam<bool>("perf_log")),
+    _perf_log_interval(getParam<unsigned int>("perf_log_interval")),
     _solve_log(isParamValid("solve_log") ? getParam<bool>("solve_log") : _perf_log),
     _setup_log(isParamValid("setup_log") ? getParam<bool>("setup_log") : _perf_log),
 #ifdef LIBMESH_ENABLE_PERFORMANCE_LOGGING
@@ -112,17 +131,49 @@ Console::Console(const std::string & name, InputParameters parameters) :
     _outlier_variable_norms(getParam<bool>("outlier_variable_norms")),
     _outlier_multiplier(getParam<std::vector<Real> >("outlier_multiplier")),
     _precision(isParamValid("time_precision") ? getParam<unsigned int>("time_precision") : 0),
-    _timing(_app.getParam<bool>("timing"))
+    _timing(_app.getParam<bool>("timing")),
+    _console_buffer(_app.getOutputWarehouse().consoleBuffer()),
+    _old_linear_norm(std::numeric_limits<Real>::max()),
+    _old_nonlinear_norm(std::numeric_limits<Real>::max()),
+    _print_mesh_changed_info(getParam<bool>("print_mesh_changed_info")),
+    _system_info_flags(getParam<MultiMooseEnum>("system_info")),
+    _allow_changing_sysinfo_flag(true)
 {
+  // Apply the special common console flags (print_...)
+  ActionWarehouse & awh = _app.actionWarehouse();
+  Action * common_action = awh.getActionsByName("common_output")[0];
+
+  // Honor the 'print_linear_residuals' option, only if 'execute_on' has not been set by the user
+  if (!parameters.isParamSetByUser("execute_on"))
+  {
+    if (common_action->getParam<bool>("print_linear_residuals"))
+      _execute_on.push_back("linear");
+    else
+      _execute_on.erase("linear");
+  }
+
+  if (!_pars.isParamSetByUser("perf_log") && common_action->getParam<bool>("print_perf_log"))
+  {
+    _perf_log = true;
+    _solve_log = true;
+    _setup_log = true;
+  }
+
+  // Deprecate the setup perf log
+  Moose::setup_perf_log.disable_logging();
+
+  // Append the common 'execute_on' to the setting for this object
+  // This is unique to the Console object, all other objects inherit from the common options
+  const MultiMooseEnum & common_execute_on = common_action->getParam<MultiMooseEnum>("execute_on");
+  for (MooseEnumIterator it = common_execute_on.begin(); it != common_execute_on.end(); ++it)
+    _execute_on.push_back(*it);
+
   // If --timing was used from the command-line, do nothing, all logs are enabled
   if (!_timing)
   {
     // Disable performance logging (all log input options must be false)
     if (!_perf_log && !_setup_log && !_solve_log && !_perf_header && !_setup_log_early)
-    {
       Moose::perf_log.disable_logging();
-      Moose::setup_perf_log.disable_logging();
-    }
 
     // Disable libMesh log
 #ifdef LIBMESH_ENABLE_PERFORMANCE_LOGGING
@@ -131,67 +182,41 @@ Console::Console(const std::string & name, InputParameters parameters) :
 #endif
   }
 
+  // If --show-outputs is used, enable it
+  if (_app.getParam<bool>("show_outputs"))
+    _system_info_flags.push_back("output");
+
   // Set output coloring
-  if (getParam<bool>("use_color"))
+  if (Moose::_color_console)
   {
     char * term_env = getenv("TERM");
     if (term_env)
     {
       std::string term(term_env);
-      if (term == "xterm-256color" || term == "xterm")
-        _use_color = true;
+      if (term != "xterm-256color" && term != "xterm")
+        Moose::_color_console = false;
     }
   }
-
-  // If file output is desired, wipe out the existing file if not recovering
-  if (_write_file && !_app.isRecovering())
-    writeStream(false);
 }
 
 Console::~Console()
 {
   // Write the libMesh performance log header
   if (_perf_header)
-  {
-    if (_write_screen && !_timing)
-      Moose::out << Moose::perf_log.get_info_header();
-
-    if (_write_file)
-      _file_output_stream << Moose::perf_log.get_info_header();
-  }
+    write(Moose::perf_log.get_info_header(), false);
 
   // Write the solve log (Moose Test Performance)
   if (_solve_log)
-  {
-    if (_write_screen && !_timing)
-      Moose::out << Moose::perf_log.get_perf_info();
-    if (_write_file)
-      _file_output_stream << Moose::perf_log.get_perf_info();
-  }
-
-  // Write the setup log (Setup Performance)
-  if (_setup_log)
-  {
-    if (_write_screen && !_timing)
-      Moose::out << Moose::setup_perf_log.get_perf_info();
-    if (_write_file)
-      _file_output_stream << Moose::setup_perf_log.get_perf_info();
-  }
+    write(Moose::perf_log.get_perf_info(), false);
 
   // Write the libMesh log
 #ifdef LIBMESH_ENABLE_PERFORMANCE_LOGGING
   if (_libmesh_log)
-  {
-    if (_write_screen && !_timing)
-      Moose::out << libMesh::perflog.get_perf_info();
-    if (_write_file)
-      _file_output_stream << libMesh::perflog.get_perf_info();
-  }
+    write(libMesh::perflog.get_perf_info(), false);
 #endif
 
   // Write the file output stream
-  if (_write_file)
-    writeStream();
+  writeStreamToFile();
 
   /* If --timing was not used disable the logging b/c the destructor of these
    * object does the output, if --timing was used do nothing because all other
@@ -201,96 +226,49 @@ Console::~Console()
     /* Disable the logs, without this the logs will be printed
        during the destructors of the logs themselves */
     Moose::perf_log.disable_logging();
-    Moose::setup_perf_log.disable_logging();
 #ifdef LIBMESH_ENABLE_PERFORMANCE_LOGGING
     libMesh::perflog.disable_logging();
 #endif
   }
 }
 
+
 void
 Console::initialSetup()
 {
-  // Enable verbose output if Executioner has it enabled
-  if (_app.getExecutioner()->isParamValid("verbose") && _app.getExecutioner()->getParam<bool>("verbose"))
-  {
-    _verbose = true;
-    _pars.set<bool>("verbose") = true;
-  }
+  // system info flag can be changed only before console initial setup
+  _allow_changing_sysinfo_flag = false;
 
-  // Output the performance log early
-  if (getParam<bool>("setup_log_early"))
-  {
-    if (_write_screen)
-      Moose::out << Moose::setup_perf_log.get_perf_info() << std::endl;
-
-    if (_write_file)
-      _file_output_stream << Moose::setup_perf_log.get_perf_info() << std::endl;
-  }
-
-  // Output the system information
-  if (_system_information)
+  // If execute_on = 'initial' perform the output
+  if (shouldOutput("system_information", EXEC_INITIAL))
     outputSystemInformation();
 
-  // Output the timestep information
-  timestepSetup();
-}
+  // Call the base class method
+  TableOutput::initialSetup();
 
-void
-Console::timestepSetup()
-{
-  // Do nothing if output is turned off
-  // Do nothing if the problem is steady or if it is not an output interval
-  // Do nothing if output_initial = false and the timestep is zero
-  if (!_allow_output || !checkInterval() || (!_output_initial && _t_step == 0))
-    return;
+  // If file output is desired, wipe out the existing file if not recovering
+  if (!_app.isRecovering())
+    writeStreamToFile(false);
 
-  // Stream to build the time step information
-  std::stringstream oss;
+  // Enable verbose output if Executioner has it enabled
+  if (_app.getExecutioner()->isParamValid("verbose") && _app.getExecutioner()->getParam<bool>("verbose"))
+    _verbose = true;
 
-  // Write timestep data for transient executioners
-  if (_transient)
+  // Display a message to indicate the application is running (useful for MultiApps)
+  if (_problem_ptr->hasMultiApps() || _app.multiAppLevel() > 0)
+    write(std::string("\nRunning App: ") + _app.name() + "\n");
+
+  // If the user adds "final" to the execute on, append this to the postprocessors, scalars, etc., but only
+  // if the parameter (e.g., postprocessor_execute_on) has not been modified by the user.
+  if (_execute_on.contains("final"))
   {
-    // Get the length of the time step string
-    std::ostringstream time_step_string;
-    time_step_string << _t_step;
-    unsigned int n = time_step_string.str().size();
-    if (n < 2)
-      n = 2;
-
-    // Write time step and time information
-    oss << std::endl <<  "Time Step " << std::setw(n) << _t_step;
-
-    // Set precision
-    if (_precision > 0)
-      oss << std::setw(_precision) << std::setprecision(_precision) << std::setfill('0') << std::showpoint;
-
-    // Show scientific notation
-    if (_scientific_time)
-      oss << std::scientific;
-
-    // Print the time
-    oss << ", time = " << _time << std::endl;
-
-    // Show old time information, if desired
-    if (_verbose)
-      oss << "          old time = " << std::left << _time_old << std::endl;
-
-    // Show the time delta information
-    oss  << "                dt = "<< std::left <<  _dt << std::endl;
-
-    // Show the old time delta information, if desired
-    if (_verbose)
-      oss  << "            old dt = " << std::left << _dt_old << std::endl;
+    if (!_pars.isParamSetByUser("postprocessor_execute_on"))
+      _advanced_execute_on["postprocessors"].push_back("final");
+    if (!_pars.isParamSetByUser("scalars_execute_on"))
+      _advanced_execute_on["scalars"].push_back("final");
+    if (!_pars.isParamSetByUser("vector_postprocessor_execute_on"))
+      _advanced_execute_on["vector_postprocessors"].push_back("final");
   }
-
-  // Output to the screen
-  if (_write_screen)
-    Moose::out << oss.str();
-
-  // Output to the file
-  if (_write_file)
-    _file_output_stream << oss.str();
 }
 
 std::string
@@ -300,8 +278,73 @@ Console::filename()
 }
 
 void
-Console::writeStream(bool append)
+Console::output(const ExecFlagType & type)
 {
+  // Return if the current output is not on the desired interval
+  if (type != EXEC_FINAL && !onInterval())
+    return;
+
+  // Output the system information first; this forces this to be the first item to write by default
+  // However, 'output_system_information_on' still operates correctly, so it may be changed by the user
+  if (shouldOutput("system_information", type) && !(type == EXEC_INITIAL && _initialized))
+    outputSystemInformation();
+
+  // Write the input
+  if (shouldOutput("input", type))
+    outputInput();
+
+  // Write the timestep information ("Time Step 0 ..."), this is controlled with "execute_on"
+  if (type == EXEC_TIMESTEP_BEGIN || (type == EXEC_INITIAL && _execute_on.contains(EXEC_INITIAL)) || (type == EXEC_FINAL && _execute_on.contains(EXEC_FINAL)))
+    writeTimestepInformation();
+
+  // Print Non-linear Residual (control with "execute_on")
+  if (type == EXEC_NONLINEAR && _execute_on.contains(EXEC_NONLINEAR))
+  {
+    if (_nonlinear_iter == 0)
+      _old_nonlinear_norm = std::numeric_limits<Real>::max();
+
+    _console << std::setw(2) << _nonlinear_iter << " Nonlinear |R| = " << outputNorm(_old_nonlinear_norm, _norm) << '\n';
+
+    _old_nonlinear_norm = _norm;
+  }
+
+  // Print Linear Residual (control with "execute_on")
+  else if (type == EXEC_LINEAR && _execute_on.contains(EXEC_LINEAR))
+  {
+    if (_linear_iter == 0)
+      _old_linear_norm = std::numeric_limits<Real>::max();
+
+    _console << std::setw(7) << _linear_iter << " Linear |R| = " <<  outputNorm(_old_linear_norm, _norm) << '\n';
+
+    _old_linear_norm = _norm;
+  }
+
+  // Write variable norms
+  else if (type == EXEC_TIMESTEP_END)
+  {
+    if (_perf_log_interval && _t_step % _perf_log_interval == 0)
+      write(Moose::perf_log.get_perf_info(), false);
+    writeVariableNorms();
+  }
+
+
+  // Write Postprocessors and Scalars
+  if (shouldOutput("postprocessors", type))
+    outputPostprocessors();
+
+  if (shouldOutput("scalars", type))
+    outputScalarVariables();
+
+  // Write the file
+  writeStreamToFile();
+}
+
+void
+Console::writeStreamToFile(bool append)
+{
+  if (!_write_file)
+    return;
+
   // Create the stream
   std::ofstream output;
 
@@ -320,38 +363,49 @@ Console::writeStream(bool append)
 }
 
 void
-Console::output()
+Console::writeTimestepInformation()
 {
-  // Print Non-linear Residual
-  if (onNonlinearResidual())
-  {
-    if (_write_screen)
-      Moose::out << std::setw(2) << _nonlinear_iter << " Nonlinear |R| = " << outputNorm(_old_nonlinear_norm, _norm) << std::endl;
+  // Stream to build the time step information
+  std::stringstream oss;
 
-    if (_write_file)
-      _file_output_stream << std::setw(2) << _nonlinear_iter << " Nonlinear |R| = " << std::scientific << _norm << std::endl;
+  // Write timestep data for transient executioners
+  if (_transient)
+  {
+    // Get the length of the time step string
+    std::ostringstream time_step_string;
+    time_step_string << timeStep();
+    unsigned int n = time_step_string.str().size();
+    if (n < 2)
+      n = 2;
+
+    // Write time step and time information
+    oss << std::endl << "Time Step " << std::setw(n) << timeStep();
+
+    // Set precision
+    if (_precision > 0)
+      oss << std::setw(_precision) << std::setprecision(_precision) << std::setfill('0') << std::showpoint;
+
+    // Show scientific notation
+    if (_scientific_time)
+      oss << std::scientific;
+
+    // Print the time
+    oss << ", time = " << time() << std::endl;
+
+    // Show old time information, if desired
+    if (_verbose)
+      oss << std::right << std::setw(21) << std::setfill(' ') << "old time = " << std::left << timeOld() << '\n';
+
+    // Show the time delta information
+    oss << std::right << std::setw(21) << std::setfill(' ') << "dt = "<< std::left << dt() << '\n';
+
+    // Show the old time delta information, if desired
+    if (_verbose)
+      oss << std::right << std::setw(21) << std::setfill(' ') << "old dt = " << _dt_old << '\n';
   }
 
-  // Print Linear Residual
-  else if (onLinearResidual())
-  {
-    if (_write_screen)
-      Moose::out << std::setw(7) << _linear_iter << " Linear |R| = " <<  outputNorm(_old_linear_norm, _norm) << std::endl;
-
-    if (_write_file)
-      _file_output_stream << std::setw(7) << _linear_iter << std::scientific << " Linear |R| = " << std::scientific << _norm << std::endl;
-  }
-
-  // Call the base class output function
-  else
-  {
-    writeVariableNorms();
-    TableOutput::output();
-  }
-
-  // Write the file
-  if (_write_file)
-    writeStream();
+  // Output to the screen
+  _console << oss.str();
 }
 
 void
@@ -398,12 +452,12 @@ Console::writeVariableNorms()
       }
 
       // Set the color, RED if the variable norm is 0.8 (default) of the total norm
-      std::string color = YELLOW;
+      std::string color = COLOR_YELLOW;
       if (_outlier_variable_norms && (var_norm > _outlier_multiplier[0] * avg_norm * n_vars) )
-        color = RED;
+        color = COLOR_RED;
 
       // Display the residual
-      oss << "  " << var_name << ": " << MooseUtils::colorText(color, std::sqrt(var_norm), _use_color) << '\n';
+      oss << "  " << var_name << ": " << std::scientific << color << std::sqrt(var_norm) << COLOR_DEFAULT << '\n';
     }
 
     // GREEN
@@ -415,50 +469,43 @@ Console::writeVariableNorms()
         oss << "\nVariable Residual Norms:\n";
         header = true;
       }
-      oss << "  " << var_name << ": " <<  MooseUtils::colorText(GREEN, std::sqrt(var_norm), _use_color) << '\n';
+      oss << "  " << var_name << ": " << std::scientific << COLOR_GREEN << std::sqrt(var_norm) << COLOR_DEFAULT << '\n';
     }
   }
 
   // Update the output streams
-  if (_write_screen)
-    Moose::out << oss.str() << std::endl;
-
-  if (_write_file)
-    _file_output_stream << oss.str() << std::endl;
+  _console << oss.str();
 }
 
 // Quick helper to output the norm in color
 std::string
-Console::outputNorm(Real old_norm, Real norm)
+Console::outputNorm(const Real & old_norm, const Real & norm)
 {
-  std::string color(GREEN);
+  std::string color = COLOR_GREEN;
 
-  // Use color
-  if (_use_color)
-  {
-    // Red if the residual went up...
-    if (norm > old_norm)
-      color = RED;
-    // Yellow if change is less than 5%
-    else if ((old_norm - norm) / old_norm <= 0.05)
-      color = YELLOW;
-  }
+  // Red if the residual went up... or if the norm is nan
+  if (norm != norm || norm > old_norm)
+    color = COLOR_RED;
+  // Yellow if change is less than 5%
+  else if ((old_norm - norm) / old_norm <= 0.05)
+    color = COLOR_YELLOW;
 
-  // Return the colored text
-  return MooseUtils::colorText<Real>(color, norm, _use_color);
+  std::stringstream oss;
+  oss << std::scientific << color << norm << COLOR_DEFAULT;
+
+  return oss.str();
 }
 
-
-// Free function for stringstream formatting
 void
-Console::insertNewline(std::stringstream &oss, std::streampos &begin, std::streampos &curr)
+Console::outputInput()
 {
-   if (curr - begin > _line_length)
-   {
-     oss << "\n";
-     begin = oss.tellp();
-     oss << std::setw(_field_width + 2) << "";  // "{ "
-   }
+  if (!_write_screen && !_write_file)
+    return;
+
+  std::ostringstream oss;
+  oss << "--- " << _app.getInputFileName() << " ------------------------------------------------------";
+  _app.actionWarehouse().printInputFile(oss);
+  _console << oss.str() << '\n';
 }
 
 void
@@ -471,13 +518,7 @@ Console::outputPostprocessors()
     std::stringstream oss;
     oss << "\nPostprocessor Values:\n";
     _postprocessor_table.printTable(oss, _max_rows, _fit_mode);
-    oss << std::endl;
-
-    if (_write_screen)
-      Moose::out << oss.str();
-
-    if (_write_file)
-      _file_output_stream << oss.str();
+    _console << oss.str() << '\n';
   }
 }
 
@@ -492,172 +533,90 @@ Console::outputScalarVariables()
     oss << "\nScalar Variable Values:\n";
     if (processor_id() == 0)
       _scalar_table.printTable(oss, _max_rows, _fit_mode);
-    oss << std::endl;
-
-    if (_write_screen)
-      Moose::out << oss.str();
-
-    if (_write_file)
-      _file_output_stream << oss.str();
+    _console << oss.str() << '\n';
   }
 }
 
 void
 Console::outputSystemInformation()
 {
+  if (_system_info_flags.contains("framework"))
+    _console << ConsoleUtils::outputFrameworkInformation(_app);
 
-  std::stringstream oss;
+  if (_system_info_flags.contains("mesh"))
+    _console << ConsoleUtils::outputMeshInformation(*_problem_ptr);
 
-  // Framework information
-  if (_app.getSystemInfo() != NULL)
-    oss << _app.getSystemInfo()->getInfo();
-
-  oss << std::left << "\n"
-      << "Parallelism:\n"
-      << std::setw(_field_width) << "  Num Processors: "       << static_cast<std::size_t>(n_processors()) << '\n'
-      << std::setw(_field_width) << "  Num Threads: "         << static_cast<std::size_t>(n_threads()) << '\n'
-      << '\n';
-
-  MooseMesh & moose_mesh = _problem_ptr->mesh();
-  MeshBase & mesh = moose_mesh.getMesh();
-  oss << "Mesh: " << '\n'
-      << std::setw(_field_width) << "  Distribution: " << (moose_mesh.isParallelMesh() ? "parallel" : "serial")
-      << (moose_mesh.isDistributionForced() ? " (forced) " : "") << '\n'
-      << std::setw(_field_width) << "  Mesh Dimension: " << mesh.mesh_dimension() << '\n'
-      << std::setw(_field_width) << "  Spatial Dimension: " << mesh.spatial_dimension() << '\n'
-      << std::setw(_field_width) << "  Nodes:" << '\n'
-      << std::setw(_field_width) << "    Total:" << mesh.n_nodes() << '\n'
-      << std::setw(_field_width) << "    Local:" << mesh.n_local_nodes() << '\n'
-      << std::setw(_field_width) << "  Elems:" << '\n'
-      << std::setw(_field_width) << "    Total:" << mesh.n_elem() << '\n'
-      << std::setw(_field_width) << "    Local:" << mesh.n_local_elem() << '\n'
-      << std::setw(_field_width) << "  Num Subdomains: "       << static_cast<std::size_t>(mesh.n_subdomains()) << '\n'
-      << std::setw(_field_width) << "  Num Partitions: "       << static_cast<std::size_t>(mesh.n_partitions()) << '\n';
-  if (n_processors() > 1 && moose_mesh.partitionerName() != "")
-    oss << std::setw(_field_width) << "  Partitioner: "       << moose_mesh.partitionerName()
-        << (moose_mesh.isPartitionerForced() ? " (forced) " : "")
-        << '\n';
-  oss << '\n';
-
-  EquationSystems & eq = _problem_ptr->es();
-  unsigned int num_systems = eq.n_systems();
-  for (unsigned int i=0; i<num_systems; ++i)
+  if (_system_info_flags.contains("nonlinear"))
   {
-    const System & system = eq.get_system(i);
-    if (system.system_type() == "TransientNonlinearImplicit")
-      oss <<  "Nonlinear System:" << '\n';
-    else if (system.system_type() == "TransientExplicit")
-      oss << "Auxiliary System:" << '\n';
-    else
-      oss << std::setw(_field_width) << system.system_type() << '\n';
-
-    if (system.n_dofs())
-    {
-      oss << std::setw(_field_width) << "  Num DOFs: " << system.n_dofs() << '\n'
-          << std::setw(_field_width) << "  Num Local DOFs: " << system.n_local_dofs() << '\n';
-
-      std::streampos begin_string_pos = oss.tellp();
-      std::streampos curr_string_pos = begin_string_pos;
-      oss << std::setw(_field_width) << "  Variables: ";
-      for (unsigned int vg=0; vg<system.n_variable_groups(); vg++)
-      {
-        const VariableGroup &vg_description (system.variable_group(vg));
-
-        if (vg_description.n_variables() > 1) oss << "{ ";
-        for (unsigned int vn=0; vn<vg_description.n_variables(); vn++)
-        {
-          oss << "\"" << vg_description.name(vn) << "\" ";
-          curr_string_pos = oss.tellp();
-          insertNewline(oss, begin_string_pos, curr_string_pos);
-        }
-
-        if (vg_description.n_variables() > 1) oss << "} ";
-      }
-      oss << '\n';
-
-      begin_string_pos = oss.tellp();
-      curr_string_pos = begin_string_pos;
-      oss << std::setw(_field_width) << "  Finite Element Types: ";
-#ifndef LIBMESH_ENABLE_INFINITE_ELEMENTS
-      for (unsigned int vg=0; vg<system.n_variable_groups(); vg++)
-      {
-        oss << "\""
-            << libMesh::Utility::enum_to_string<FEFamily>(system.get_dof_map().variable_group(vg).type().family)
-            << "\" ";
-        curr_string_pos = oss.tellp();
-        insertNewline(oss, begin_string_pos, curr_string_pos);
-      }
-      oss << '\n';
-#else
-      for (unsigned int vg=0; vg<system.n_variable_groups(); vg++)
-      {
-        oss << "\""
-            << libMesh::Utility::enum_to_string<FEFamily>(system.get_dof_map().variable_group(vg).type().family)
-            << "\", \""
-            << libMesh::Utility::enum_to_string<FEFamily>(system.get_dof_map().variable_group(vg).type().radial_family)
-            << "\" ";
-        curr_string_pos = oss.tellp();
-        insertNewline(oss, begin_string_pos, curr_string_pos);
-      }
-      oss << '\n';
-
-      begin_string_pos = oss.tellp();
-      curr_string_pos = begin_string_pos;
-      oss << std::setw(_field_width) << "  Infinite Element Mapping: ";
-      for (unsigned int vg=0; vg<system.n_variable_groups(); vg++)
-      {
-        oss << "\""
-            << libMesh::Utility::enum_to_string<InfMapType>(system.get_dof_map().variable_group(vg).type().inf_map)
-            << "\" ";
-        curr_string_pos = oss.tellp();
-        insertNewline(oss, begin_string_pos, curr_string_pos);
-      }
-      oss << '\n';
-#endif
-
-      begin_string_pos = oss.tellp();
-      curr_string_pos = begin_string_pos;
-      oss << std::setw(_field_width) << "  Approximation Orders: ";
-      for (unsigned int vg=0; vg<system.n_variable_groups(); vg++)
-      {
-#ifndef LIBMESH_ENABLE_INFINITE_ELEMENTS
-        oss << "\""
-            << Utility::enum_to_string<Order>(system.get_dof_map().variable_group(vg).type().order)
-            << "\" ";
-#else
-        oss << "\""
-            << Utility::enum_to_string<Order>(system.get_dof_map().variable_group(vg).type().order)
-            << "\", \""
-            << Utility::enum_to_string<Order>(system.get_dof_map().variable_group(vg).type().radial_order)
-            << "\" ";
-#endif
-        curr_string_pos = oss.tellp();
-        insertNewline(oss, begin_string_pos, curr_string_pos);
-      }
-      oss << "\n\n";
-    }
-    else
-      oss << "   *** EMPTY ***\n\n";
+    std::string output = ConsoleUtils::outputNonlinearSystemInformation(*_problem_ptr);
+    if (!output.empty())
+      _console << "Nonlinear System:\n" << output;
   }
 
-  oss << "Execution Information:\n"
-      << std::setw(_field_width) << "  Executioner: " << demangle(typeid(*_app.getExecutioner()).name()) << '\n';
+  if (_system_info_flags.contains("aux"))
+  {
+    std::string output = ConsoleUtils::outputAuxiliarySystemInformation(*_problem_ptr);
+    if (!output.empty())
+      _console << "Auxiliary System:\n" << output;
+  }
 
-  std::string time_stepper = _app.getExecutioner()->getTimeStepperName();
-  if (time_stepper != "")
-    oss << std::setw(_field_width) << "  TimeStepper: " << time_stepper << '\n';
+  if (_system_info_flags.contains("execution"))
+    _console << ConsoleUtils::outputExecutionInformation(_app, *_problem_ptr);
 
-  oss << std::setw(_field_width) << "  Solver Mode: " << Moose::stringify<Moose::SolveType>(_problem_ptr->solverParams()._type) << '\n';
-  oss << '\n';
+  if (_system_info_flags.contains("output"))
+    _console << ConsoleUtils::outputOutputInformation(_app);
 
-  oss.flush();
+  // Output the legacy flags, these cannot be turned off so they become annoying to people.
+  _console << ConsoleUtils::outputLegacyInformation(_app, *_problem_ptr);
 
-  // Output the information
-  if (_write_screen)
-    Moose::out << oss.str();
+  _console << "\n\n";
+}
 
+void
+Console::meshChanged()
+{
+  if (_print_mesh_changed_info)
+  {
+    _console << ConsoleUtils::outputMeshInformation(*_problem_ptr, /*verbose = */ false );
+
+    std::string output = ConsoleUtils::outputNonlinearSystemInformation(*_problem_ptr);
+    if (!output.empty())
+      _console << "Nonlinear System:\n" << output;
+
+    output = ConsoleUtils::outputAuxiliarySystemInformation(*_problem_ptr);
+    if (!output.empty())
+      _console << "Auxiliary System:\n" << output;
+  }
+}
+
+void
+Console::write(std::string message, bool indent /*=true*/)
+{
+  // Do nothing if the message is empty, writing empty strings messes with multiapp indenting
+  if (message.empty())
+    return;
+
+  // Write the message to file
   if (_write_file)
-    _file_output_stream << oss.str();
+    _file_output_stream << message;
+
+  // Apply MultiApp indenting
+  if (indent && _app.multiAppLevel() > 0)
+    MooseUtils::indentMessage(_app.name(), message);
+
+  // Write message to the screen
+  if (_write_screen)
+    Moose::out << message;
+}
+
+void
+Console::mooseConsole(const std::string & message)
+{
+  // Write the messages
+  write(message);
+
+  // Flush the stream to the screen
+  Moose::out << std::flush;
 }
 
 void

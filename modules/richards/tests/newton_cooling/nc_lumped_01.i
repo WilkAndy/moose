@@ -127,12 +127,6 @@
 [Outputs]
   file_base = nc_lumped_01
   interval = 100000
-  output_initial = true
-  output_final = true
+  execute_on = 'initial final'
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

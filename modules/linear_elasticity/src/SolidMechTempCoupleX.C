@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "SolidMechTempCoupleX.h"
 
 template<>
@@ -7,8 +13,8 @@ InputParameters validParams<SolidMechTempCoupleX>()
   return params;
 }
 
-SolidMechTempCoupleX::SolidMechTempCoupleX(const std::string & name, InputParameters parameters)
-  :SolidMechTempCouple(name, parameters)
+SolidMechTempCoupleX::SolidMechTempCoupleX(const InputParameters & parameters)
+  :SolidMechTempCouple(parameters)
 {}
 
 Real
@@ -31,3 +37,4 @@ SolidMechTempCoupleX::computeQpOffDiagJacobian(unsigned int jvar)
 
     return 0.0;
   }
+

@@ -25,7 +25,7 @@
   [../]
 
   [./forcing]
-    type = GaussContForcing
+    type = ExampleGaussContForcing
     variable = u
     x_center = 2
     y_center = 4
@@ -72,12 +72,6 @@
 []
 
 [Outputs]
-  file_base = out_pbc
-  interval = 1
+  execute_on = 'timestep_end'
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

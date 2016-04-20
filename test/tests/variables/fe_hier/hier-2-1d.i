@@ -26,6 +26,7 @@
     type = ParsedGradFunction
     value = x*x
     grad_x = 2*x
+  [../]
 []
 
 [Variables]
@@ -104,11 +105,7 @@
 []
 
 [Outputs]
-  output_initial = false
+  execute_on = 'timestep_end'
   exodus = true
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

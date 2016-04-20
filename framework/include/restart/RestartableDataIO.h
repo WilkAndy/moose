@@ -15,13 +15,18 @@
 #ifndef RESTARTABLEDATAIO_H
 #define RESTARTABLEDATAIO_H
 
-#include "Moose.h"
+// MOOSE includes
+#include "DataIO.h"
+#include "Backup.h"
 
+// C++ includes
+#include <sstream>
 #include <string>
 #include <list>
 
+// Forward declarations
 class RestartableDatas;
-
+class RestartableDataValue;
 class FEProblem;
 
 /**
@@ -34,19 +39,59 @@ class RestartableDataIO
 public:
   RestartableDataIO(FEProblem & fe_problem);
 
+  virtual ~RestartableDataIO();
+
   /**
    * Write out the restartable data.
    */
   void writeRestartableData(std::string base_file_name, const RestartableDatas & restartable_datas, std::set<std::string> & _recoverable_data);
 
   /**
+   * Read restartable data header to verify that we are restarting on the correct number of processors and threads.
+   */
+  void readRestartableDataHeader(std::string base_file_name);
+
+  /**
    * Read the restartable data.
    */
-  void readRestartableData(std::string base_file_name, RestartableDatas & restartable_datas, std::set<std::string> & _recoverable_data);
+  void readRestartableData(const RestartableDatas & restartable_datas, const std::set<std::string> & _recoverable_data);
+
+  /**
+   * Create a Backup for the current system.
+   */
+  MooseSharedPointer<Backup> createBackup();
+
+  /**
+   * Restore a Backup for the current system.
+   */
+  void restoreBackup(MooseSharedPointer<Backup> backup, bool for_restart = false);
 
 private:
+  /**
+   * Serializes the data into the stream object.
+   */
+  void serializeRestartableData(const std::map<std::string, RestartableDataValue *> & restartable_data, std::ostream & stream);
+
+  /**
+   * Deserializes the data from the stream object.
+   */
+  void deserializeRestartableData(const std::map<std::string, RestartableDataValue *> & restartable_data, std::istream & stream, const std::set<std::string> & recoverable_data);
+
+  /**
+   * Serializes the data for the Systems in FEProblem
+   */
+  void serializeSystems(std::ostream & stream);
+
+  /**
+   * Deserializes the data for the Systems in FEProblem
+   */
+  void deserializeSystems(std::istream & stream);
+
   /// Reference to a FEProblem being restarted
   FEProblem & _fe_problem;
+
+  /// A vector of file handles, one per thread
+  std::vector<MooseSharedPointer<std::ifstream> > _in_file_handles;
 };
 
 #endif /* RESTARTABLEDATAIO_H */

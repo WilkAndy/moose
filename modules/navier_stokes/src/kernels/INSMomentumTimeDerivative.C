@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "INSMomentumTimeDerivative.h"
 
 template<>
@@ -9,9 +15,8 @@ InputParameters validParams<INSMomentumTimeDerivative>()
 }
 
 
-INSMomentumTimeDerivative::INSMomentumTimeDerivative(const std::string & name,
-                                                     InputParameters parameters) :
-  TimeDerivative(name,parameters),
+INSMomentumTimeDerivative::INSMomentumTimeDerivative(const InputParameters & parameters) :
+  TimeDerivative(parameters),
   _rho(getParam<Real>("rho"))
 {}
 
@@ -37,3 +42,4 @@ Real INSMomentumTimeDerivative::computeQpOffDiagJacobian(unsigned)
 {
   return 0.;
 }
+

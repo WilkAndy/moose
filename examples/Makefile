@@ -27,7 +27,7 @@ all:: examples
 # Build the example programs
 examples: $(dirlist)
 
-$(dirlist): $(MOOSE_LIBS)
+$(dirlist): $(moose_LIBS)
 	@$(MAKE) -C $@ $(MAKECMDGOALS) TEST=test_ignore || exit 1
 
 # Rebuild the dependencies for the examples
@@ -36,5 +36,3 @@ $(dirlist): $(MOOSE_LIBS)
 
 test:
 	@for dir in $(dirlist); do $(MAKE) -C "$${dir}" $(MAKECMDGOALS) TEST=test_ignore || exit 1; done
-
-

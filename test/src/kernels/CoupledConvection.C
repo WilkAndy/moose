@@ -1,3 +1,16 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #include "CoupledConvection.h"
 
 template<>
@@ -9,8 +22,8 @@ InputParameters validParams<CoupledConvection>()
   return params;
 }
 
-CoupledConvection::CoupledConvection(const std::string & name, InputParameters parameters) :
-  Kernel(name, parameters),
+CoupledConvection::CoupledConvection(const InputParameters & parameters) :
+  Kernel(parameters),
   _velocity_vector(getParam<bool>("lag_coupling") ? coupledGradientOld("velocity_vector") : coupledGradient("velocity_vector"))
 {}
 

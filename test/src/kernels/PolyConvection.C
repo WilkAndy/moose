@@ -1,3 +1,16 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #include "PolyConvection.h"
 
 template<>
@@ -10,8 +23,8 @@ InputParameters validParams<PolyConvection>()
   return params;
 }
 
-PolyConvection::PolyConvection(const std::string & name, InputParameters parameters) :
-    Kernel(name, parameters),
+PolyConvection::PolyConvection(const InputParameters & parameters) :
+    Kernel(parameters),
     // This is the "Intialization List" it sets the values of class variables
     _x(getParam<Real>("x")),
     _y(getParam<Real>("y")),

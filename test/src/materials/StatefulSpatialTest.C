@@ -1,3 +1,16 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #include "StatefulSpatialTest.h"
 
 template<>
@@ -7,8 +20,8 @@ InputParameters validParams<StatefulSpatialTest>()
   return params;
 }
 
-StatefulSpatialTest::StatefulSpatialTest(const std::string & name, InputParameters parameters) :
-    Material(name, parameters),
+StatefulSpatialTest::StatefulSpatialTest(const InputParameters & parameters) :
+    Material(parameters),
     _thermal_conductivity(declareProperty<Real>("thermal_conductivity")),
     _thermal_conductivity_old(declarePropertyOld<Real>("thermal_conductivity"))
 {}
@@ -22,5 +35,5 @@ StatefulSpatialTest::computeQpProperties()
 void
 StatefulSpatialTest::initQpStatefulProperties()
 {
-   _thermal_conductivity[_qp] = _t_step + (_q_point[_qp](0) * _q_point[_qp](1));
+  _thermal_conductivity[_qp] = _t_step + (_q_point[_qp](0) * _q_point[_qp](1));
 }

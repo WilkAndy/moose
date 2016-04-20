@@ -65,7 +65,7 @@
     disp_y = disp_y
     disp_z = disp_z
     penalty = 1e6
-    model = experimental
+    model = frictionless
   [../]
 []
 
@@ -158,11 +158,5 @@
 [] # Executioner
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 [] # Outputs

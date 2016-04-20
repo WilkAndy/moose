@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef RNDBOUNDINGBOXIC_H
 #define RNDBOUNDINGBOXIC_H
 
@@ -28,12 +34,9 @@ public:
   /**
    * Constructor
    *
-   * @param name The name given to the initial condition in the input file.
    * @param parameters The parameters object holding data for the class to use.
-   * @param var_name The variable this InitialCondtion is supposed to provide values for.
    */
-  RndBoundingBoxIC(const std::string & name,
-                InputParameters parameters);
+  RndBoundingBoxIC(const InputParameters & parameters);
 
   /**
    * The value of the variable at a point.

@@ -5,23 +5,14 @@
 
 # Note: This output block is out of its normal place (should be at the bottom)
 [Outputs]
-  file_base = out
+  execute_on = 'timestep_end'
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []
 
 # Note: The executioner is out of its normal place (should be just about the output block)
 [Executioner]
   type = Steady
-
-  #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-
-
 []
 
 [Variables]

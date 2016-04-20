@@ -86,12 +86,7 @@
 []      # Executioner END
 
 [Outputs]    # Output Start
-  output_initial = true
+  # Output Start
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []      # Output END
 #      # Input file END

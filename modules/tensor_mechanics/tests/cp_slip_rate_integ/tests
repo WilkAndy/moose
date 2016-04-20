@@ -1,0 +1,21 @@
+[Tests]
+  [./test_one_elem]
+    type = 'Exodiff'
+    input = 'crysp.i'
+    exodiff = 'out.e'
+  [../]
+  [./test_substep]
+    type = 'Exodiff'
+    input = 'crysp_substep.i'
+    exodiff = 'crysp_substep_out.e'
+    max_time = 350
+    valgrind = HEAVY
+  [../]
+  [./test_with_linesearch]
+    type = 'Exodiff'
+    input = 'crysp_linesearch.i'
+    exodiff = 'crysp_linesearch_out.e'
+    max_time = 350
+    valgrind = HEAVY
+  [../]
+[]

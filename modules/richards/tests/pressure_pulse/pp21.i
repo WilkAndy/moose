@@ -172,22 +172,20 @@
   [./andy]
     type = SMP
     full = true
-    #petsc_options = '-snes_test_display'
-    petsc_options_iname = '-ksp_type -pc_type -snes_atol -snes_rtol -snes_max_it'
-    petsc_options_value = 'bcgs bjacobi 1E-10 1E-10 100'
+    petsc_options_iname = '-pc_factor_shift_type'
+    petsc_options_value = 'nonzero'
   [../]
 []
 
 [Executioner]
   type = Steady
   solve_type = Newton
+  nl_rel_tol = 1.e-10
+  nl_max_its = 10
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = pp21
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

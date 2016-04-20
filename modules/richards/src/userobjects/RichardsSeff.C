@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  Base class for effective saturation as a function of pressure(s)
 //
@@ -15,8 +18,8 @@ InputParameters validParams<RichardsSeff>()
   return params;
 }
 
-RichardsSeff::RichardsSeff(const std::string & name, InputParameters parameters) :
-  GeneralUserObject(name, parameters)
+RichardsSeff::RichardsSeff(const InputParameters & parameters) :
+    GeneralUserObject(parameters)
 {}
 
 void
@@ -29,4 +32,5 @@ RichardsSeff::execute()
 
 void RichardsSeff::finalize()
 {}
+
 

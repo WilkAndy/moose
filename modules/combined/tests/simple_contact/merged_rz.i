@@ -177,16 +177,10 @@
 [] # Executioner
 
 [Outputs]
-  linear_residuals = true
   file_base = merged_rz_out
-  output_initial = true
   [./exodus]
     type = Exodus
     elemental_as_nodal = true
-  [../]
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
+    execute_on = 'initial timestep_end linear'
   [../]
 [] # Outputs

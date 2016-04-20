@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSSUPGnone_H
 #define RICHARDSSUPGnone_H
@@ -20,8 +23,8 @@ InputParameters validParams<RichardsSUPGnone>();
  */
 class RichardsSUPGnone : public RichardsSUPG
 {
- public:
-  RichardsSUPGnone(const std::string & name, InputParameters parameters);
+public:
+  RichardsSUPGnone(const InputParameters & parameters);
 
   /// SUPG velocity = zero
   RealVectorValue velSUPG(RealTensorValue /*perm*/, RealVectorValue /*gradp*/, Real /*density*/, RealVectorValue /*gravity*/) const;
@@ -49,6 +52,8 @@ class RichardsSUPGnone : public RichardsSUPG
 
   /// derivative of tau SUPG parameter wrt porepressure = zero
   Real dtauSUPG_dp(RealVectorValue /*vel*/, RealVectorValue /*dvel_dp*/, Real /*traceperm*/, RealVectorValue /*b*/, Real /*db2_dp*/) const;
+
+  bool SUPG_trivial() const;
 
 };
 

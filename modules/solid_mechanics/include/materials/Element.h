@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef ELEMENT_H
 #define ELEMENT_H
 
@@ -21,7 +27,7 @@ class Element :
 public:
   Element( SolidModel & solid_model,
            const std::string & name,
-           InputParameters parameters );
+           const InputParameters & parameters );
   virtual ~Element();
 
   static Real detMatrix( const ColumnMajorMatrix & A );

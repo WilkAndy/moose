@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "InternalVolume.h"
 
 template <>
@@ -11,13 +17,13 @@ InputParameters validParams<InternalVolume>()
   return params;
 }
 
-InternalVolume::InternalVolume(const std::string & name,
-                               InputParameters parameters)
-  : SideIntegralPostprocessor( name, parameters ),
+InternalVolume::InternalVolume(const InputParameters & parameters) :
+    SideIntegralPostprocessor(parameters),
     _component( getParam<unsigned int>("component") ),
     _scale( getParam<Real>("scale_factor") ),
     _addition( getParam<Real>("addition") )
-{}
+{
+}
 
 //    /              /
 //   |              |
@@ -45,16 +51,11 @@ InternalVolume::InternalVolume(const std::string & name,
 // of the x position of the surface times the x-component of the normal of the
 // surface.
 //
-
 Real
 InternalVolume::computeQpIntegral()
 {
-  Real scale = 1;
-  if (_coord_sys == Moose::COORD_RSPHERICAL)
-  {
-    scale /= 3;
-  }
-  return -scale*_q_point[_qp](_component)*_normals[_qp](_component);
+  const Real scale =_coord_sys == Moose::COORD_RSPHERICAL ? 1.0/3.0 : 1.0;
+  return -scale * _q_point[_qp](_component) * _normals[_qp](_component);
 }
 
 Real

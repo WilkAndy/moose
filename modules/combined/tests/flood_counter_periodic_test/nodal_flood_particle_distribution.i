@@ -46,11 +46,11 @@
   active = 'bubbles'
 
   [./bubbles]
-    type = NodalFloodCount
+    type = FeatureFloodCount
     variable = u
     threshold = 0.9
-    execute_on = timestep
     bubble_volume_file = nodal_flood_particle_distribution.csv
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -61,11 +61,7 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = nodal_flood_particle_distribution
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

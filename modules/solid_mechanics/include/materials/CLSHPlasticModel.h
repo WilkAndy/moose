@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef CLSHPLASTICMODEL_H
 #define CLSHPLASTICMODEL_H
 
@@ -9,8 +15,7 @@
 class CLSHPlasticModel : public ReturnMappingModel
 {
 public:
-  CLSHPlasticModel(std::string name,
-                   InputParameters parameters);
+  CLSHPlasticModel(const InputParameters & parameters);
 
 protected:
 

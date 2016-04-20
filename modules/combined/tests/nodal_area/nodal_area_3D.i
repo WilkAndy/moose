@@ -32,6 +32,7 @@
     type = NodalArea
     variable = nodal_area
     boundary = 1
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -71,11 +72,5 @@
 [] # Executioner
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 [] # Output

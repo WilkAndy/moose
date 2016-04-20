@@ -27,7 +27,7 @@ class NonlinearEigen : public EigenExecutionerBase
 {
 public:
 
-  NonlinearEigen(const std::string & name, InputParameters parameters);
+  NonlinearEigen(const InputParameters & parameters);
 
   virtual void init();
   virtual void execute();
@@ -40,6 +40,7 @@ protected:
   const Real & _rel_tol;
   const Real & _pfactor;
   bool _output_pi;
+  bool _output_after_pi;
 };
 
 #endif //NONLINEAREIGEN_H

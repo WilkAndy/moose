@@ -38,10 +38,9 @@
 [UserObjects]
   [./xda_soln]
     type = SolutionUserObject
-    mesh = out_0001_mesh.xda
-    es = out_0001.xda
-    system = AuxiliarySystem
-    nodal_variables = u_aux
+    mesh = build_out_0001_mesh.xda
+    es = build_out_0001.xda
+    system_variables = u
   [../]
 []
 
@@ -70,10 +69,8 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
+  [./xda]
+    type = XDA
   [../]
 []

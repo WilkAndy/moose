@@ -31,7 +31,7 @@ InputParameters validParams<SetupQuadratureAction>();
 class SetupQuadratureAction : public Action
 {
 public:
-  SetupQuadratureAction(const std::string & name, InputParameters parameters);
+  SetupQuadratureAction(InputParameters parameters);
   virtual ~SetupQuadratureAction();
 
 protected:
@@ -39,6 +39,8 @@ protected:
 
   QuadratureType _type;
   Order _order;
+  Order _element_order;
+  Order _side_order;
 };
 
 

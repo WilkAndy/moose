@@ -19,17 +19,16 @@
 #include "MaterialProperty.h"
 #include "HashMap.h"
 
-//libMesh
-#include "libmesh/elem.h"
-#include "libmesh/quadrature.h"
-
-#include <vector>
-#include <map>
-#include <string>
-
+// Forward declarations
 class Material;
 class MaterialData;
 class QpMap;
+
+// libMesh forward declarations
+namespace libMesh
+{
+class QBase;
+}
 
 /**
  * Stores the stateful material properties computed by materials.
@@ -109,7 +108,7 @@ public:
    * @param elem Element we are on
    * @param side Side of the element 'elem' (0 for volumetric material properties)
    */
-  void initStatefulProps(MaterialData & material_data, std::vector<Material *> & mats, unsigned int n_qpoints, const Elem & elem, unsigned int side = 0);
+  void initStatefulProps(MaterialData & material_data, const std::vector<MooseSharedPointer<Material> > & mats, unsigned int n_qpoints, const Elem & elem, unsigned int side = 0);
 
   /**
    * Shift the material properties in time.
@@ -118,6 +117,16 @@ public:
    * reused for computing current properties. This is called when solve succeeded.
    */
   void shift();
+
+  /**
+   * Copy material properties from elem_from to elem_to
+   * Thread safe
+   * @param material_data MaterialData object to work with
+   * @param elem_to Element to copy data to
+   * @param elem_from Element to copy data from
+   * @param side Side number (elemental material properties have this equal to zero)
+   */
+  void copy(MaterialData & material_data, const Elem & elem_to, const Elem & elem_from, unsigned int side, unsigned int n_qpoints);
 
   /**
    * Swap (shallow copy) material properties in MaterialData and MaterialPropertyStorage
@@ -147,9 +156,18 @@ public:
    */
   bool hasOlderProperties() const { return _has_older_prop; }
 
+  ///@{
+  /**
+   * Access methods to the stored material property data
+   *
+   */
   HashMap<const Elem *, HashMap<unsigned int, MaterialProperties> > & props() { return *_props_elem; }
   HashMap<const Elem *, HashMap<unsigned int, MaterialProperties> > & propsOld() { return *_props_elem_old; }
   HashMap<const Elem *, HashMap<unsigned int, MaterialProperties> > & propsOlder() { return *_props_elem_older; }
+  const HashMap<const Elem *, HashMap<unsigned int, MaterialProperties> > & props() const { return *_props_elem; }
+  const HashMap<const Elem *, HashMap<unsigned int, MaterialProperties> > & propsOld() const { return *_props_elem_old; }
+  const HashMap<const Elem *, HashMap<unsigned int, MaterialProperties> > & propsOlder() const { return *_props_elem_older; }
+  ///@}
 
   bool hasProperty(const std::string & prop_name) const;
   unsigned int addProperty(const std::string & prop_name);
@@ -193,6 +211,28 @@ protected:
 
   void sizeProps(MaterialProperties & mp, unsigned int size);
 };
+
+template<>
+inline void
+dataStore(std::ostream & stream, MaterialPropertyStorage & storage, void * context)
+{
+  dataStore(stream, storage.props(), context);
+  dataStore(stream, storage.propsOld(), context);
+
+  if (storage.hasOlderProperties())
+    dataStore(stream, storage.propsOlder(), context);
+}
+
+template<>
+inline void
+dataLoad(std::istream & stream, MaterialPropertyStorage & storage, void * context)
+{
+  dataLoad(stream, storage.props(), context);
+  dataLoad(stream, storage.propsOld(), context);
+
+  if (storage.hasOlderProperties())
+    dataLoad(stream, storage.propsOlder(), context);
+}
 
 
 #endif /* MATERIALPROPERTYSTORAGE_H */

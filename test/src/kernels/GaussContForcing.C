@@ -1,3 +1,16 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #include "GaussContForcing.h"
 
 template<>
@@ -14,8 +27,8 @@ InputParameters validParams<GaussContForcing>()
   return params;
 }
 
-GaussContForcing::GaussContForcing(const std::string & name, InputParameters parameters) :
-    Kernel(name, parameters),
+GaussContForcing::GaussContForcing(const InputParameters & parameters) :
+    Kernel(parameters),
     _amplitude(getParam<Real>("amplitude")),
     _x_center(getParam<Real>("x_center")),
     _y_center(getParam<Real>("y_center")),

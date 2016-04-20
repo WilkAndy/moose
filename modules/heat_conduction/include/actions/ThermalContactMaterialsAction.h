@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef THERMALCONTACTMATERIALSACTION_H
 #define THERMALCONTACTMATERIALSACTION_H
 
@@ -6,7 +12,7 @@
 class ThermalContactMaterialsAction : public Action
 {
 public:
-  ThermalContactMaterialsAction( const std::string & name, InputParameters params );
+  ThermalContactMaterialsAction( const InputParameters & params);
   virtual ~ThermalContactMaterialsAction(){}
   virtual void act();
 };

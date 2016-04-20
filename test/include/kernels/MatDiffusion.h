@@ -1,3 +1,16 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #ifndef MATDIFFUSION_H
 #define MATDIFFUSION_H
 
@@ -14,7 +27,7 @@ InputParameters validParams<MatDiffusion>();
 class MatDiffusion : public Kernel
 {
 public:
-  MatDiffusion(const std::string & name, InputParameters parameters);
+  MatDiffusion(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
@@ -22,7 +35,7 @@ protected:
   virtual Real computeQpJacobian();
 
   std::string _prop_name;
-  MaterialProperty<Real> * _diff;
+  const MaterialProperty<Real> * _diff;
 };
 
 #endif //MATDIFFUSION_H

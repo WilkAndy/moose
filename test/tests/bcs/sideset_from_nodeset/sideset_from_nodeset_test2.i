@@ -50,11 +50,5 @@
 
 [Outputs]
   file_base = cube_tet_out
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

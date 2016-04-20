@@ -15,29 +15,28 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "GlobalParamsAction.h"
-#include "MooseSyntax.h"
-#include "CommandLine.h"
-#include "MooseEnum.h"
+// MOOSE includes
+#include "ConsoleStreamInterface.h"
+#include "MooseTypes.h"
+#include "InputParameters.h"
 #include "Syntax.h"
 
-// libMesh
+// libMesh include
 #include "libmesh/getpot.h"
-#include "libmesh/exodusII_io.h"
-#include "libmesh/vector_value.h"
-#include "libmesh/tensor_value.h"
 
+// Forward declarations
 class ActionWarehouse;
 class SyntaxTree;
 class MooseApp;
 class Factory;
 class ActionFactory;
+class GlobalParamsAction;
 
 /**
  * Class for parsing input files. This class utilizes the GetPot library for actually tokenizing and parsing files. It is not
  * currently designed for extensibility. If you wish to build your own parser, please contact the MOOSE team for guidance.
  */
-class Parser
+class Parser : public ConsoleStreamInterface
 {
 public:
   enum SyntaxFormatterType
@@ -104,18 +103,21 @@ public:
    * This function checks to see if there are unidentified variables in the input file (i.e. unused)
    * If the warn_is_error is set, then the program will abort if unidentified parameters are found
    */
-  void checkUnidentifiedParams(std::vector<std::string> & all_vars, bool error_on_warn);
+  void checkUnidentifiedParams(std::vector<std::string> & all_vars, bool error_on_warn, bool in_input_file, MooseSharedPointer<FEProblem> fe_problem) const;
 
   /**
    * This function checks to see if there were any overridden parameters in the input file.
    * (i.e. supplied more than once)
    * @param error_on_warn a Boolean that will trigger an error if this case is detected
    */
-  void checkOverriddenParams(bool error_on_warn);
+  void checkOverriddenParams(bool error_on_warn) const;
 
 protected:
   /// Appends sections from the CLI Reorders section names so that Debugging options can be enabled before parsing begins
   void appendAndReorderSectionNames(std::vector<std::string> & section_names);
+
+  /// Reorders specified tasks in the section names list (helper method called from appednAndReorderSectionNames
+  void reorderHelper(std::vector<std::string> & section_names, const std::string & action, const std::string & task) const;
 
   /**
    * Helper functions for setting parameters of arbitrary types - bodies are in the .C file
@@ -124,16 +126,21 @@ protected:
   /// Template method for setting any scalar type parameter read from the input file or command line
   template<typename T>
   void setScalarParameter(const std::string & full_name, const std::string & short_name,
-                          InputParameters::Parameter<T>* param, bool in_global, GlobalParamsAction *global_block);
+                          InputParameters::Parameter<T> * param, bool in_global, GlobalParamsAction * global_block);
 
   template<typename T, typename UP_T>
   void setScalarValueTypeParameter(const std::string & full_name, const std::string & short_name,
-                                   InputParameters::Parameter<T>* param, bool in_global, GlobalParamsAction *global_block);
+                                   InputParameters::Parameter<T>* param, bool in_global, GlobalParamsAction * global_block);
 
   /// Template method for setting any vector type parameter read from the input file or command line
   template<typename T>
   void setVectorParameter(const std::string & full_name, const std::string & short_name,
-                          InputParameters::Parameter<std::vector<T> >* param, bool in_global, GlobalParamsAction *global_block);
+                          InputParameters::Parameter<std::vector<T> >* param, bool in_global, GlobalParamsAction * global_block);
+
+  /// Template method for setting any double indexed type parameter read from the input file or command line
+  template<typename T>
+  void setDoubleIndexParameter(const std::string & full_name, const std::string & short_name,
+                              InputParameters::Parameter<std::vector<std::vector<T> > >* param, bool in_global, GlobalParamsAction * global_block);
 
   /// Template method for setting any multivalue "scalar" type parameter read from the input file or command line.  Examples include "Point" and "RealVectorValue"
   template<typename T>
@@ -168,6 +175,9 @@ protected:
 
   /// The getpot object used for extracting parameters
   GetPot _getpot_file;
+
+  /// The getpot object used for testing
+  GetPot _getpot_file_error_checking;
 
   /// The input file name that is used for parameter extraction
   std::string _input_filename;

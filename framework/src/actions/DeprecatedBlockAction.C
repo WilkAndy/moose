@@ -23,8 +23,8 @@ InputParameters validParams<DeprecatedBlockAction>()
   return params;
 }
 
-DeprecatedBlockAction::DeprecatedBlockAction(const std::string & name, InputParameters parameters) :
-    Action(name, parameters)
+DeprecatedBlockAction::DeprecatedBlockAction(InputParameters parameters) :
+    Action(parameters)
 {
 }
 
@@ -37,3 +37,4 @@ DeprecatedBlockAction::act()
 {
   mooseError("Input file block '" + name()  + "' has been deprecated.");
 }
+

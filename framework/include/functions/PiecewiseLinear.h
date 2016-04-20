@@ -16,7 +16,12 @@
 #define PIECEWISELINEAR_H
 
 #include "Piecewise.h"
-#include "LinearInterpolation.h"
+
+// Forward declarations
+class PiecewiseLinear;
+
+template<>
+InputParameters validParams<PiecewiseLinear>();
 
 /**
  * Base class for function objects.  Functions override value to supply a
@@ -25,25 +30,28 @@
 class PiecewiseLinear : public Piecewise
 {
 public:
-  PiecewiseLinear(const std::string & name, InputParameters parameters);
+  PiecewiseLinear(const InputParameters & parameters);
   virtual ~PiecewiseLinear();
 
   /**
-   * This function will return a value based on the first input argument only.
+   * Get the value of the function (based on time only)
+   * \param t The time
+   * \param pt The point in space (x,y,z) (unused)
+   * \return The value of the function at the specified time
    */
   virtual Real value(Real t, const Point & pt);
+
   /**
-   * This function will return a value based on the first input argument only.
+   * Get the time derivative of the function (based on time only)
+   * \param t The time
+   * \param pt The point in space (x,y,z) (unused)
+   * \return The time derivative of the function at the specified time
    */
   virtual Real timeDerivative(Real t, const Point & pt);
 
   virtual Real integral();
 
   virtual Real average();
-
 };
-
-template<>
-InputParameters validParams<PiecewiseLinear>();
 
 #endif

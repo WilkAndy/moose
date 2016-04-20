@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "SymmIsotropicElasticityTensor.h"
 
 SymmIsotropicElasticityTensor::SymmIsotropicElasticityTensor(const bool constant)
@@ -59,6 +65,15 @@ Real
 SymmIsotropicElasticityTensor::shearModulus() const
 {
   return mu();
+}
+
+Real
+SymmIsotropicElasticityTensor::youngsModulus() const
+{
+  if (!_E_set)
+    mooseError("Youngs modulus not set");
+
+  return _E;
 }
 
 Real
@@ -133,9 +148,10 @@ SymmIsotropicElasticityTensor::setEntries( Real C11, Real C12, Real C44 )
 }
 
 Real
-SymmIsotropicElasticityTensor::stiffness( const unsigned int i, const unsigned int j,
-                                          const RealGradient & test,
-                                          const RealGradient & phi )
+SymmIsotropicElasticityTensor::stiffness(const unsigned int i,
+                                         const unsigned int j,
+                                         const RealGradient & test,
+                                         const RealGradient & phi) const
 {
   RealGradient b;
   if (0 == i && 0 == j)

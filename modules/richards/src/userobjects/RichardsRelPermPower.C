@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  "Power" form of relative permeability
 //
@@ -17,10 +20,10 @@ InputParameters validParams<RichardsRelPermPower>()
   return params;
 }
 
-RichardsRelPermPower::RichardsRelPermPower(const std::string & name, InputParameters parameters) :
-  RichardsRelPerm(name, parameters),
-  _simm(getParam<Real>("simm")),
-  _n(getParam<Real>("n"))
+RichardsRelPermPower::RichardsRelPermPower(const InputParameters & parameters) :
+    RichardsRelPerm(parameters),
+    _simm(getParam<Real>("simm")),
+    _n(getParam<Real>("n"))
 {
 }
 
@@ -28,13 +31,11 @@ RichardsRelPermPower::RichardsRelPermPower(const std::string & name, InputParame
 Real
 RichardsRelPermPower::relperm(Real seff) const
 {
-  if (seff >= 1.0) {
+  if (seff >= 1.0)
     return 1.0;
-  }
 
-  if (seff <= _simm) {
+  if (seff <= _simm)
     return 0.0;
-  }
 
   Real s_internal = (seff - _simm)/(1.0 - _simm);
   Real krel = (_n + 1)*std::pow(s_internal, _n) - _n*std::pow(s_internal, _n + 1);
@@ -49,13 +50,11 @@ RichardsRelPermPower::relperm(Real seff) const
 Real
 RichardsRelPermPower::drelperm(Real seff) const
 {
-  if (seff >= 1.0) {
+  if (seff >= 1.0)
     return 0.0;
-  }
 
-  if (seff <= _simm) {
+  if (seff <= _simm)
     return 0.0;
-  }
 
   Real s_internal = (seff - _simm)/(1.0 - _simm);
   Real krelp = (_n + 1)*_n*std::pow(s_internal, _n - 1) - _n*(_n + 1)*std::pow(s_internal, _n);
@@ -66,16 +65,15 @@ RichardsRelPermPower::drelperm(Real seff) const
 Real
 RichardsRelPermPower::d2relperm(Real seff) const
 {
-  if (seff >= 1.0) {
+  if (seff >= 1.0)
     return 0.0;
-  }
 
-  if (seff <= _simm) {
+  if (seff <= _simm)
     return 0.0;
-  }
 
   Real s_internal = (seff - _simm)/(1.0 - _simm);
   Real krelpp = (_n + 1)*_n*(_n - 1)*std::pow(s_internal, _n - 2) - _n*(_n + 1)*_n*std::pow(s_internal, _n - 1);
   return krelpp/std::pow(1.0 - _simm, 2);
 }
+
 

@@ -16,15 +16,11 @@
 #define MESHMODIFIER_H
 
 #include "MooseObject.h"
-#include "MooseMesh.h"
-#include "InputParameters.h"
 #include "Restartable.h"
 
-// System includes
-#include <string>
-
-class Problem;
+// Forward declarations
 class MeshModifier;
+class MooseMesh;
 
 template<>
 InputParameters validParams<MeshModifier>();
@@ -40,10 +36,9 @@ public:
   /**
    * Constructor
    *
-   * @param name The name given to the MeshModifier in the input file.
    * @param parameters The parameters object holding data for the class to use.
    */
-  MeshModifier(const std::string & name, InputParameters parameters);
+  MeshModifier(const InputParameters & parameters);
 
   virtual ~MeshModifier();
 
@@ -59,8 +54,13 @@ public:
    */
   virtual void modify() = 0;
 
+  std::vector<std::string> & getDependencies() { return _depends_on; }
+
 protected:
   MooseMesh *_mesh_ptr;
+
+private:
+  std::vector<std::string> _depends_on;
 };
 
 #endif //MESHMODIFIER_H

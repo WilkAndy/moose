@@ -13,14 +13,14 @@
 /****************************************************************/
 #include "libmesh/libmesh_config.h"
 
-#ifdef LIBMESH_HAVE_DTK
+#ifdef LIBMESH_TRILINOS_HAVE_DTK
 
 // Moose Includes
 #include "MooseError.h"
-
 #include "DTKInterpolationHelper.h"
 
-#include "libmesh/system.h"
+// libMesh includes
+#include "libmesh/equation_systems.h"
 
 // Trilinos Includes
 #include <Teuchos_RCP.hpp>
@@ -37,7 +37,8 @@
 #include <DTK_CommTools.hpp>
 #include <DTK_CommIndexer.hpp>
 
-namespace libMesh {
+namespace libMesh
+{
 
 DTKInterpolationHelper::DTKInterpolationHelper()
 {}
@@ -56,7 +57,14 @@ DTKInterpolationHelper::~DTKInterpolationHelper()
 }
 
 void
-DTKInterpolationHelper::transferWithOffset(unsigned int from, unsigned int to, const Variable * from_var, const Variable * to_var, const Point & from_offset, const Point & to_offset, MPI_Comm * from_mpi_comm, MPI_Comm * to_mpi_comm)
+DTKInterpolationHelper::transferWithOffset(unsigned int from,
+                                           unsigned int to,
+                                           const Variable * from_var,
+                                           const Variable * to_var,
+                                           const Point & from_offset,
+                                           const Point & to_offset,
+                                           MPI_Comm * from_mpi_comm,
+                                           MPI_Comm * to_mpi_comm)
 {
   Teuchos::RCP<const Teuchos::MpiComm<int> > from_comm;
   Teuchos::RCP<const Teuchos::MpiComm<int> > to_comm;
@@ -167,4 +175,4 @@ DTKInterpolationHelper::transferWithOffset(unsigned int from, unsigned int to, c
 
 } // namespace libMesh
 
-#endif // #ifdef LIBMESH_HAVE_DTK
+#endif // #ifdef LIBMESH_TRILINOS_HAVE_DTK

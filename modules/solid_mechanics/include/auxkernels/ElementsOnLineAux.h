@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef ELEMENTSONLINEAUX_H
 #define ELEMENTSONLINEAUX_H
 
@@ -8,7 +14,7 @@ class ElementsOnLineAux : public AuxKernel
 
 public:
 
-  ElementsOnLineAux(const std::string & name, InputParameters parameters);
+  ElementsOnLineAux(const InputParameters & parameters);
 
   virtual ~ElementsOnLineAux() {}
 

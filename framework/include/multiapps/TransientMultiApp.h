@@ -15,11 +15,10 @@
 #define TRANSIENTMULTIAPP_H
 
 #include "MultiApp.h"
-#include "MooseApp.h"
-#include "Transient.h"
-#include "TransientInterface.h"
 
+// Forward declarations
 class TransientMultiApp;
+class Transient;
 
 template<>
 InputParameters validParams<TransientMultiApp>();
@@ -33,7 +32,7 @@ class TransientMultiApp :
   public MultiApp
 {
 public:
-  TransientMultiApp(const std::string & name, InputParameters parameters);
+  TransientMultiApp(const InputParameters & parameters);
 
   virtual ~TransientMultiApp();
 
@@ -48,17 +47,23 @@ public:
    */
   virtual NumericVector<Number> & appTransferVector(unsigned int app, std::string var_name);
 
-  virtual void init();
+  virtual void initialSetup();
 
   /**
    * Advance all of the apps one timestep.
    */
-  void solveStep(Real dt, Real target_time, bool auto_advance=true);
+  bool solveStep(Real dt, Real target_time, bool auto_advance=true);
 
   /**
    * Actually advances time and causes output.
    */
   virtual void advanceStep();
+
+  /**
+   * Whether or not this MultiApp should be restored at the beginning of
+   * each Picard iteration.
+   */
+  virtual bool needsRestoration();
 
   /**
    * Finds the smallest dt from among any of the apps.
@@ -84,9 +89,8 @@ private:
    *
    * @param i The local app number for the app that needs to be setup.
    * @param time The time to set as the current time for the App
-   * @param output_initial Whether or not the app should be allowed to output its initial condition
    */
-  void setupApp(unsigned int i, Real time = 0.0, bool output_initial = true);
+  void setupApp(unsigned int i, Real time = 0.0);
 
   std::vector<Transient *> _transient_executioners;
 
@@ -118,6 +122,32 @@ private:
   bool _auto_advance;
 
   std::set<unsigned int> _reset;
+
+  /// Flag for toggling console output on sub cycles
+  bool _print_sub_cycles;
 };
+
+/**
+ * Utility class for catching solve failure errors so that MOOSE
+ * can recover state before continuing.
+ */
+class MultiAppSolveFailure : public std::runtime_error
+{
+public:
+  MultiAppSolveFailure(const std::string &error) throw() :
+      runtime_error(error)
+  {
+  }
+
+  MultiAppSolveFailure(const MultiAppSolveFailure & e) throw() :
+      runtime_error(e)
+  {
+  }
+
+  ~MultiAppSolveFailure() throw()
+  {
+  }
+};
+
 
 #endif // TRANSIENTMULTIAPP_H

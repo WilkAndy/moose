@@ -29,11 +29,13 @@ InputParameters validParams<SetAdaptivityOptionsAction>()
   params.addParam<unsigned int> ("max_h_level", 0, "Maximum number of times a single element can be refined. If 0 then infinite.");
   params.addParam<Real>("start_time", -std::numeric_limits<Real>::max(), "The time that adaptivity will be active after.");
   params.addParam<Real>("stop_time", std::numeric_limits<Real>::max(), "The time after which adaptivity will no longer be active.");
+  params.addParam<unsigned int>("cycles_per_step", 1, "The number of adaptive steps to use when on each timestep during a Transient simulation.");
+  params.addParam<bool>("recompute_markers_during_cycles", false, "Recompute markers during adaptivity cycles");
   return params;
 }
 
-SetAdaptivityOptionsAction::SetAdaptivityOptionsAction(const std::string & name, InputParameters params) :
-    Action(name, params)
+SetAdaptivityOptionsAction::SetAdaptivityOptionsAction(InputParameters params) :
+    Action(params)
 {
 }
 
@@ -47,10 +49,15 @@ SetAdaptivityOptionsAction::act()
   if (isParamValid("initial_marker"))
     adapt.setInitialMarkerVariableName(getParam<MarkerName>("initial_marker"));
 
+  adapt.setCyclesPerStep(getParam<unsigned int>("cycles_per_step"));
+
   adapt.setMaxHLevel(getParam<unsigned int>("max_h_level"));
 
   adapt.init(getParam<unsigned int>("steps"), getParam<unsigned int>("initial_steps"));
   adapt.setUseNewSystem();
 
   adapt.setTimeActive(getParam<Real>("start_time"), getParam<Real>("stop_time"));
+
+  adapt.setRecomputeMarkersFlag(getParam<bool>("recompute_markers_during_cycles"));
 }
+

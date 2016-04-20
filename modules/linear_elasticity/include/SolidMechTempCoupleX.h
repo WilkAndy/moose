@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef SOLIDMECHTEMPCOUPLEX
 #define SOLIDMECHTEMPCOUPLEX
 
@@ -13,7 +19,7 @@ class SolidMechTempCoupleX : public SolidMechTempCouple
 {
 public:
 
-  SolidMechTempCoupleX(const std::string & name, InputParameters parameters);
+  SolidMechTempCoupleX(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();

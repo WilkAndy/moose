@@ -40,9 +40,9 @@
 []
 
 [Outputs]
-  [./exodus]
+  [./out]
     type = Exodus
-    output_initial = true
-    output_input = true
+    execute_input_on = final
+    execute_on = 'initial timestep_end'
   [../]
 []

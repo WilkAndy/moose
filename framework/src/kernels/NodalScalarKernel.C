@@ -14,20 +14,21 @@
 
 #include "NodalScalarKernel.h"
 #include "SystemBase.h"
+#include "Assembly.h"
 
 template<>
 InputParameters validParams<NodalScalarKernel>()
 {
   InputParameters params = validParams<ScalarKernel>();
-  params.addRequiredParam<std::vector<unsigned int> >("nodes", "Node ids");
+  params.addRequiredParam<std::vector<dof_id_type> >("nodes", "Node ids");
   return params;
 }
 
-NodalScalarKernel::NodalScalarKernel(const std::string & name, InputParameters parameters) :
-    ScalarKernel(name, parameters),
+NodalScalarKernel::NodalScalarKernel(const InputParameters & parameters) :
+    ScalarKernel(parameters),
     Coupleable(parameters, true),
     MooseVariableDependencyInterface(),
-    _node_ids(getParam<std::vector<unsigned int> >("nodes"))
+    _node_ids(getParam<std::vector<dof_id_type> >("nodes"))
 {
   // Fill in the MooseVariable dependencies
   const std::vector<MooseVariable *> & coupled_vars = getCoupledMooseVars();
@@ -52,3 +53,4 @@ NodalScalarKernel::computeOffDiagJacobian(unsigned int jvar)
   if (jvar == _var.number())
     computeJacobian();
 }
+

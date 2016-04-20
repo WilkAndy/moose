@@ -25,8 +25,8 @@ InputParameters validParams<AddMeshModifierAction>()
   return params;
 }
 
-AddMeshModifierAction::AddMeshModifierAction(const std::string & name, InputParameters params) :
-    MooseObjectAction(name, params)
+AddMeshModifierAction::AddMeshModifierAction(InputParameters params) :
+    MooseObjectAction(params)
 {
 }
 
@@ -37,30 +37,9 @@ AddMeshModifierAction::act()
   if (_app.isRecovering())
     return;
 
-  // Add a pointer to the mesh, this is required for this MeshModifier to inheret from the BlockRestrictable,
+  // Add a pointer to the mesh, this is required for this MeshModifier to inherit from the BlockRestrictable,
   // as is the case for SideSetAroundSubdomain
-  _moose_object_pars.set<MooseMesh *>("_mesh") = _mesh;
+  _moose_object_pars.set<MooseMesh *>("_mesh") = _mesh.get();
 
-  // Create the modifier object and run it
-  MeshModifier *mesh_modifier = static_cast<MeshModifier *>(_factory.create(_type, getShortName(), _moose_object_pars));
-
-  mooseAssert(_mesh != NULL, "Mesh hasn't been created");
-  mooseAssert(mesh_modifier != NULL, "Mesh Modifier hasn't been created");
-
-  // Run the modifier on the normal mesh
-  mesh_modifier->setMeshPointer(_mesh);
-  mesh_modifier->modify();
-
-  // We'll need to prepare again!
-  _mesh->prepared(false);
-
-  // Run the modifier on the displaced mesh
-  if (_displaced_mesh)
-  {
-    mesh_modifier->setMeshPointer(_displaced_mesh);
-    mesh_modifier->modify();
-    _displaced_mesh->prepared(false);
-  }
-
-  delete mesh_modifier;
+  _app.addMeshModifier(_type, _name, _moose_object_pars);
 }

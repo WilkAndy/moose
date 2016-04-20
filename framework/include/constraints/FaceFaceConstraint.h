@@ -15,10 +15,12 @@
 #ifndef FACEFACECONSTRAINT_H
 #define FACEFACECONSTRAINT_H
 
+// MOOSE includes
 #include "Constraint.h"
 #include "CoupleableMooseVariableDependencyIntermediateInterface.h"
+#include "MooseMesh.h"
 
-//Forward Declarations
+// Forward Declarations
 class FaceFaceConstraint;
 class FEProblem;
 
@@ -45,24 +47,34 @@ class FaceFaceConstraint :
   public CoupleableMooseVariableDependencyIntermediateInterface
 {
 public:
-  FaceFaceConstraint(const std::string & name, InputParameters parameters);
+  FaceFaceConstraint(const InputParameters & parameters);
   virtual ~FaceFaceConstraint();
 
   /**
    * Evaluate variables, compute q-points, etc.
    */
   virtual void reinit();
+  virtual void reinitSide(Moose::ConstraintType res_type);
 
   /**
    * Computes the residual for the current element.
    */
   virtual void computeResidual();
-  virtual void computeResidualSide();
+  /**
+   * Computes residual contributions from master or slave side
+   * @param side Master or slave side
+   */
+  virtual void computeResidualSide(Moose::ConstraintType side);
 
   /**
-   * Computes the jacobian for the current element.
+   * Computes the Jacobian for the current element (i.e element of the Mortar interface).
    */
-  virtual void computeJacobian(SparseMatrix<Number> & jacobian);
+  virtual void computeJacobian();
+  /**
+   * Computes Jacobian contributions from master or slave side
+   * @param side Master or slave side
+   */
+  virtual void computeJacobianSide(Moose::ConstraintType side);
 
 protected:
   virtual Real computeQpResidual() = 0;
@@ -99,7 +111,7 @@ protected:
   /**
    * The values of Lagrange multipliers in quadrature points
    */
-  VariableValue & _lambda;
+  const VariableValue & _lambda;
 
   MooseMesh::MortarInterface & _iface;
   PenetrationLocator & _master_penetration_locator;

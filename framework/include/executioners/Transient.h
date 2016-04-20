@@ -16,11 +16,6 @@
 #define TRANSIENT_H
 
 #include "Executioner.h"
-#include "FEProblem.h"
-
-// LibMesh includes
-#include "libmesh/mesh_function.h"
-#include "libmesh/parameters.h"
 
 // System includes
 #include <string>
@@ -29,6 +24,7 @@
 // Forward Declarations
 class Transient;
 class TimeStepper;
+class FEProblem;
 
 template<>
 InputParameters validParams<Transient>();
@@ -43,14 +39,11 @@ public:
   /**
    * Constructor
    *
-   * @param name The name given to the Executioner in the input file.
    * @param parameters The parameters object holding data for the class to use.
    * @return Whether or not the solve was successful.
    */
-  Transient(const std::string & name, InputParameters parameters);
+  Transient(const InputParameters & parameters);
   virtual ~Transient();
-
-  virtual Problem & problem();
 
   /**
    * Initialize executioner
@@ -94,6 +87,10 @@ public:
 
   virtual void computeDT();
 
+  virtual void preStep();
+
+  virtual void postStep();
+
   /**
    * This is where the solve step is actually incremented.
    */
@@ -131,14 +128,14 @@ public:
    * Pointer to the TimeStepper
    * @return Pointer to the time stepper for this Executioner
    */
-  TimeStepper * getTimeStepper(){ return _time_stepper; }
+  TimeStepper * getTimeStepper(){ return _time_stepper.get(); }
 
   /**
    * Set the timestepper to use.
    *
    * @param ts The TimeStepper to use
    */
-  void setTimeStepper(TimeStepper * ts) { _time_stepper = ts; }
+  void setTimeStepper(MooseSharedPointer<TimeStepper> ts) { _time_stepper = ts; }
 
   /**
    * Get the timestepper.
@@ -170,6 +167,12 @@ public:
   Real & dtMin() { return _dtmin; }
 
   /**
+   * Return the start time
+   * @return The start time
+   */
+  Real getStartTime() { return _start_time; }
+
+  /**
    * Get the end time
    * @return The end time
    */
@@ -199,7 +202,15 @@ public:
    */
   Real unconstrainedDT() { return _unconstrained_dt; }
 
-  void parentOutputPositionChanged() { _problem.parentOutputPositionChanged(); }
+  void parentOutputPositionChanged() { _fe_problem.parentOutputPositionChanged(); }
+
+  /**
+   * Get the number of Picard iterations performed
+   * @return Number of Picard iterations performed
+   */
+  //Because this returns the number of Picard iterations, rather than the current
+  //iteration count (which starts at 0), increment by 1.
+  Real numPicardIts() { return _picard_it+1; }
 
 
 protected:
@@ -208,10 +219,11 @@ protected:
    */
   virtual void solveStep(Real input_dt = -1.0);
 
+  /// Here for backward compatibility
   FEProblem & _problem;
 
   MooseEnum _time_scheme;
-  TimeStepper * _time_stepper;
+  MooseSharedPointer<TimeStepper> _time_stepper;
 
   /// Current timestep.
   int & _t_step;
@@ -229,8 +241,16 @@ protected:
   /// Is it our first time through the execution loop?
   bool & _first;
 
+  /// Whether or not the multiapps failed during the last timestem
+  bool & _multiapps_converged;
+
   /// Whether or not the last solve converged
   bool & _last_solve_converged;
+
+  /// Whether step should be repeated due to xfem modifying the mesh
+  bool _xfem_repeat_step;
+  unsigned int _xfem_update_count;
+  unsigned int _max_xfem_update;
 
   Real _end_time;
   Real _dtmin;
@@ -265,10 +285,12 @@ protected:
    * Picard Related
    */
   /// Number of Picard iterations to perform
-  int  _picard_it;
+  int  & _picard_it;
   Real _picard_max_its;
-  bool _picard_converged;
-  Real _picard_initial_norm;
+  bool & _picard_converged;
+  Real & _picard_initial_norm;
+  Real & _picard_timestep_begin_norm;
+  Real & _picard_timestep_end_norm;
   Real _picard_rel_tol;
   Real _picard_abs_tol;
 

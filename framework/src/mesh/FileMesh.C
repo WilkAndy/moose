@@ -29,16 +29,11 @@ InputParameters validParams<FileMesh>()
   InputParameters params = validParams<MooseMesh>();
 
   params.addRequiredParam<MeshFileName>("file", "The name of the mesh file to read");
-  params.addParam<bool>("skip_partitioning", false, "If true the mesh won't be partitioned.  Probably not a good idea to use it with a serial mesh!");
-
-  // groups
-  params.addParamNamesToGroup("skip_partitioning", "Partitioning");
-
   return params;
 }
 
-FileMesh::FileMesh(const std::string & name, InputParameters parameters) :
-    MooseMesh(name, parameters),
+FileMesh::FileMesh(const InputParameters & parameters) :
+    MooseMesh(parameters),
     _file_name(getParam<MeshFileName>("file")),
     _exreader(NULL)
 {
@@ -66,18 +61,24 @@ FileMesh::clone() const
 void
 FileMesh::buildMesh()
 {
-//  mooseAssert(_mesh == NULL, "Mesh already exists, and you are trying to read another");
   std::string _file_name = getParam<MeshFileName>("file");
 
-  Moose::setup_perf_log.push("Read Mesh","Setup");
+  Moose::perf_log.push("Read Mesh", "Setup");
   if (_is_nemesis)
   {
     // Nemesis_IO only takes a reference to ParallelMesh, so we can't be quite so short here.
-    ParallelMesh& pmesh = libmesh_cast_ref<ParallelMesh&>(getMesh());
+    ParallelMesh& pmesh = cast_ref<ParallelMesh&>(getMesh());
     Nemesis_IO(pmesh).read(_file_name);
 
     getMesh().allow_renumbering(false);
+
+    // Even if we want repartitioning when load balancing later, we'll
+    // begin with the default partitioning defined by the Nemesis
+    // file.
+    bool skip_partitioning_later = getMesh().skip_partitioning();
+    getMesh().skip_partitioning(true);
     getMesh().prepare_for_use();
+    getMesh().skip_partitioning(skip_partitioning_later);
   }
   else // not reading Nemesis files
   {
@@ -99,9 +100,7 @@ FileMesh::buildMesh()
       getMesh().read(_file_name);
   }
 
-  getMesh().skip_partitioning(getParam<bool>("skip_partitioning"));
-
-  Moose::setup_perf_log.pop("Read Mesh","Setup");
+  Moose::perf_log.pop("Read Mesh", "Setup");
 }
 
 void

@@ -15,19 +15,22 @@
 #ifndef COMPUTEELEMAUXVARSTHREAD_H
 #define COMPUTEELEMAUXVARSTHREAD_H
 
-#include "ThreadedElementLoop.h"
-#include "AuxWarehouse.h"
 // libMesh includes
 #include "libmesh/elem_range.h"
 
+// MOOSE includes
+#include "ThreadedElementLoop.h"
+#include "MooseObjectWarehouse.h"
+#include "AuxKernel.h"
+
+// Forward declarations
 class FEProblem;
 class AuxiliarySystem;
-
 
 class ComputeElemAuxVarsThread : public ThreadedElementLoop<ConstElemRange>
 {
 public:
-  ComputeElemAuxVarsThread(FEProblem & problem, AuxiliarySystem & sys, std::vector<AuxWarehouse> & auxs);
+  ComputeElemAuxVarsThread(FEProblem & problem, AuxiliarySystem & sys, const MooseObjectWarehouse<AuxKernel> & storage, bool need_materials);
   // Splitting Constructor
   ComputeElemAuxVarsThread(ComputeElemAuxVarsThread & x, Threads::split split);
 
@@ -41,7 +44,11 @@ public:
 
 protected:
   AuxiliarySystem & _aux_sys;
-  std::vector<AuxWarehouse> & _auxs;
+
+  /// Storage object containing active AuxKernel objects
+  const MooseObjectWarehouse<AuxKernel> & _aux_kernels;
+
+  bool _need_materials;
 };
 
 #endif //COMPUTEELEMAUXVARSTHREAD_H

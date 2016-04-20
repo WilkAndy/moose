@@ -1,16 +1,10 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
+
 
 #include "JouleHeating.h"
 
@@ -25,8 +19,8 @@ InputParameters validParams<JouleHeating>()
   return params;
 }
 
-JouleHeating::JouleHeating(const std::string & name, InputParameters parameters) :
-    Kernel(name, parameters),
+JouleHeating::JouleHeating(const InputParameters & parameters) :
+    Kernel(parameters),
     _grad_potential(coupledGradient("potential")),
     _thermal_conductivity(getMaterialProperty<Real>("thermal_conductivity"))
 {
@@ -37,4 +31,5 @@ JouleHeating::computeQpResidual()
 {
   return - _thermal_conductivity[_qp] * _grad_potential[_qp]*_grad_potential[_qp]*_test[_i][_qp];
 }
+
 

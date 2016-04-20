@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  "Monomial" form of relative permeability
 //
@@ -18,11 +21,11 @@ InputParameters validParams<RichardsRelPermMonomial>()
   return params;
 }
 
-RichardsRelPermMonomial::RichardsRelPermMonomial(const std::string & name, InputParameters parameters) :
-  RichardsRelPerm(name, parameters),
-  _simm(getParam<Real>("simm")),
-  _n(getParam<Real>("n")),
-  _zero_to_the_zero(getParam<Real>("zero_to_the_zero"))
+RichardsRelPermMonomial::RichardsRelPermMonomial(const InputParameters & parameters) :
+    RichardsRelPerm(parameters),
+    _simm(getParam<Real>("simm")),
+    _n(getParam<Real>("n")),
+    _zero_to_the_zero(getParam<Real>("zero_to_the_zero"))
 {
 }
 
@@ -30,16 +33,14 @@ RichardsRelPermMonomial::RichardsRelPermMonomial(const std::string & name, Input
 Real
 RichardsRelPermMonomial::relperm(Real seff) const
 {
-  if (seff >= 1.0) {
+  if (seff >= 1.0)
     return 1.0;
-  }
 
   if (_n == 0 && seff <= _simm)
     return _zero_to_the_zero;
 
-  if (seff <= _simm) {
+  if (seff <= _simm)
     return 0.0;
-  }
 
   Real s_internal = (seff - _simm)/(1.0 - _simm);
   Real krel = std::pow(s_internal, _n);
@@ -54,13 +55,11 @@ RichardsRelPermMonomial::relperm(Real seff) const
 Real
 RichardsRelPermMonomial::drelperm(Real seff) const
 {
-  if (seff >= 1.0) {
+  if (seff >= 1.0)
     return 0.0;
-  }
 
-  if (seff <= _simm) {
+  if (seff <= _simm)
     return 0.0;
-  }
 
   if (_n == 0)
     return 0.0;
@@ -74,13 +73,11 @@ RichardsRelPermMonomial::drelperm(Real seff) const
 Real
 RichardsRelPermMonomial::d2relperm(Real seff) const
 {
-  if (seff >= 1.0) {
+  if (seff >= 1.0)
     return 0.0;
-  }
 
-  if (seff <= _simm) {
+  if (seff <= _simm)
     return 0.0;
-  }
 
   if (_n == 0)
     return 0.0;
@@ -89,4 +86,5 @@ RichardsRelPermMonomial::d2relperm(Real seff) const
   Real krelpp = _n*(_n - 1)*std::pow(s_internal, _n - 2);
   return krelpp/std::pow(1.0 - _simm, 2);
 }
+
 

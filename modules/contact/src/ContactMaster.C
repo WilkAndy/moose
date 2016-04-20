@@ -1,9 +1,17 @@
-#include "ContactMaster.h"
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 
+// MOOSE includes
+#include "ContactMaster.h"
 #include "FrictionalContactProblem.h"
 #include "NodalArea.h"
 #include "SystemBase.h"
 #include "PenetrationInfo.h"
+#include "MooseMesh.h"
 
 // libmesh includes
 #include "libmesh/sparse_matrix.h"
@@ -12,7 +20,7 @@
 template<>
 InputParameters validParams<ContactMaster>()
 {
-  MooseEnum orders("CONSTANT, FIRST, SECOND, THIRD, FOURTH", "FIRST");
+  MooseEnum orders("CONSTANT FIRST SECOND THIRD FOURTH", "FIRST");
 
   InputParameters params = validParams<DiracKernel>();
   params.addRequiredParam<BoundaryName>("boundary", "The master boundary");
@@ -28,39 +36,41 @@ InputParameters validParams<ContactMaster>()
   params.addParam<Real>("penalty", 1e8, "The penalty to apply.  This can vary depending on the stiffness of your materials");
   params.addParam<Real>("friction_coefficient", 0, "The friction coefficient");
   params.addParam<Real>("tangential_tolerance", "Tangential distance to extend edges of contact surfaces");
+  params.addParam<Real>("capture_tolerance", 0, "Normal distance from surface within which nodes are captured");
   params.addParam<Real>("normal_smoothing_distance", "Distance from edge in parametric coordinates over which to smooth contact normal");
   params.addParam<std::string>("normal_smoothing_method","Method to use to smooth normals (edge_based|nodal_normal_based)");
   params.addParam<MooseEnum>("order", orders, "The finite element order");
 
-  params.addParam<Real>("tension_release", 0.0, "Tension release threshold.  A node in contact will not be released if its tensile load is below this value.  Must be positive.");
+  params.addParam<Real>("tension_release", 0.0, "Tension release threshold.  A node in contact will not be released if its tensile load is below this value.  No tension release if negative.");
 
   params.addParam<std::string>("formulation", "default", "The contact formulation");
+  params.addParam<bool>("normalize_penalty", false, "Whether to normalize the penalty parameter with the nodal area for penalty contact.");
   return params;
 }
 
 
 
-ContactMaster::ContactMaster(const std::string & name, InputParameters parameters) :
-  DiracKernel(name, parameters),
-  _component(getParam<unsigned int>("component")),
-  _model(contactModel(getParam<std::string>("model"))),
-  _formulation(contactFormulation(getParam<std::string>("formulation"))),
-  _penetration_locator(getPenetrationLocator(getParam<BoundaryName>("boundary"), getParam<BoundaryName>("slave"), Utility::string_to_enum<Order>(getParam<MooseEnum>("order")))),
-  _penalty(getParam<Real>("penalty")),
-  _friction_coefficient(getParam<Real>("friction_coefficient")),
-  _tension_release(getParam<Real>("tension_release")),
-  _updateContactSet(true),
-  _time_last_called(-std::numeric_limits<Real>::max()),
-  _residual_copy(_sys.residualGhosted()),
-  _x_var(isCoupled("disp_x") ? coupled("disp_x") : 99999),
-  _y_var(isCoupled("disp_y") ? coupled("disp_y") : 99999),
-  _z_var(isCoupled("disp_z") ? coupled("disp_z") : 99999),
-  _mesh_dimension(_mesh.dimension()),
-  _vars(_x_var, _y_var, _z_var),
-  _nodal_area_var(getVar("nodal_area", 0)),
-  _aux_system( _nodal_area_var->sys() ),
-  _aux_solution( _aux_system.currentSolution() )
-
+ContactMaster::ContactMaster(const InputParameters & parameters) :
+    DiracKernel(parameters),
+    _component(getParam<unsigned int>("component")),
+    _model(contactModel(getParam<std::string>("model"))),
+    _formulation(contactFormulation(getParam<std::string>("formulation"))),
+    _normalize_penalty(getParam<bool>("normalize_penalty")),
+    _penetration_locator(getPenetrationLocator(getParam<BoundaryName>("boundary"), getParam<BoundaryName>("slave"), Utility::string_to_enum<Order>(getParam<MooseEnum>("order")))),
+    _penalty(getParam<Real>("penalty")),
+    _friction_coefficient(getParam<Real>("friction_coefficient")),
+    _tension_release(getParam<Real>("tension_release")),
+    _capture_tolerance(getParam<Real>("capture_tolerance")),
+    _updateContactSet(true),
+    _residual_copy(_sys.residualGhosted()),
+    _x_var(isCoupled("disp_x") ? coupled("disp_x") : libMesh::invalid_uint),
+    _y_var(isCoupled("disp_y") ? coupled("disp_y") : libMesh::invalid_uint),
+    _z_var(isCoupled("disp_z") ? coupled("disp_z") : libMesh::invalid_uint),
+    _mesh_dimension(_mesh.dimension()),
+    _vars(_x_var, _y_var, _z_var),
+    _nodal_area_var(getVar("nodal_area", 0)),
+    _aux_system(_nodal_area_var->sys()),
+    _aux_solution(_aux_system.currentSolution())
 {
   if (parameters.isParamValid("tangential_tolerance"))
   {
@@ -78,10 +88,6 @@ ContactMaster::ContactMaster(const std::string & name, InputParameters parameter
       (_model == CM_COULOMB && _formulation == CF_DEFAULT))
   {
     _penetration_locator.setUpdate(false);
-  }
-  if (_tension_release < 0)
-  {
-    mooseError("The parameter 'tension_release' must be non-negative");
   }
   if (_friction_coefficient < 0)
   {
@@ -107,155 +113,62 @@ ContactMaster::timestepSetup()
 {
   if (_component == 0)
   {
-    _penetration_locator._unlocked_this_step.clear();
-    _penetration_locator._locked_this_step.clear();
-    bool beginning_of_step = false;
-    if (_t > _time_last_called)
-    {
-      beginning_of_step = true;
-      _penetration_locator.saveContactStateVars();
-    }
-    updateContactSet(beginning_of_step);
+    updateContactSet(true);
     _updateContactSet = false;
-    _time_last_called = _t;
   }
 }
 
 void
 ContactMaster::updateContactSet(bool beginning_of_step)
 {
-  std::set<unsigned int> & has_penetrated = _penetration_locator._has_penetrated;
-  std::map<unsigned int, unsigned> & unlocked_this_step = _penetration_locator._unlocked_this_step;
-  std::map<unsigned int, unsigned> & locked_this_step = _penetration_locator._locked_this_step;
-  std::map<unsigned int, Real> & lagrange_multiplier = _penetration_locator._lagrange_multiplier;
-
-  std::map<unsigned int, PenetrationInfo *>::iterator it = _penetration_locator._penetration_info.begin();
-  std::map<unsigned int, PenetrationInfo *>::iterator end = _penetration_locator._penetration_info.end();
-
+  std::map<dof_id_type, PenetrationInfo *>::iterator
+    it  = _penetration_locator._penetration_info.begin(),
+    end = _penetration_locator._penetration_info.end();
   for (; it!=end; ++it)
   {
+    const dof_id_type slave_node_num = it->first;
     PenetrationInfo * pinfo = it->second;
 
-    if (!pinfo)
-    {
+    // Skip this pinfo if there are no DOFs on this node.
+    if ( ! pinfo || pinfo->_node->n_comp(_sys.number(), _vars(_component)) < 1 )
       continue;
-    }
-
-    const unsigned int slave_node_num = it->first;
-    std::set<unsigned int>::iterator hpit = has_penetrated.find(slave_node_num);
 
     if (beginning_of_step)
     {
-      if (hpit != has_penetrated.end())
-        pinfo->_penetrated_at_beginning_of_step = true;
-      else
-        pinfo->_penetrated_at_beginning_of_step = false;
-
+      pinfo->_locked_this_step = 0;
       pinfo->_starting_elem = it->second->_elem;
       pinfo->_starting_side_num = it->second->_side_num;
       pinfo->_starting_closest_point_ref = it->second->_closest_point_ref;
+      pinfo->_contact_force_old = pinfo->_contact_force;
+      pinfo->_accumulated_slip_old = pinfo->_accumulated_slip;
+      pinfo->_frictional_energy_old = pinfo->_frictional_energy;
     }
 
-    if (_model == CM_EXPERIMENTAL ||
-        (_model == CM_COULOMB && _formulation == CF_DEFAULT))
+    const Real contact_pressure = -(pinfo->_normal * pinfo->_contact_force) / nodalArea(*pinfo);
+    const Real distance = pinfo->_normal * (pinfo->_closest_point - _mesh.node(slave_node_num));
+
+    // Capture
+    if ( ! pinfo->isCaptured() && MooseUtils::absoluteFuzzyGreaterEqual(distance, 0, _capture_tolerance))
     {
-      const Node * node = pinfo->_node;
+      pinfo->capture();
 
-      unsigned int dof = node->dof_number(_aux_system.number(), _nodal_area_var->number(), 0);
-
-      Real area = (*_aux_solution)( dof );
-      if (area == 0)
-      {
-        if (_t_step > 1)
-        {
-          mooseError("Zero nodal area found");
-        }
-        else
-        {
-          area = 1; // Avoid divide by zero during initialization
-        }
-      }
-
-      Real resid( -(pinfo->_normal * pinfo->_contact_force) / area );
-
-      // Moose::out << locked_this_step[slave_node_num] << " " << pinfo->_distance << std::endl;
-      const Real distance( pinfo->_normal * (pinfo->_closest_point - _mesh.node(node->id())));
-
-      if (hpit != has_penetrated.end() && resid < -_tension_release && locked_this_step[slave_node_num] < 2)
-      {
-        Moose::out << "Releasing node " << node->id() << " " << resid << " < " << -_tension_release << std::endl;
-        has_penetrated.erase(hpit);
-        pinfo->_contact_force.zero();
-        pinfo->_mech_status=PenetrationInfo::MS_NO_CONTACT;
-        ++unlocked_this_step[slave_node_num];
-      }
-      else if (distance > 0)
-      {
-        if (hpit == has_penetrated.end())
-        {
-          Moose::out << "Capturing node " << node->id() << " " << distance << " " << unlocked_this_step[slave_node_num] <<  std::endl;
-          ++locked_this_step[slave_node_num];
-          has_penetrated.insert(slave_node_num);
-        }
-      }
+      // Increment the lock count every time the node comes back into contact from not being in contact.
+      if (_formulation == CF_KINEMATIC)
+        ++pinfo->_locked_this_step;
     }
-    else
+    // Release
+    else if (_model != CM_GLUED &&
+             pinfo->isCaptured() &&
+             _tension_release >= 0 &&
+             -contact_pressure >= _tension_release &&
+             pinfo->_locked_this_step < 2)
     {
-      if (_formulation == CF_PENALTY)
-      {
-        const Node * node = pinfo->_node;
-
-        unsigned int dof = node->dof_number(_aux_system.number(), _nodal_area_var->number(), 0);
-
-        Real area = (*_aux_solution)( dof );
-        if (area == 0)
-        {
-          if (_t_step > 1)
-          {
-            mooseError("Zero nodal area found");
-          }
-          else
-          {
-            area = 1; // Avoid divide by zero during initialization
-          }
-        }
-        if (pinfo->_distance >= 0)
-        {
-          if (hpit == has_penetrated.end())
-          {
-            has_penetrated.insert(slave_node_num);
-          }
-        }
-        else if ((pinfo->_contact_force * pinfo->_normal) / area < 0)
-        {
-          // Do nothing.  This node is in contact and in compression.
-        }
-        else
-        {
-          if (hpit != has_penetrated.end())
-          {
-            has_penetrated.erase(hpit);
-          }
-          pinfo->_contact_force.zero();
-          pinfo->_mech_status=PenetrationInfo::MS_NO_CONTACT;
-        }
-      }
-      else
-      {
-        if (pinfo->_distance >= 0)
-        {
-          if (hpit == has_penetrated.end())
-          {
-            has_penetrated.insert(slave_node_num);
-          }
-        }
-      }
+      pinfo->release();
+      pinfo->_contact_force.zero();
     }
-    if (_formulation == CF_AUGMENTED_LAGRANGE && hpit != has_penetrated.end())
-    {
-      const RealVectorValue distance_vec(_mesh.node(slave_node_num) - pinfo->_closest_point);
-      lagrange_multiplier[slave_node_num] += _penalty * pinfo->_normal * distance_vec;
-    }
+
+    if (_formulation == CF_AUGMENTED_LAGRANGE && pinfo->isCaptured())
+      pinfo->_lagrange_multiplier -= getPenalty(*pinfo) * distance;
   }
 }
 
@@ -264,25 +177,19 @@ ContactMaster::addPoints()
 {
   _point_to_info.clear();
 
-  std::set<unsigned int> & has_penetrated = _penetration_locator._has_penetrated;
-
-  std::map<unsigned int, PenetrationInfo *>::iterator it = _penetration_locator._penetration_info.begin();
-  std::map<unsigned int, PenetrationInfo *>::iterator end = _penetration_locator._penetration_info.end();
+  std::map<dof_id_type, PenetrationInfo *>::iterator
+    it  = _penetration_locator._penetration_info.begin(),
+    end = _penetration_locator._penetration_info.end();
 
   for (; it!=end; ++it)
   {
     PenetrationInfo * pinfo = it->second;
 
-    if (!pinfo)
-    {
+    // Skip this pinfo if there are no DOFs on this node.
+    if ( ! pinfo || pinfo->_node->n_comp(_sys.number(), _vars(_component)) < 1 )
       continue;
-    }
 
-    unsigned int slave_node_num = it->first;
-
-    std::set<unsigned int>::iterator hpit = has_penetrated.find(slave_node_num);
-
-    if ( hpit != has_penetrated.end() )
+    if ( pinfo->isCaptured() )
     {
       addPoint(pinfo->_elem, pinfo->_closest_point);
       _point_to_info[pinfo->_closest_point] = pinfo;
@@ -294,22 +201,24 @@ ContactMaster::addPoints()
 void
 ContactMaster::computeContactForce(PenetrationInfo * pinfo)
 {
-  std::map<unsigned int, Real> & lagrange_multiplier = _penetration_locator._lagrange_multiplier;
   const Node * node = pinfo->_node;
 
   RealVectorValue res_vec;
   // Build up residual vector
   for (unsigned int i=0; i<_mesh_dimension; ++i)
   {
-    long int dof_number = node->dof_number(0, _vars(i), 0);
+    dof_id_type dof_number = node->dof_number(0, _vars(i), 0);
     res_vec(i) = _residual_copy(dof_number);
   }
+
+  const Real area = nodalArea(*pinfo);
+
   RealVectorValue distance_vec(_mesh.node(node->id()) - pinfo->_closest_point);
   RealVectorValue pen_force(_penalty * distance_vec);
-  RealVectorValue tan_residual(0,0,0);
+  if (_normalize_penalty)
+    pen_force *= area;
 
-  if (_model == CM_FRICTIONLESS ||
-      _model == CM_EXPERIMENTAL)
+  if (_model == CM_FRICTIONLESS)
   {
     switch (_formulation)
     {
@@ -321,8 +230,7 @@ ContactMaster::computeContactForce(PenetrationInfo * pinfo)
       break;
     case CF_AUGMENTED_LAGRANGE:
       pinfo->_contact_force = (pinfo->_normal * (pinfo->_normal *
-          //( pen_force + (lagrange_multiplier[node->id()]/distance_vec.size())*distance_vec)));
-          ( pen_force + lagrange_multiplier[node->id()] * pinfo->_normal)));
+          ( pen_force + pinfo->_lagrange_multiplier * pinfo->_normal)));
       break;
     default:
       mooseError("Invalid contact formulation");
@@ -334,6 +242,9 @@ ContactMaster::computeContactForce(PenetrationInfo * pinfo)
   {
     distance_vec = pinfo->_incremental_slip + (pinfo->_normal * (_mesh.node(node->id()) - pinfo->_closest_point)) * pinfo->_normal;
     pen_force = _penalty * distance_vec;
+    if (_normalize_penalty)
+      pen_force *= area;
+
 
     // Frictional capacity
     // const Real capacity( _friction_coefficient * (pen_force * pinfo->_normal < 0 ? -pen_force * pinfo->_normal : 0) );
@@ -345,7 +256,7 @@ ContactMaster::computeContactForce(PenetrationInfo * pinfo)
     RealVectorValue contact_force_tangential( pinfo->_contact_force - contact_force_normal );
 
     // Tangential magnitude of elastic predictor
-    const Real tan_mag( contact_force_tangential.size() );
+    const Real tan_mag( contact_force_tangential.norm() );
 
     if ( tan_mag > capacity )
     {
@@ -358,7 +269,6 @@ ContactMaster::computeContactForce(PenetrationInfo * pinfo)
     }
   }
   else if (_model == CM_GLUED ||
-           _model == CM_TIED ||
            (_model == CM_COULOMB && _formulation == CF_DEFAULT))
   {
     switch (_formulation)
@@ -371,7 +281,7 @@ ContactMaster::computeContactForce(PenetrationInfo * pinfo)
       break;
     case CF_AUGMENTED_LAGRANGE:
       pinfo->_contact_force = pen_force +
-                              lagrange_multiplier[node->id()]*distance_vec/distance_vec.size();
+                              pinfo->_lagrange_multiplier*distance_vec/distance_vec.norm();
       break;
     default:
       mooseError("Invalid contact formulation");
@@ -398,11 +308,14 @@ ContactMaster::computeQpJacobian()
 {
 
   PenetrationInfo * pinfo = _point_to_info[_current_point];
+  Real penalty = _penalty;
+  if (_normalize_penalty)
+    penalty *= nodalArea(*pinfo);
+
 
   switch (_model)
   {
   case CM_FRICTIONLESS:
-  case CM_EXPERIMENTAL:
     switch (_formulation)
     {
     case CF_DEFAULT:
@@ -410,7 +323,7 @@ ContactMaster::computeQpJacobian()
       break;
     case CF_PENALTY:
     case CF_AUGMENTED_LAGRANGE:
-      return _test[_i][_qp] * _penalty * _phi[_j][_qp] * pinfo->_normal(_component) * pinfo->_normal(_component);
+      return _test[_i][_qp] * penalty * _phi[_j][_qp] * pinfo->_normal(_component) * pinfo->_normal(_component);
       break;
     default:
       mooseError("Invalid contact formulation");
@@ -419,7 +332,6 @@ ContactMaster::computeQpJacobian()
     break;
   case CM_GLUED:
   case CM_COULOMB:
-  case CM_TIED:
     switch (_formulation)
     {
     case CF_DEFAULT:
@@ -427,7 +339,7 @@ ContactMaster::computeQpJacobian()
       break;
     case CF_PENALTY:
     case CF_AUGMENTED_LAGRANGE:
-      return _test[_i][_qp] * _penalty * _phi[_j][_qp];
+      return _test[_i][_qp] * penalty * _phi[_j][_qp];
       break;
     default:
       mooseError("Invalid contact formulation");
@@ -468,24 +380,17 @@ contactModel(const std::string & the_name)
   std::string name(the_name);
   std::transform(name.begin(), name.end(), name.begin(), ::tolower);
   if ("frictionless" == name)
-  {
     model = CM_FRICTIONLESS;
-  }
   else if ("glued" == name)
-  {
     model = CM_GLUED;
-  }
   else if ("coulomb" == name)
-  {
     model = CM_COULOMB;
-  }
-  else if ("tied" == name)
-  {
-    model = CM_TIED;
-  }
+  else if ("coulomb_mp" == name)
+    model = CM_COULOMB_MP;
   else if ("experimental" == name)
   {
-    model = CM_EXPERIMENTAL;
+    model = CM_FRICTIONLESS;
+    mooseWarning("Use of contact model \"experimental\" is deprecated.  Use \"frictionless\" instead.");
   }
   else
   {
@@ -504,17 +409,14 @@ contactFormulation(const std::string & the_name)
   std::transform(name.begin(), name.end(), name.begin(), ::tolower);
   if ("default" == name ||
       "kinematic" == name)
-  {
     formulation = CF_DEFAULT;
-  }
+
   else if ("penalty" == name)
-  {
     formulation = CF_PENALTY;
-  }
+
   else if ("augmented_lagrange" == name)
-  {
     formulation = CF_AUGMENTED_LAGRANGE;
-  }
+
   if (formulation == CF_INVALID)
   {
     std::string err("Invalid formulation found: ");
@@ -522,4 +424,34 @@ contactFormulation(const std::string & the_name)
     mooseError( err );
   }
   return formulation;
+}
+
+Real
+ContactMaster::nodalArea(PenetrationInfo & pinfo)
+{
+  const Node * node = pinfo._node;
+
+  dof_id_type dof = node->dof_number(_aux_system.number(), _nodal_area_var->number(), 0);
+
+  Real area = (*_aux_solution)( dof );
+  if (area == 0)
+  {
+    if (_t_step > 1)
+      mooseError("Zero nodal area found");
+
+    else
+      area = 1; // Avoid divide by zero during initialization
+  }
+  return area;
+}
+
+Real
+ContactMaster::getPenalty(PenetrationInfo & pinfo)
+{
+  Real penalty = _penalty;
+  if (_normalize_penalty)
+  {
+    penalty *= nodalArea(pinfo);
+  }
+  return penalty;
 }

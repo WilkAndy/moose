@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 /*************************************************************************
 *
 *  Welcome to HYRAX!
@@ -25,7 +31,7 @@ class MaterialSymmElasticityTensorAux : public AuxKernel
 {
 public:
 
-  MaterialSymmElasticityTensorAux(const std::string & name, InputParameters parameters);
+  MaterialSymmElasticityTensorAux(const InputParameters & parameters);
 
 protected:
 
@@ -35,7 +41,7 @@ protected:
 
 private:
 
-  MaterialProperty<SymmElasticityTensor> & _tensor_prop;
+  const MaterialProperty<SymmElasticityTensor> & _tensor_prop;
 };
 
 #endif //MATERIALSYMMELASTICITYTENSORAUX_H

@@ -76,6 +76,6 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   exodus = true
-  output_initial = false
 []

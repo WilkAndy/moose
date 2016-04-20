@@ -14,6 +14,21 @@
   [../]
 []
 
+[AuxVariables]
+  [./v_nodal]
+  [../]
+  [./v_elemental]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./x_nodal]
+  [../]
+  [./x_elemental]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+[]
+
 [Kernels]
   [./diff]
     type = Diffusion
@@ -44,14 +59,9 @@
 []
 
 [Outputs]
-  output_initial = true
   [./out]
     type = Exodus
     elemental_as_nodal = true
-  [../]
-  [./console]
-    type = Console
-    perf_log = true
   [../]
 []
 
@@ -68,22 +78,16 @@
   [./v_nodal_tr]
     type = MultiAppProjectionTransfer
     direction = from_multiapp
-    execute_on = timestep_begin
     multi_app = sub
     source_variable = v
     variable = v_nodal
-    order = FIRST
-    family = LAGRANGE
   [../]
   [./v_elemental_tr]
     type = MultiAppProjectionTransfer
     direction = from_multiapp
-    execute_on = timestep_begin
     multi_app = sub
     source_variable = v
     variable = v_elemental
-    order = CONSTANT
-    family = MONOMIAL
   [../]
   [./x_elemental_tr]
     type = MultiAppProjectionTransfer
@@ -91,8 +95,6 @@
     multi_app = sub
     source_variable = x
     variable = x_elemental
-    order = CONSTANT
-    family = MONOMIAL
   [../]
   [./x_nodal_tr]
     type = MultiAppProjectionTransfer
@@ -100,7 +102,5 @@
     multi_app = sub
     source_variable = x
     variable = x_nodal
-    order = FIRST
-    family = LAGRANGE
   [../]
 []

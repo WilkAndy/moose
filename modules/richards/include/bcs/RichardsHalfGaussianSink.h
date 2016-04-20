@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSHALFGAUSSIANSINK
 #define RICHARDSHALFGAUSSIANSINK
@@ -26,9 +29,7 @@ InputParameters validParams<RichardsHalfGaussianSink>();
 class RichardsHalfGaussianSink : public IntegratedBC
 {
 public:
-
-  RichardsHalfGaussianSink(const std::string & name,
-                        InputParameters parameters);
+  RichardsHalfGaussianSink(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
@@ -65,10 +66,10 @@ protected:
   unsigned int _pvar;
 
   /// porepressure (or porepressure vector for multiphase problems)
-  MaterialProperty<std::vector<Real> > & _pp;
+  const MaterialProperty<std::vector<Real> > & _pp;
 
   /// d(porepressure_i)/dvariable_j
-  MaterialProperty<std::vector<std::vector<Real> > > & _dpp_dv;
+  const MaterialProperty<std::vector<std::vector<Real> > > & _dpp_dv;
 };
 
 #endif //RICHARDSHALFGAUSSIANSINK

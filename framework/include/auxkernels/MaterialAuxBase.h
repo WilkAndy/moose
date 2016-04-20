@@ -19,17 +19,11 @@
 #include "AuxKernel.h"
 
 // Forward declarations
-template<typename T>
+template<typename T= Real>
 class MaterialAuxBase;
 
 template<>
-InputParameters validParams<MaterialAuxBase<Real> >();
-
-template<>
-InputParameters validParams<MaterialAuxBase<RealVectorValue> >();
-
-template<>
-InputParameters validParams<MaterialAuxBase<RealTensorValue> >();
+InputParameters validParams<MaterialAuxBase<> >();
 
 /**
  * A base class for the various Material related AuxKernal objects
@@ -41,39 +35,45 @@ public:
 
   /**
    * Class constructor
-   * @param name Name of the AuxKernel
    * @param parameters The input parameters for this object
    */
-  MaterialAuxBase(const std::string & name, InputParameters parameters);
+  MaterialAuxBase(const InputParameters & parameters);
 
-  /**
-   * Class destructor
-   */
   virtual ~MaterialAuxBase(){}
+
+  virtual Real computeValue();
 
 protected:
 
-  /// Reference to the material property for this AuxKernel
-  MaterialProperty<T> & _prop;
+  /// Returns material property values at quadrature points
+  virtual Real getRealValue() = 0;
 
-  // Value to be added to the material property
+  /// Reference to the material property for this AuxKernel
+  const MaterialProperty<T> & _prop;
+
+private:
+
+  /// Multiplier for the material property
   const Real _factor;
 
-  // Multiplier for the material property
+  /// Value to be added to the material property
   const Real _offset;
-
 };
 
 template<typename T>
-MaterialAuxBase<T>::MaterialAuxBase(const std::string & name, InputParameters parameters) :
-    AuxKernel(name, parameters),
-    _prop(getMaterialProperty<T>(getParam<std::string>("property"))),
+MaterialAuxBase<T>::MaterialAuxBase(const InputParameters & parameters) :
+    AuxKernel(parameters),
+    _prop(getMaterialProperty<T>("property")),
     _factor(getParam<Real>("factor")),
     _offset(getParam<Real>("offset"))
 {
-  std::string prop = getParam<std::string>("property");
-  if (!hasBlockMaterialProperty(prop))
-    mooseError("The required material property, "+prop+", is not defined on all blocks for AuxKernel "+name);
+}
+
+template<typename T>
+Real
+MaterialAuxBase<T>::computeValue()
+{
+  return _factor * getRealValue() + _offset;
 }
 
 #endif //MATERIALAUXBASE_H

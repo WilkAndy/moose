@@ -158,26 +158,16 @@
 [Executioner]
   type = Transient
 
-  #Preconditioned JFNK (default)
+  # Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-
-
-
-
   petsc_options_iname = '-ksp_gmres_restart -pc_type -pc_hypre_type -pc_hypre_boomeramg_max_iter'
   petsc_options_value = '201                hypre    boomeramg      4'
 
-
   line_search = 'none'
-
-
-  nl_abs_tol = 1e-6
-  nl_rel_tol = 1e-6
-
+  nl_rel_tol = 1e-12
   l_tol = 1e-3
   l_max_its = 100
 
-  start_time = 0.0
   dt = 1e-1
   end_time = 1.0
 []
@@ -188,12 +178,14 @@
     type = SideAverageValue
     boundary = 2
     variable = temp
+    execute_on = 'initial timestep_end'
   [../]
 
   [./temp_right]
     type = SideAverageValue
     boundary = 3
     variable = temp
+    execute_on = 'initial timestep_end'
   [../]
 
   [./flux_left]
@@ -201,6 +193,7 @@
     variable = temp
     boundary = 2
     diffusivity = thermal_conductivity
+    execute_on = 'initial timestep_end'
   [../]
 
   [./flux_right]
@@ -208,18 +201,21 @@
     variable = temp
     boundary = 3
     diffusivity = thermal_conductivity
+    execute_on = 'initial timestep_end'
   [../]
 
   [./awe_left]
     type = SideAverageValue
     boundary = 2
     variable = awesomium
+    execute_on = 'initial timestep_end'
   [../]
 
   [./awe_right]
     type = SideAverageValue
     boundary = 3
     variable = awesomium
+    execute_on = 'initial timestep_end'
   [../]
 
   [./awe_flux_left]
@@ -227,6 +223,7 @@
     variable = awesomium
     boundary = 2
     diffusivity = thermal_conductivity
+    execute_on = 'initial timestep_end'
   [../]
 
   [./awe_flux_right]
@@ -234,15 +231,10 @@
     variable = awesomium
     boundary = 3
     diffusivity = thermal_conductivity
+    execute_on = 'initial timestep_end'
   [../]
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

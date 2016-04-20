@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "CavityPressurePostprocessor.h"
 
 #include "CavityPressureUserObject.h"
@@ -16,8 +22,8 @@ InputParameters validParams<CavityPressurePostprocessor>()
   return params;
 }
 
-CavityPressurePostprocessor::CavityPressurePostprocessor(const std::string & name, InputParameters params)
-  :GeneralPostprocessor(name, params),
+CavityPressurePostprocessor::CavityPressurePostprocessor(const InputParameters & params)
+  :GeneralPostprocessor(params),
    _cpuo(getUserObject<CavityPressureUserObject>("cavity_pressure_uo")),
    _quantity(getParam<std::string>("quantity"))
 {

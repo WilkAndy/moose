@@ -77,11 +77,6 @@
 []
 
 [Outputs]
-  output_initial = true
   file_base = out_multi_elem_var
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

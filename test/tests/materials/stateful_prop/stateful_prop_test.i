@@ -36,6 +36,13 @@
     variable = prop1
     property = thermal_conductivity
   [../]
+
+  [./prop1_output_init]
+    type = MaterialRealAux
+    variable = prop1
+    property = thermal_conductivity
+    execute_on = initial
+  [../]
 []
 
 [BCs]
@@ -64,6 +71,7 @@
   [./integral]
     type = ElementAverageValue
     variable = prop1
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -80,10 +88,5 @@
 
 [Outputs]
   file_base = out
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

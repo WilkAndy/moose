@@ -48,9 +48,9 @@
 []
 
 [Outputs]
-  console = true
+  execute_on = 'timestep_end'
   [./out]
     type = Exodus
-    output_final = true
+    execute_on = 'final timestep_end'
   [../]
 []

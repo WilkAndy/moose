@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "PresetVelocity.h"
 #include "Function.h"
 
@@ -11,8 +17,8 @@ InputParameters validParams<PresetVelocity>()
 }
 
 
-PresetVelocity::PresetVelocity(const std::string & name, InputParameters parameters) :
-  PresetNodalBC(name, parameters),
+PresetVelocity::PresetVelocity(const InputParameters & parameters) :
+  PresetNodalBC(parameters),
   _u_old(valueOld()),
   _velocity(parameters.get<Real>("velocity")),
   _function(parameters.get<FunctionName>("function") != "" ? &getFunction("function") : NULL)

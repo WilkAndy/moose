@@ -42,7 +42,7 @@ public:
    * Factory constructor, takes parameters so that all derived classes can be built using the same
    * constructor.
    */
-  DGMDDBC(const std::string & name, InputParameters parameters);
+  DGMDDBC(const InputParameters & parameters);
 
   virtual ~DGMDDBC() {}
 
@@ -53,8 +53,7 @@ protected:
 private:
   Function & _func;
 
-  std::string _prop_name;                       // name of the material property
-  MaterialProperty<Real> & _diff;               // diffusivity
+  const MaterialProperty<Real> & _diff;               // diffusivity
 
   Real _epsilon;
   Real _sigma;

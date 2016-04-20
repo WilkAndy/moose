@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSENERGYINVISCIDSPECIFIEDPRESSUREBC_H
 #define NSENERGYINVISCIDSPECIFIEDPRESSUREBC_H
 
@@ -15,11 +21,8 @@ InputParameters validParams<NSEnergyInviscidSpecifiedPressureBC>();
  */
 class NSEnergyInviscidSpecifiedPressureBC : public NSEnergyInviscidBC
 {
-
 public:
-  NSEnergyInviscidSpecifiedPressureBC(const std::string & name, InputParameters parameters);
-
-  virtual ~NSEnergyInviscidSpecifiedPressureBC(){}
+  NSEnergyInviscidSpecifiedPressureBC(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
@@ -31,7 +34,7 @@ protected:
 
 private:
   // Helper Jacobian function
-  Real compute_jacobian(unsigned var_number);
+  Real computeJacobianHelper(unsigned var_number);
 };
 
 #endif // NSENERGYINVISCIDSPECIFIEDPRESSUREBC_H

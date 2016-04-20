@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSENERGYWEAKSTAGNATIONBC_H
 #define NSENERGYWEAKSTAGNATIONBC_H
 
@@ -15,11 +21,8 @@ InputParameters validParams<NSEnergyWeakStagnationBC>();
  */
 class NSEnergyWeakStagnationBC : public NSWeakStagnationBC
 {
-
 public:
-  NSEnergyWeakStagnationBC(const std::string & name, InputParameters parameters);
-
-  virtual ~NSEnergyWeakStagnationBC(){}
+  NSEnergyWeakStagnationBC(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();

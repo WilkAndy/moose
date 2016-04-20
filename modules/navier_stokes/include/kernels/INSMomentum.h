@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef INSMOMENTUM_H
 #define INSMOMENTUM_H
 
@@ -17,7 +23,7 @@ InputParameters validParams<INSMomentum>();
 class INSMomentum : public Kernel
 {
 public:
-  INSMomentum(const std::string & name, InputParameters parameters);
+  INSMomentum(const InputParameters & parameters);
 
   virtual ~INSMomentum(){}
 
@@ -27,15 +33,16 @@ protected:
   virtual Real computeQpOffDiagJacobian(unsigned jvar);
 
   // Coupled variables
-  VariableValue& _u_vel;
-  VariableValue& _v_vel;
-  VariableValue& _w_vel;
-  VariableValue& _p;
+  const VariableValue & _u_vel;
+  const VariableValue & _v_vel;
+  const VariableValue & _w_vel;
+  const VariableValue & _p;
 
   // Gradients
-  VariableGradient& _grad_u_vel;
-  VariableGradient& _grad_v_vel;
-  VariableGradient& _grad_w_vel;
+  const VariableGradient & _grad_u_vel;
+  const VariableGradient & _grad_v_vel;
+  const VariableGradient & _grad_w_vel;
+  const VariableGradient & _grad_p;
 
   // Variable numberings
   unsigned _u_vel_var_number;
@@ -51,6 +58,7 @@ protected:
 
   // Parameters
   unsigned _component;
+  bool _integrate_p_by_parts;
 };
 
 

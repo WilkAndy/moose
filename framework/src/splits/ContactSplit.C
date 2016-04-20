@@ -14,6 +14,7 @@
 
 #include "ContactSplit.h"
 #include "InputParameters.h"
+
 #if defined(LIBMESH_HAVE_PETSC) && !PETSC_VERSION_LESS_THAN(3,3,0)
 template<>
 InputParameters validParams<ContactSplit>()
@@ -28,8 +29,8 @@ InputParameters validParams<ContactSplit>()
   return params;
 }
 
-ContactSplit::ContactSplit (const std::string & name, InputParameters params) :
-    Split(name, params),
+ContactSplit::ContactSplit (const InputParameters & params) :
+    Split(params),
     _contact_master(getParam<std::vector<std::string> >("contact_master")),
     _contact_slave(getParam<std::vector<std::string> >("contact_slave")),
     _contact_displaced(getParam<std::vector<bool> >("contact_displaced")),

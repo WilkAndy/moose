@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef KINETICDISPRECONCAUX_H
 #define KINETICDISPRECONCAUX_H
 
@@ -26,7 +32,7 @@ public:
    * Factory constructor, takes parameters so that all derived classes can be built using the same
    * constructor.
    */
-  KineticDisPreConcAux(const std::string & name, InputParameters parameters);
+  KineticDisPreConcAux(const InputParameters & parameters);
 
   virtual ~KineticDisPreConcAux() {}
 
@@ -39,23 +45,30 @@ protected:
 
   /// Equilibrium constant at reference temperature
   Real _log_k;
+
   /// Specific reactive surface area, m^2/L solution
   Real _r_area;
+
   /// Reference kinetic rate constant
-  Real _ref_kconst;
+  const Real _ref_kconst;
+
   /// Activation energy
   Real _e_act;
+
   /// Gas constant, 8.314 J/mol/K
-  Real _gas_const;
+  const Real _gas_const;
+
   /// Reference temperature
   Real _ref_temp;
+
   /// Actual system temperature
   Real _sys_temp;
+
   /// Stochiometric coefficients for involved primary species
   std::vector<Real> _sto_v;
 
   /// Coupled primary species concentrations
-  std::vector<VariableValue *> _vals;
+  std::vector<const VariableValue *> _vals;
 };
 
 #endif //KINETICDISPRECONCAUX_H

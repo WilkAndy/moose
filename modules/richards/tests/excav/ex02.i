@@ -90,7 +90,7 @@
   [./mass_final]
     type = RichardsMass
     variable = pressure
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
 
 # this is what calculates the mass flux to the excavation
@@ -105,7 +105,7 @@
 
 # mass_bal just outputs the result to screen
   [./mass_bal]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = mass_bal_fcn
   [../]
 []
@@ -233,11 +233,7 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = ex02
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

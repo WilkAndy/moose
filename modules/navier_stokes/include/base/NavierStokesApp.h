@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NAVIER_STOKESAPP_H
 #define NAVIER_STOKESAPP_H
 
@@ -11,7 +17,7 @@ InputParameters validParams<NavierStokesApp>();
 class NavierStokesApp : public MooseApp
 {
 public:
-  NavierStokesApp(const std::string & name, InputParameters parameters);
+  NavierStokesApp(InputParameters parameters);
   virtual ~NavierStokesApp();
 
   static void registerApps();

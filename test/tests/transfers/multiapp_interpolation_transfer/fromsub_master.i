@@ -1,3 +1,13 @@
+###########################################################
+# This is a test of the Transfer System. This test
+# uses the Multiapp System to solve independent problems
+# related geometrically. Solutions are then interpolated
+# and transferred from a non-aligned domain.
+#
+# @Requirement F7.20
+###########################################################
+
+
 [Mesh]
   type = GeneratedMesh
   dim = 2
@@ -78,13 +88,7 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []
 
 [MultiApps]
@@ -100,7 +104,6 @@
   [./fromsub]
     type = MultiAppInterpolationTransfer
     direction = from_multiapp
-    execute_on = timestep_begin
     multi_app = sub
     source_variable = u
     variable = from_sub
@@ -108,7 +111,6 @@
   [./elemental_fromsub]
     type = MultiAppInterpolationTransfer
     direction = from_multiapp
-    execute_on = timestep_begin
     multi_app = sub
     source_variable = u
     variable = elemental_from_sub
@@ -116,7 +118,6 @@
   [./radial_fromsub]
     type = MultiAppInterpolationTransfer
     direction = from_multiapp
-    execute_on = timestep_begin
     multi_app = sub
     source_variable = u
     variable = radial_from_sub
@@ -125,7 +126,6 @@
   [./radial_elemental_fromsub]
     type = MultiAppInterpolationTransfer
     direction = from_multiapp
-    execute_on = timestep_begin
     multi_app = sub
     source_variable = u
     variable = radial_elemental_from_sub
@@ -134,7 +134,6 @@
   [./displaced_target_fromsub]
     type = MultiAppInterpolationTransfer
     direction = from_multiapp
-    execute_on = timestep_begin
     multi_app = sub
     source_variable = u
     variable = displaced_target_from_sub
@@ -143,7 +142,6 @@
   [./displaced_source_fromsub]
     type = MultiAppInterpolationTransfer
     direction = from_multiapp
-    execute_on = timestep_begin
     multi_app = sub
     source_variable = u
     variable = displaced_source_from_sub

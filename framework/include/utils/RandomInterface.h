@@ -34,8 +34,7 @@ InputParameters validParams<RandomInterface>();
 class RandomInterface
 {
 public:
-  RandomInterface(const std::string & name, InputParameters & parameters, FEProblem & problem,
-                  THREAD_ID tid, bool is_nodal);
+  RandomInterface(const InputParameters & parameters, FEProblem & problem, THREAD_ID tid, bool is_nodal);
 
   ~RandomInterface();
 
@@ -48,12 +47,12 @@ public:
   /**
    * Returns the next random number (long) from the generator tied to this object (elem/node).
    */
-  unsigned long getRandomLong();
+  unsigned long getRandomLong() const;
 
   /**
    * Returns the next random number (Real) from the generator tied to this object (elem/node).
    */
-  Real getRandomReal();
+  Real getRandomReal() const;
 
   /**
    * Get the seed for the passed in elem/node id.
@@ -73,10 +72,10 @@ public:
 
 private:
   RandomData *_random_data;
-  MooseRandom *_generator;
+  mutable MooseRandom *_generator;
 
   FEProblem & _ri_problem;
-  const std::string & _ri_name;
+  const std::string _ri_name;
 
   unsigned int _master_seed;
   bool _is_nodal;

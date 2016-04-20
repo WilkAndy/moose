@@ -13,25 +13,26 @@
 /****************************************************************/
 
 #include "InternalSideUserObject.h"
+#include "Assembly.h"
 
 template<>
 InputParameters validParams<InternalSideUserObject>()
 {
   InputParameters params = validParams<UserObject>();
   params += validParams<BlockRestrictable>();
-  params.addPrivateParam<bool>("use_bnd_material", true);
+  params += validParams<TwoMaterialPropertyInterface>();
   return params;
 }
 
-InternalSideUserObject::InternalSideUserObject(const std::string & name, InputParameters parameters) :
-    UserObject(name, parameters),
-    BlockRestrictable(name, parameters),
-    MaterialPropertyInterface(parameters),
+InternalSideUserObject::InternalSideUserObject(const InputParameters & parameters) :
+    UserObject(parameters),
+    BlockRestrictable(parameters),
+    TwoMaterialPropertyInterface(this, blockIDs()),
     NeighborCoupleable(parameters, false, false),
     MooseVariableDependencyInterface(),
-    UserObjectInterface(parameters),
-    TransientInterface(parameters, name, "internal_side_user_object"),
-    PostprocessorInterface(parameters),
+    UserObjectInterface(this),
+    TransientInterface(this),
+    PostprocessorInterface(this),
     ZeroInterface(parameters),
     _mesh(_subproblem.mesh()),
     _q_point(_assembly.qPointsFace()),

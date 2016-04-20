@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef SHARPINTERFACEFORCING_H
 #define SHARPINTERFACEFORCING_H
 
@@ -16,7 +22,7 @@ class SharpInterfaceForcing : public Kernel
 {
 public:
 
-  SharpInterfaceForcing(const std::string & name, InputParameters parameters);
+  SharpInterfaceForcing(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();

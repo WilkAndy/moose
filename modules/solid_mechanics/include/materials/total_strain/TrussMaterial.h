@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef TRUSSMATERIAL_H
 #define TRUSSMATERIAL_H
 
@@ -15,8 +21,7 @@ InputParameters validParams<TrussMaterial>();
 class TrussMaterial : public Material
 {
 public:
-  TrussMaterial(const std::string & name,
-                InputParameters parameters);
+  TrussMaterial(const InputParameters & parameters);
 
   virtual ~TrussMaterial();
 
@@ -33,10 +38,10 @@ protected:
   MaterialProperty<Real> & _e_over_l;
   Real _youngs_modulus;
   bool _youngs_modulus_coupled;
-  VariableValue & _youngs_modulus_var;
+  const VariableValue & _youngs_modulus_var;
 
   bool _has_temp;
-  VariableValue & _temp;
+  const VariableValue & _temp;
   Real _t_ref;
   Real _alpha;
 

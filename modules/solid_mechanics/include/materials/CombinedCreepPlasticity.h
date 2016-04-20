@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef COMBINEDCREEPPLASTICITY_H
 #define COMBINEDCREEPPLASTICITY_H
 
@@ -12,8 +18,7 @@ class ReturnMappingModel;
 class CombinedCreepPlasticity : public ConstitutiveModel
 {
 public:
-  CombinedCreepPlasticity( const std::string & name,
-                           InputParameters parameters );
+  CombinedCreepPlasticity( const InputParameters & parameters);
   virtual ~CombinedCreepPlasticity() {}
 
 
@@ -33,7 +38,7 @@ protected:
 
   virtual void initialSetup();
 
-  std::map<SubdomainID, std::vector<ReturnMappingModel*> > _submodels;
+  std::map<SubdomainID, std::vector<MooseSharedPointer<ReturnMappingModel> > > _submodels;
 
   unsigned int _max_its;
   bool _output_iteration_info;

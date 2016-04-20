@@ -18,6 +18,10 @@
   elem_type = QUAD4
 []
 
+[GlobalParams]
+  displacements = 'disp_x disp_y'
+[]
+
 [Variables]
   [./disp_x]
     order = FIRST
@@ -45,10 +49,8 @@
   [../]
 []
 
-[TensorMechanics]
-  [./solid]
-    disp_x = disp_x
-    disp_y = disp_y
+[Kernels]
+  [./TensorMechanics]
   [../]
 []
 
@@ -56,36 +58,50 @@
   [./matl_s11]
     type = RankTwoAux
     rank_two_tensor = stress
-    index_i = 1
-    index_j = 1
+    index_i = 0
+    index_j = 0
     variable = s11_aux
   [../]
   [./matl_s12]
     type = RankTwoAux
     rank_two_tensor = stress
-    index_i = 1
-    index_j = 2
+    index_i = 0
+    index_j = 1
     variable = s12_aux
   [../]
   [./matl_s22]
     type = RankTwoAux
     rank_two_tensor = stress
-    index_i = 2
-    index_j = 2
+    index_i = 1
+    index_j = 1
     variable = s22_aux
   [../]
 []
 
 [Materials]
-  [./Anisotropic]
-    type = LinearElasticMaterial
+  [./elasticity_tensor]
+    type = ComputeElasticityTensor
     block = 0
-    disp_x = disp_x
-    disp_y = disp_y
-    all_21 = false
+    fill_method = symmetric9
     C_ijkl = '1e6 0 0 1e6 0 1e6 .5e6 .5e6 .5e6'
-    thermal_expansion_coeff = 1.0e-6
-    Temp = 400
+  [../]
+  [./strain]
+    type = ComputeSmallStrain
+    block = 0
+    displacements = 'disp_x disp_y'
+  [../]
+  [./stress]
+    type = ComputeLinearElasticStress
+    block = 0
+  [../]
+  [./eigenstrain]
+    type = ComputeEigenstrain
+    # this models the
+    #   thermal_expansion_coeff = 1.0e-6
+    #   T = 400
+    #   T0 = 300
+    # options of LinearElasticMaterial (T-T0)*1e-6 = 1e-4
+    eigen_base = '1e-4'
   [../]
 []
 
@@ -122,11 +138,5 @@
 
 [Outputs]
   file_base = thermal_expansion
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

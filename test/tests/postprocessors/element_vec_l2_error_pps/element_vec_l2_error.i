@@ -119,6 +119,7 @@
 [Postprocessors]
   [./dofs]
     type = NumDOFs
+    execute_on = 'initial timestep_end'
   [../]
 
   [./integral]
@@ -127,6 +128,7 @@
     var_y = v
     function_x = bc_u
     function_y = bc_v
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -134,10 +136,4 @@
   file_base = out
   exodus = false
   csv = true
-  output_initial = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

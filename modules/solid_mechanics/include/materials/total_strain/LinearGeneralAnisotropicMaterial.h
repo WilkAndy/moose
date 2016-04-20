@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 // Original class author: A.M. Jokisaari
 // O. Heinonen, et al. at ANL also have contributed significantly - thanks guys!
 
@@ -24,7 +30,7 @@ InputParameters validParams<LinearGeneralAnisotropicMaterial>();
 class LinearGeneralAnisotropicMaterial : public SolidMechanicsMaterial
 {
 public:
-  LinearGeneralAnisotropicMaterial(const std:: string & name, InputParameters parameters);
+  LinearGeneralAnisotropicMaterial(const InputParameters & parameters);
 
 protected:
   virtual void computeQpProperties();

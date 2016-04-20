@@ -18,20 +18,25 @@
 #include "ParallelUniqueId.h"
 #include "Problem.h"
 #include "DiracKernelInfo.h"
-#include "Assembly.h"
 #include "GeometricSearchData.h"
-#include "RestartableData.h"
-
-// libMesh include
-#include "libmesh/equation_systems.h"
-#include "libmesh/transient_system.h"
-#include "libmesh/nonlinear_implicit_system.h"
-#include "libmesh/numeric_vector.h"
-#include "libmesh/sparse_matrix.h"
+#include "MooseVariableBase.h" // VariableValue
 
 class MooseMesh;
 class SubProblem;
 class Factory;
+class Assembly;
+class MooseVariable;
+class MooseVariableScalar;
+class RestartableDataValue;
+
+// libMesh forward declarations
+namespace libMesh
+{
+class EquationSystems;
+class DofMap;
+template <typename T> class SparseMatrix;
+template <typename T> class NumericVector;
+}
 
 template<>
 InputParameters validParams<SubProblem>();
@@ -43,7 +48,7 @@ InputParameters validParams<SubProblem>();
 class SubProblem : public Problem
 {
 public:
-  SubProblem(const std::string & name, InputParameters parameters);
+  SubProblem(const InputParameters & parameters);
   virtual ~SubProblem();
 
   virtual EquationSystems & es() = 0;
@@ -63,8 +68,6 @@ public:
   virtual void onTimestepEnd() = 0;
 
   virtual bool isTransient() const = 0;
-
-  virtual Order getQuadratureOrder() = 0;
 
   // Variables /////
   virtual bool hasVariable(const std::string & var_name) = 0;
@@ -108,6 +111,12 @@ public:
   virtual void prepareNeighborShapes(unsigned int var, THREAD_ID tid) = 0;
   virtual Moose::CoordinateSystemType getCoordSystem(SubdomainID sid) = 0;
 
+  /**
+   * Returns the desired radial direction for RZ coordinate transformation
+   * @return The coordinate direction for the radial direction
+   */
+  unsigned int getAxisymmetricRadialCoord();
+
   virtual DiracKernelInfo & diracKernelInfo();
   virtual Real finalNonlinearResidual();
   virtual unsigned int nNonlinearIterations();
@@ -142,7 +151,8 @@ public:
   virtual void reinitElemFace(const Elem * elem, unsigned int side, BoundaryID bnd_id, THREAD_ID tid) = 0;
   virtual void reinitNode(const Node * node, THREAD_ID tid) = 0;
   virtual void reinitNodeFace(const Node * node, BoundaryID bnd_id, THREAD_ID tid) = 0;
-  virtual void reinitNodes(const std::vector<unsigned int> & nodes, THREAD_ID tid) = 0;
+  virtual void reinitNodes(const std::vector<dof_id_type> & nodes, THREAD_ID tid) = 0;
+  virtual void reinitNodesNeighbor(const std::vector<dof_id_type> & nodes, THREAD_ID tid) = 0;
   virtual void reinitNeighbor(const Elem * elem, unsigned int side, THREAD_ID tid) = 0;
   virtual void reinitNeighborPhys(const Elem * neighbor, unsigned int neighbor_side, const std::vector<Point> & physical_points, THREAD_ID tid) = 0;
   virtual void reinitNodeNeighbor(const Node * node, THREAD_ID tid) = 0;
@@ -172,7 +182,7 @@ public:
    * Adds the given material property to a storage map based on block ids
    *
    * This is method is called from within the Material class when the property
-   * is begin registered.
+   * is first registered.
    * @param block_id The block id for the MaterialProperty
    * @param name The name of the property
    */
@@ -182,11 +192,31 @@ public:
    * Adds the given material property to a storage map based on boundary ids
    *
    * This is method is called from within the Material class when the property
-   * is begin registered.
+   * is first registered.
    * @param boundary_id The block id for the MaterialProperty
    * @param name The name of the property
    */
   virtual void storeMatPropName(BoundaryID boundary_id, const std::string & name);
+
+  /**
+   * Adds to a map based on block ids of material properties for which a zero
+   * value can be returned. Thes properties are optional and will not trigger a
+   * missing material property error.
+   *
+   * @param block_id The block id for the MaterialProperty
+   * @param name The name of the property
+   */
+  virtual void storeZeroMatProp(SubdomainID block_id, const MaterialPropertyName & name);
+
+  /**
+   * Adds to a map based on boundary ids of material properties for which a zero
+   * value can be returned. Thes properties are optional and will not trigger a
+   * missing material property error.
+   *
+   * @param boundary_id The block id for the MaterialProperty
+   * @param name The name of the property
+   */
+  virtual void storeZeroMatProp(BoundaryID boundary_id, const MaterialPropertyName & name);
 
   /**
    * Adds to a map based on block ids of material properties to validate
@@ -194,15 +224,16 @@ public:
    * @param block_id The block id for the MaterialProperty
    * @param name The name of the property
    */
-  virtual void storeDelayedCheckMatProp(SubdomainID block_id, const std::string & name);
+  virtual void storeDelayedCheckMatProp(const std::string & requestor, SubdomainID block_id, const std::string & name);
 
   /**
    * Adds to a map based on boundary ids of material properties to validate
    *
+   * @param requestor The MOOSE object name requesting the material property
    * @param boundary_id The block id for the MaterialProperty
    * @param name The name of the property
    */
-  virtual void storeDelayedCheckMatProp(BoundaryID boundary_id, const std::string & name);
+  virtual void storeDelayedCheckMatProp(const std::string & requestor, BoundaryID boundary_id, const std::string & name);
 
   /**
    * Checks block material properties integrity
@@ -219,9 +250,19 @@ public:
   virtual void checkBoundaryMatProps();
 
   /**
+   * Helper method for adding a material property name to the _material_property_requested set
+   */
+  virtual void markMatPropRequested(const std::string &);
+
+  /**
+   * Find out if a material property has been requested by any object
+   */
+  virtual bool isMatPropRequested(const std::string & prop_name) const;
+
+  /**
    * Will make sure that all dofs connected to elem_id are ghosted to this processor
    */
-  virtual void addGhostedElem(unsigned int elem_id) = 0;
+  virtual void addGhostedElem(dof_id_type elem_id) = 0;
 
   /**
    * Will make sure that all necessary elements from boundary_id are ghosted to this processor
@@ -273,17 +314,7 @@ public:
    * @param data The actual data object.
    * @param tid The thread id of the object.  Use 0 if the object is not threaded.
    */
-  virtual void registerRestartableData(std::string name, RestartableDataValue * data, THREAD_ID tid) = 0;
-
-public:
-  /**
-   * Convenience zeros
-   */
-  std::vector<Real> _real_zero;
-  std::vector<VariableValue> _zero;
-  std::vector<VariableGradient> _grad_zero;
-  std::vector<VariableSecond> _second_zero;
-  std::vector<VariablePhiSecond> _second_phi_zero;
+  virtual void registerRestartableData(std::string name, RestartableDataValue * data, THREAD_ID tid);
 
 protected:
   /// The Factory for building objects
@@ -295,28 +326,40 @@ protected:
   DiracKernelInfo _dirac_kernel_info;
 
   /// Map of material properties (block_id -> list of properties)
-  std::map<unsigned int, std::set<std::string> > _map_block_material_props;
+  std::map<SubdomainID, std::set<std::string> > _map_block_material_props;
 
   /// Map for boundary material properties (boundary_id -> list of properties)
-  std::map<unsigned int, std::set<std::string> > _map_boundary_material_props;
+  std::map<BoundaryID, std::set<std::string> > _map_boundary_material_props;
 
-  /// the map of properties requested (need to be checked)
-  std::map<unsigned int, std::set<std::string> > _map_block_material_props_check;
+  /// Set of properties returned as zero properties
+  std::map<SubdomainID, std::set<MaterialPropertyName> > _zero_block_material_props;
+  std::map<BoundaryID, std::set<MaterialPropertyName> > _zero_boundary_material_props;
 
-  /// the map of properties requested (need to be checked)
-  std::map<unsigned int, std::set<std::string> > _map_boundary_material_props_check;
+  /// set containing all material property names that have been requested by getMaterialProperty*
+  std::set<std::string> _material_property_requested;
+
+  ///@{
+  /**
+   * Data structures of the requested material properties.  We store them in a map
+   * from boudnary/block id to multimap.  Each of the multimaps is a list of
+   * requestor object names to material property names.
+   */
+  std::map<SubdomainID, std::multimap<std::string, std::string> > _map_block_material_props_check;
+  std::map<BoundaryID, std::multimap<std::string, std::string> > _map_boundary_material_props_check;
+  ///@}
 
   /// This is the set of MooseVariables that will actually get reinited by a call to reinit(elem)
   std::vector<std::set<MooseVariable *> > _active_elemental_moose_variables;
 
   /// Whether or not there is currently a list of active elemental moose variables
-  std::vector<bool> _has_active_elemental_moose_variables;
+  /* This needs to remain <unsigned int> for threading purposes */
+  std::vector<unsigned int> _has_active_elemental_moose_variables;
 
   /// Elements that should have Dofs ghosted to the local processor
   std::set<dof_id_type> _ghosted_elems;
 
-  /// Where the restartable data is held (indexed on tid)
-  RestartableDatas _restartable_data;
+  /// Storage for RZ axis selection
+  unsigned int _rz_coord_axis;
 
 private:
 
@@ -328,9 +371,10 @@ private:
    * \see checkBlockMatProps
    * \see checkBoundaryMatProps
    */
-  void checkMatProps(std::map<unsigned int, std::set<std::string> > & props,
-                     std::map<unsigned int, std::set<std::string> > & check_props,
-                     std::string type);
+  template <typename T>
+  void checkMatProps(std::map<T, std::set<std::string> > & props,
+                     std::map<T, std::multimap<std::string, std::string> > & check_props,
+                     std::map<T, std::set<MaterialPropertyName> > & zero_props);
 
   /**
    * NOTE: This is an internal function meant for MOOSE use only!
@@ -342,7 +386,14 @@ private:
    *
    * @param name The full (unique) name.
    */
-  virtual void registerRecoverableData(std::string name) = 0;
+  virtual void registerRecoverableData(std::string name);
+
+  ///@{ Helper functions for checkMatProps
+  template <typename T>
+  std::string restrictionTypeName();
+  std::string restrictionCheckName(SubdomainID check_id);
+  std::string restrictionCheckName(BoundaryID check_id);
+  ///@}
 
   friend class Restartable;
 };

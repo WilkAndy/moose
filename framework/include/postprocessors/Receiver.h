@@ -32,20 +32,17 @@ class Receiver : public GeneralPostprocessor
 public:
   /**
    * Class constructor
-   * @param name The name of the Receiver postprocessor
    * @param parameters The input parameters
    */
-  Receiver(const std::string & name, InputParameters parameters);
+  Receiver(const InputParameters & parameters);
 
+  ///@{
   /**
    * No action taken
    */
   virtual void initialize() {}
-
-  /**
-   * No action taken
-   */
   virtual void execute() {}
+  ///@}
 
   /**
    * Returns the value stored in _my_value
@@ -58,11 +55,13 @@ public:
    */
   virtual void initialSetup();
 
-protected:
+private:
+
+  /// Flag for initializing the old value
+  bool _initialize_old;
 
   /// Reference to the value being stored in the associated PostprocessorData class
   const PostprocessorValue & _my_value;
-
 };
 
 #endif //RECEIVER_H

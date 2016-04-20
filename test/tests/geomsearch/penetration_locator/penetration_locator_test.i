@@ -1,3 +1,13 @@
+###########################################################
+# This is a test of the Geometric Search System. This test
+# uses the penetration location object through the
+# PenetrationAux Auxilary Kernel to detect overlaps of
+# specified interfaces (boundaries) in the domain.
+#
+# @Requirement F6.50
+###########################################################
+
+
 [Mesh]
   file = 2dcontact_collide.e
 []
@@ -79,10 +89,5 @@
 
 [Outputs]
   file_base = out
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

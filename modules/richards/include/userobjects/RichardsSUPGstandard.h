@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSSUPGstandard_H
 #define RICHARDSSUPGstandard_H
@@ -22,8 +25,8 @@ InputParameters validParams<RichardsSUPGstandard>();
  */
 class RichardsSUPGstandard : public RichardsSUPG
 {
- public:
-  RichardsSUPGstandard(const std::string & name, InputParameters parameters);
+public:
+  RichardsSUPGstandard(const InputParameters & parameters);
 
   /**
    * SUPG velocity = -perm*(gradp - density*gravity)
@@ -52,7 +55,7 @@ class RichardsSUPGstandard : public RichardsSUPG
   /**
    * |bb| ~ 2*velocity/element_length
    * @param vel SUPG velocity
-   * @param dim dimension of problem
+   * @param dimen dimension of problem
    * @param xi_prime spatial gradient of the isoparametric coordinate xi
    * @param eta_prime spatial gradient of the isoparametric coordinate eta
    * @param zeta_prime spatial gradient of the isoparametric coordinate zeta
@@ -108,7 +111,10 @@ class RichardsSUPGstandard : public RichardsSUPG
    */
   Real dtauSUPG_dp(RealVectorValue vel, RealVectorValue dvel_dp, Real traceperm, RealVectorValue b, Real db2_dp) const;
 
- protected:
+  /// returns false in this case since everything is trivial
+  bool SUPG_trivial() const;
+
+protected:
 
   /**
    * the SUPG pressure parameter
@@ -118,7 +124,7 @@ class RichardsSUPGstandard : public RichardsSUPG
    */
   Real _p_SUPG;
 
- private:
+private:
 
   /// cosh(alpha)/sinh(alpha) - 1/alpha, modified at extreme values of alpha to prevent overflows
   Real cosh_relation(Real alpha) const;

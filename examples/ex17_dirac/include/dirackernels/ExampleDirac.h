@@ -18,7 +18,7 @@
 // Moose Includes
 #include "DiracKernel.h"
 
-//Forward Declarations
+// Forward Declarations
 class ExampleDirac;
 
 template<>
@@ -27,15 +27,14 @@ InputParameters validParams<ExampleDirac>();
 class ExampleDirac : public DiracKernel
 {
 public:
-  ExampleDirac(const std::string & name, InputParameters parameters);
+  ExampleDirac(const InputParameters & parameters);
 
   virtual void addPoints();
   virtual Real computeQpResidual();
 
 protected:
   Real _value;
-  std::vector<Real> _point_param;
-  Point _p;
+  Point _point;
 };
 
 #endif //EXAMPLEDIRAC_H

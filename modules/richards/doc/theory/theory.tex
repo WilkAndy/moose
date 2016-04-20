@@ -46,7 +46,8 @@ foundations of the MOOSE implementation.
   and associated nonlinear functions.
 \item Chapter~\ref{sources.sinks.chap} describes the sources and sinks
   that I have implemented.
-\item Chapter~\ref{chap.upwinding} describes upwinding using the SUPG method.
+\item Chapter~\ref{chap.upwinding} describes upwinding
+\item Chapter~\ref{discret.chap} describes the discretisation of the time derivative.
 \item Chapter~\ref{chap.multi} describes the multi-phase Richards'
   equations that I have implemented.  For notational simplicity, the
   rest of this document focusses on the single-phase case, but this
@@ -54,8 +55,6 @@ foundations of the MOOSE implementation.
   generalisation.
 \item Chapter~\ref{tol.chap} briefly discusses tolerancs and
   convergence criteria.
-\item Chapter~\ref{discret.chap} discusses technical issues with the
-  finite-element discretisation.
 \end{itemize}
 There are two other accompanying documents: (1) A description of the
 unit tests and benchmark verifications; (2) Examples of input syntax
@@ -192,7 +191,7 @@ presence of large negative porepressures.)
 The MOOSE implementation allows users to specify arbitrary
 relationships between density and porepressure.  One common case
 for liquids is that the fluid bulk modulus is constant, which means
-that 
+that
 \begin{equation}
 \rho = \rho_{0}e^{P/K} \ .
 \end{equation}
@@ -208,7 +207,7 @@ In this expression
 
 The density of an ideal fluid (gas) has also been coded into MOOSE.
 
-The density of Methane at 20degC has also been coded into MOOSE.
+The density of a van der Waals gas has also been coded into MOOSE.
 
 \section{Capillary suction}
 
@@ -316,7 +315,25 @@ The Broadbridge-White capillary curve valid for small $K_{n}$ has also been code
 
 The Rogers-Stallybrass-Clements capillary curve valid for zero
 residual saturations and oil viscosity double that of water viscosity
-has also been coded into MOOSE~\cite{rsc1983}. 
+has also been coded into MOOSE~\cite{rsc1983}.
+
+A ``shifted'' version of Eqn~(\ref{vg.cap.eqn}) has been coded for
+into MOOSE for 2-phase simulations.  The effective saturation for the
+``water'' phase is
+\begin{equation}
+S^{\mathrm{water}}_{\mathrm{eff}} = S_{s}^{-1}\left( 1 + (\alpha
+  (P^{\mathrm{gas}} - P^{\mathrm{water}} + s))^{\frac{1}{1 - m}}
+\right)^{-m} \ \ \ \mbox{for}\ \ 0<m<1 \ ,
+\end{equation}
+where $s$ is the so-called ``shift'', and $S_{s}$ is the value of
+Eqn~(\ref{vg.cap.eqn}) at $P_{c}=s$ (so $S_{s}^{-1}$ scales the result so
+that $0\leq S_{\mathrm{eff}}\leq 1$).  The ``gas'' saturation is just
+$S^{\mathrm{gas}}_{\mathrm{eff}}=1-S^{\mathrm{water}}_{\mathrm{eff}}$.
+Here it assumed that $P_{c} = P^{\mathrm{gas}}-P^{\mathrm{water}}>0$.
+Note that $dS^{\mathrm{water}}/dP^{\mathrm{water}} >0$ for all
+$P^{\mathrm{water}}$ which can be advantageous numerically around low
+gas saturation values.
+
 
 \section{Relative permeability}
 \label{rel.perm.sec}
@@ -565,7 +582,7 @@ permeability.  Another example is in coupled problems when $\kappa$ is
 a function of time.
 
 Finally, all these piecewise-linear sink fluxes may be multiplied by a
-user-defined function: 
+user-defined function:
 \begin{equation}
 F \rightarrow F\times g(t, x, y, z) \ ,
 \end{equation}
@@ -573,6 +590,17 @@ if the user desires.  This is useful, for instance, if rainfall
 recharge is a known function of space and time, or in the case of
 applying sink fluxes at excavation boundaries whose position is a
 known function of space and time.
+
+I have also coded the option of specifying the {\em total} flux.  In
+  this case, the user specifies flux in kg.s$^{-1}$, and MOOSE
+  automatically spreads this equally over the entire boundary (so
+  internally to MOOSE this becomes a standard flux measured in
+  kg.s$^{-1}$.m$^{-2}$).  The user must also specify the boundary's
+  area as a Postprocessor.  All the other fluxes described here are
+  functions of porepressure, but in this case this freedom makes no
+  sense.  Therefore, that option, along with relative permeability,
+  mobility, and $g = g(x,y,z)$, should not be used when specifying the
+  total flux.  The function $g$ may be dependent on $t$, however.
 
 
 
@@ -671,12 +699,12 @@ about 5\,m, so a standard value for $\sigma$ is $\sigma = 5\times
 is 1000\,kg.m$^{-3}$ and gravity is 10\,m.s$^{-2}$.
 
 Finally, the half-Gaussian sink may be multiplied by a
-user-defined function: 
+user-defined function:
 \begin{equation}
 F \rightarrow F\times g(t, x, y, z) \ ,
 \end{equation}
 if the user desires.  This is useful, for instance, if
-evapotranspiration is a known function of space and time. 
+evapotranspiration is a known function of space and time.
 
 
 If the half-Gaussian sink is unsuitable, a piecewise-linear
@@ -782,22 +810,22 @@ P_{\mathrm{atm}}) )$.
 
 Wellbores are implemented in a similar way to
 Eqn~(\ref{source.stream.eqn}) using the method first described by
-Peaceman~\cite{peaceman1983}.  Here  
+Peaceman~\cite{peaceman1983}.  Here
 \begin{equation}
 F = \sum_{i}f(P_{i}, x_{i})\delta(x - x_{i}) \ ,
 \end{equation}
 with $P_{i}$ being the porepressure at point $i$.  Here $f$ is a
-special function (measured in kg.s$^{-1}$ in standard 
+special function (measured in kg.s$^{-1}$ in standard
 units) defined in terms of the pressure at a
 point at the wall of the wellbore (which is an input parameter: it is
-not the porepressure) 
+not the porepressure)
 \begin{equation}
 P_{\mathrm{wellbore}}(x_{i}) = P_{\mathrm{bot}} + \gamma \cdot (x_{i} -
 x_{i}^{\mathrm{bot}})
 \end{equation}
 The form of $f$ is
 \begin{equation}
-f(P_{i}, x_{i}) = 
+f(P_{i}, x_{i}) =
 W \left|C(P_{i}-P_{\mathrm{wellbore}})\right|
 \frac{\kappa_{\mathrm{rel}}\rho}{\mu}(P_{i} - P_{\mathrm{wellbore}})
 \end{equation}
@@ -826,7 +854,7 @@ There are a number of parameters in these expressions:
   acts as a source, adding fluid to the porespace.
 \end{itemize}
 \item The function $W$ is called the well-constant of the wellbore, and is
-measured in units of length$^{3}$. 
+measured in units of length$^{3}$.
 \end{itemize}
 
 Peaceman~\cite{peaceman1983} described the form of $W$ by performing
@@ -845,7 +873,7 @@ finite-difference approach, Peaceman found that
 \begin{equation}
 r_{e} = 0.28 \frac{\sqrt{\sqrt{\kappa_{xx}/\kappa_{yy}}L_{x}^{2} +
     \sqrt{\kappa_{yy}/\kappa_{xx}}L_{y}^{2}}}{(\kappa_{xx}/\kappa_{yy})^{1/4}
-  + (\kappa_{yy}/\kappa_{xx})^{1/4}} 
+  + (\kappa_{yy}/\kappa_{xx})^{1/4}}
 = 0.2 \frac{\sqrt{\mbox{$\frac{1}{2}$}\sqrt{\kappa_{xx}/\kappa_{yy}}L_{x}^{2} +
     \mbox{$\frac{1}{2}$}\sqrt{\kappa_{yy}/\kappa_{xx}}L_{y}^{2}}}{\mbox{$\frac{1}{2}$}(\kappa_{xx}/\kappa_{yy})^{1/4}
   + \mbox{$\frac{1}{2}$}(\kappa_{yy}/\kappa_{xx})^{1/4}} \ .
@@ -896,8 +924,12 @@ It is well-known that numerical implementations of
 Eqn~(\ref{richards.eqn}) must use upwinding so that the propagation of
 fronts be accurately simulated
 (eg~\cite{huyakorn1978,dalen1979,helmig1998}).  This chapter details
-the Streamline-Upwind-Petrov-Galerkin (SUPG) upwinding I have
-implemented, which is based on~\cite{brooks1982, hughes1986}.
+the two forms of upwinding I have implemented for the Richards
+equation: Streamline-Upwind-Petrov-Galerkin (SUPG) upwinding
+implemented, based on~\cite{brooks1982, hughes1986}, and the
+fully-upwinding approach that I think is originally due to~\cite{dalen1979}.
+
+\section{Petrov-Galerkin finite elements and upwinding}
 
 First consider the
 fairly general case of one scalar variable whose evolution within a
@@ -1282,7 +1314,7 @@ and the mobility function
 The isoparametric coordinate for the first element is $\xi =
 \frac{z-L/2}{L/2}$, which yields $b=2v/L$
 (Eqn~(\ref{eqn.b.params.supg}).  When $P_{\mathrm{SUPG}}$ is set
-small, the upwinding parameter 
+small, the upwinding parameter
 \begin{equation}
 \tau = \left|\frac{L}{2v}\right| \ .
 \end{equation}
@@ -1364,6 +1396,87 @@ reduced due to the fluid transfer depending only on $\lambda_{1}=0$ to second
 order (Eqn~(\ref{eqn.supg.eg.2nd.order})).
 
 
+\section{Full upwinding}
+
+The SUPG approach has nice numerical properties, in particular the
+upwinding strength is a smooth function of the velocity.  However for
+multi-phase situations it can lead to disaster as the algorithm can
+attempt to withdraw fluid from a node where there is no fluid.  For
+instance, this would happen in the situation described in the previous
+paragraph if the immobile saturation was zero.  For situations where
+one phase disappears, or almost disappears, full upwinding is
+advisable.  It has the numerical disadvantage that it is not smooth,
+so that close to steady-state where the fluxes are zero, the upwind
+direction can oscillate, leading to nonconvergence.
+
+The weak form of the flux term in Eqn~(\ref{richards.eqn}) for a
+single element is
+\begin{equation}
+R_{a} = \int_{\mathrm{element}} \nabla_{i}\psi_{a}
+\frac{\rho\kappa_{ij}\kappa_{\mathrm{rel}}}{\mu}(\nabla_{j}P - \rho
+g_{j})  \ .
+\end{equation}
+Here $\psi_{a}$ is the test function that we are integrating against,
+and $R_{a}$ is the contribution to the residual for this test
+function.  Define
+\begin{equation}
+m = \frac{\rho\kappa_{\mathrm{rel}}}{\mu} \ ,
+\end{equation}
+which is called the mobility.
+
+Upwinding is all a matter of choosing where in the element to evaluate
+$m$ in the above integral.  The sophisticated SUPG approach was
+designed to weight $m$ on the upstream side of the element.  Consider
+for a moment taking $m$ outside the integral:
+\begin{equation}
+\tilde{R}_{a} = m\int_{\mathrm{element}} \nabla_{i}\psi_{a}
+\kappa_{ij}(\nabla_{j}P - \rho
+g_{j}) = m I_{a} \ .
+\end{equation}
+$\tilde{R}$ is not exactly $R$, but note:
+\begin{itemize}
+\item $R_{a}$ is the mass flux flowing out of node $a$.
+\item $I_{a}$ is thereby intepreted as a measure of fluid flow out of
+  node $a$.
+\end{itemize}
+This leads to the following definition of upwinding:
+\begin{equation}
+R_{a} = m_{a}I_{a} \ \ \ \mbox{if}\ \ \ I_{a}\geq 0 \ .
+\end{equation}
+The nodes for which $I_{a}\geq 0$ are called ``upwind nodes'', since
+fluid is flowing from them to the ``downwind nodes''.  I
+think this approach was first introduced by Dalen~\cite{dalen1979} in
+1979.
+
+The residual at the downwind nodes is determined by conserving mass.
+Specifically, let
+\begin{equation}
+I_{\mathrm{up}} = \sum_{I_{a}\geq 0}I_{a} \ \ \ \mbox{and}\ \ \
+I_{\mathrm{down}} = -\sum_{I_{a}<0} I_{a} \ .
+\end{equation}
+Then
+\begin{equation}
+R_{a} = I_{a}\frac{I_{\mathrm{up}}}{I_{\mathrm{down}}}
+\ \ \ \mbox{for}\ \ \ I_{a}<0 \ .
+\end{equation}
+Then $\sum_{a} R_{a} = 0$ as required by mass conservation (which
+originates from $\sum_{a} \psi_{a} = 1$).
+
+The fully-upwind method is extremely
+advantageous to use if fluid saturations ever approach immobile
+saturation (where $\kappa_{\mathrm{rel}}=0$) or zero density, for then
+the mobility is zero and it becomes impossible to withdraw fluid from
+such a node (in practice this may still happen due to precision loss
+or other related nasty artifacts that I will not describe here).
+
+Prescribed sinks, either from the boundary or from internal objects such as
+wellbores, should also be fully-upwinded if they are likely to cause
+fluid phases to disappear or be reduced to their immobile
+saturations.  I have implemented full upwinding for the sinks
+described in Chapter~\ref{sources.sinks.chap}.
+
+
+
 
 \chapter{Discretisation of the time derivative}
 \label{discret.chap}
@@ -1407,7 +1520,7 @@ suppose that Node 2 has high potential, and that nodes 0 and 1 are at
 immobile saturation.  Then fluid will flow from node 2 to node 1 (and
 then to node 0 in the next time step).  For simplicity, imagine that
 $\phi\rho S$ is a linear
-function of the potential $\phi$.  Then, up to constants, the
+function of the potential.  Then, up to constants, the
 discretised Richard's equation reads
 \begin{equation}
 \left(
@@ -1490,7 +1603,7 @@ Richards' equations for multi-phase flow are
 \begin{equation}
 \phi \frac{\partial}{\partial t} \left( \rho^{\gamma} S^{\gamma} \right) = \nabla_{i}
 \left( \frac{\rho^{\gamma} \kappa_{ij}\kappa^{\gamma}_{\mathrm{rel}}}{\mu^{\gamma}} (\nabla_{j}P^{\gamma} - \rho^{\gamma}
-g_{j}) \right) 
+g_{j}) \right)
 + F^{\gamma} \ ,
 \label{richards.eqn.multi}
 \end{equation}
@@ -1519,7 +1632,7 @@ S^{\gamma}_{\mathrm{eff}}(P_{1},\ P_{2},\ldots) \ .
 It is therefore the saturations that couple the separate phases
 together.  The MOOSE implementation allows users to specify arbitrary
 functions for the effective saturations, but these must obey the
-constraint 
+constraint
 \begin{equation}
 \sum_{\gamma}S^{\gamma} = 1 \ .
 \end{equation}

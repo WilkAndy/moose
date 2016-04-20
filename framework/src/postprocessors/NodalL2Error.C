@@ -24,9 +24,8 @@ InputParameters validParams<NodalL2Error>()
   return params;
 }
 
-NodalL2Error::NodalL2Error(const std::string & name, InputParameters parameters) :
-    NodalVariablePostprocessor(name, parameters),
-    FunctionInterface(parameters),
+NodalL2Error::NodalL2Error(const InputParameters & parameters) :
+    NodalVariablePostprocessor(parameters),
     _func(getFunction("function"))
 {
 }
@@ -61,3 +60,4 @@ NodalL2Error::threadJoin(const UserObject & y)
   const NodalL2Error & pps = static_cast<const NodalL2Error &>(y);
   _integral_value += pps._integral_value;
 }
+

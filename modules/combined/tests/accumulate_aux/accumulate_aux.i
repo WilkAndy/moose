@@ -33,13 +33,13 @@
     type = AccumulateAux
     variable = node_accum
     accumulate_from_variable = v
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
   [./ea]
     type = AccumulateAux
     variable = elem_accum
     accumulate_from_variable = v
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
 []
 
@@ -78,11 +78,5 @@
 
 [Outputs]
   file_base = accumulate_aux_out
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

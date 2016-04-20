@@ -15,24 +15,27 @@
 #ifndef POSTPROCESSOR_H
 #define POSTPROCESSOR_H
 
-#include <string>
 // MOOSE includes
-#include "InputParameters.h"
-#include "Restartable.h"
+#include "OutputInterface.h"
 
 // libMesh
 #include "libmesh/parallel.h"
 
+// Forward declarations
 class Postprocessor;
 
 template<>
 InputParameters validParams<Postprocessor>();
 
-
-class Postprocessor
+/**
+ * Base class for all Postprocessors.  Defines a name and sets up the
+ * virtual getValue() interface which must be overridden by derived
+ * classes.
+ */
+class Postprocessor : public OutputInterface
 {
 public:
-  Postprocessor(const std::string & name, InputParameters parameters);
+  Postprocessor(const InputParameters & parameters);
 
   virtual ~Postprocessor(){ }
 
@@ -42,21 +45,12 @@ public:
   virtual PostprocessorValue getValue() = 0;
 
   /**
-   * Get the list of output objects that this class is restricted
-   * @return A vector of OutputNames
-   */
-  std::set<OutputName> getOutputs(){ return std::set<OutputName>(_outputs.begin(), _outputs.end()); }
-
-  /**
    * Returns the name of the Postprocessor.
    */
   std::string PPName() { return _pp_name; }
 
 protected:
   std::string _pp_name;
-
-  /// Vector of output names
-  std::vector<OutputName> _outputs;
 };
 
 #endif

@@ -83,11 +83,6 @@ active = 'mat'
 
 [Outputs]
   file_base = out
-  output_initial = true
   elemental_as_nodal = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

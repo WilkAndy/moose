@@ -14,6 +14,7 @@
 
 #include "MooseError.h"
 #include "MooseParsedFunction.h"
+#include "MooseParsedFunctionWrapper.h"
 
 template<>
 InputParameters validParams<MooseParsedFunction>()
@@ -24,9 +25,9 @@ InputParameters validParams<MooseParsedFunction>()
   return params;
 }
 
-MooseParsedFunction::MooseParsedFunction(const std::string & name, InputParameters parameters) :
-    Function(name, parameters),
-    MooseParsedFunctionBase(name, parameters),
+MooseParsedFunction::MooseParsedFunction(const InputParameters & parameters) :
+    Function(parameters),
+    MooseParsedFunctionBase(parameters),
     _value(verifyFunction(getParam<std::string>("value"))),
     _function_ptr(NULL)
 {
@@ -43,6 +44,18 @@ MooseParsedFunction::value(Real t, const Point & p)
   return _function_ptr->evaluate<Real>(t, p);
 }
 
+RealGradient
+MooseParsedFunction::gradient(Real t, const Point & p)
+{
+  return _function_ptr->evaluateGradient(t, p);
+}
+
+Real
+MooseParsedFunction::timeDerivative(Real t, const Point & p)
+{
+  return _function_ptr->evaluateDot(t, p);
+}
+
 RealVectorValue
 MooseParsedFunction::vectorValue(Real /*t*/, const Point & /*p*/)
 {
@@ -53,5 +66,12 @@ void
 MooseParsedFunction::initialSetup()
 {
   if (_function_ptr == NULL)
-    _function_ptr = new MooseParsedFunctionWrapper(_pfb_feproblem, _value, _vars, _vals);
+  {
+    THREAD_ID tid = 0;
+    if (isParamValid("_tid"))
+      tid = getParam<THREAD_ID>("_tid");
+
+    _function_ptr = new MooseParsedFunctionWrapper(_pfb_feproblem, _value, _vars, _vals, tid);
+  }
 }
+

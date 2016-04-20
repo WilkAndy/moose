@@ -15,24 +15,21 @@
 #ifndef VALUETHRESHOLDMARKER_H
 #define VALUETHRESHOLDMARKER_H
 
-#include "Marker.h"
-
-// libmesh includes
-#include "libmesh/mesh_tools.h"
+#include "QuadraturePointMarker.h"
 
 class ValueThresholdMarker;
 
 template<>
 InputParameters validParams<ValueThresholdMarker>();
 
-class ValueThresholdMarker : public Marker
+class ValueThresholdMarker : public QuadraturePointMarker
 {
 public:
-  ValueThresholdMarker(const std::string & name, InputParameters parameters);
+  ValueThresholdMarker(const InputParameters & parameters);
   virtual ~ValueThresholdMarker(){};
 
 protected:
-  virtual MarkerValue computeElementMarker();
+  virtual MarkerValue computeQpMarker();
 
   bool _coarsen_set;
   Real _coarsen;
@@ -42,12 +39,7 @@ protected:
   bool _invert;
   MarkerValue _third_state;
 
-  VariableName _variable_name;
-  MooseVariable & _variable;
-  SystemBase & _variable_sys;
-  const NumericVector<Number> * & _variable_sys_solution;
-  FEType _variable_fe_type;
-  std::vector<dof_id_type> _variable_dof_indices;
+  const VariableValue & _u;
 };
 
 #endif /* VALUETHRESHOLDMARKER_H */

@@ -12,10 +12,10 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 
+// MOOSE includes
 #include "VerifyNodalUniqueID.h"
 #include "SubProblem.h"
-
-#include <algorithm>
+#include "MooseMesh.h"
 
 template<>
 InputParameters validParams<VerifyNodalUniqueID>()
@@ -24,8 +24,8 @@ InputParameters validParams<VerifyNodalUniqueID>()
   return params;
 }
 
-VerifyNodalUniqueID::VerifyNodalUniqueID(const std::string & name, InputParameters parameters) :
-    NodalUserObject(name, parameters)
+VerifyNodalUniqueID::VerifyNodalUniqueID(const InputParameters & parameters) :
+    NodalUserObject(parameters)
 {}
 
 // This object can't test every possible scenario.  For instance, it can't detect recycled ids

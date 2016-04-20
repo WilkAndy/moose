@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSENERGYVISCOUSBC_H
 #define NSENERGYVISCOUSBC_H
 
@@ -25,14 +31,10 @@ InputParameters validParams<NSEnergyViscousBC>();
  */
 class NSEnergyViscousBC : public NSIntegratedBC
 {
-
 public:
-  NSEnergyViscousBC(const std::string & name, InputParameters parameters);
-
-  virtual ~NSEnergyViscousBC(){}
+  NSEnergyViscousBC(const InputParameters & parameters);
 
 protected:
-
   /**
    * Just like other kernels, we must overload the Residual and Jacobian contributions...
    */
@@ -41,10 +43,10 @@ protected:
   virtual Real computeQpOffDiagJacobian(unsigned jvar);
 
   // Coupled gradients
-  VariableGradient& _grad_temperature;
+  const VariableGradient & _grad_temperature;
 
   // Material properties
-  MaterialProperty<Real>& _thermal_conductivity;
+  const MaterialProperty<Real>& _thermal_conductivity;
 
   // An object for computing viscous stress tensor derivatives.
   // Constructed via a reference to ourself so we can access all of our data.
@@ -64,8 +66,7 @@ protected:
 
   // Single vector to refer to all gradients.  Initialized in
   // the ctor.
-  std::vector<VariableGradient*> _gradU;
+  std::vector<const VariableGradient *> _gradU;
 };
-
 
 #endif // NSENERGYVISCOUSBC_H

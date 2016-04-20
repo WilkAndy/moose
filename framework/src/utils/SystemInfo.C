@@ -14,7 +14,7 @@
 
 #include "SystemInfo.h"
 #include "ExecutablePath.h"
-#include "HerdRevision.h"  ///< This file is auto-generated and contains the revisions
+#include "MooseRevision.h"  ///< This file is auto-generated and contains the revision
 
 #include "libmesh/libmesh_config.h"
 
@@ -33,14 +33,12 @@ SystemInfo::SystemInfo(int argc, char *argv[]) :
 }
 
 std::string
-SystemInfo::getInfo()
+SystemInfo::getInfo() const
 {
   std::stringstream oss;
   oss << std::left;
-
-  // Repository Revision
   oss << "Framework Information:\n";
-  oss << std::setw(25) << "Version: " << HERD_REVISION << "\n";
+  oss << std::setw(25) << "MOOSE version: " << MOOSE_REVISION << "\n";
 #ifdef LIBMESH_DETECTED_PETSC_VERSION_MAJOR
   oss << std::setw(25) << "PETSc Version: "
       << LIBMESH_DETECTED_PETSC_VERSION_MAJOR << '.'
@@ -67,7 +65,7 @@ SystemInfo::getInfo()
 
 // TODO: Update libmesh to handle this function "timestamp.h"
 std::string
-SystemInfo::getTimeStamp(time_t *time_stamp)
+SystemInfo::getTimeStamp(time_t *time_stamp) const
 {
   struct tm *tm_struct;
   time_t local_time;

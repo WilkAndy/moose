@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  Base class for Richards SUPG
 //
@@ -22,8 +25,8 @@ InputParameters validParams<RichardsSUPG>();
  */
 class RichardsSUPG : public GeneralUserObject
 {
- public:
-  RichardsSUPG(const std::string & name, InputParameters parameters);
+public:
+  RichardsSUPG(const InputParameters & parameters);
 
   void initialize();
   void execute();
@@ -56,7 +59,7 @@ class RichardsSUPG : public GeneralUserObject
   /**
    * |bb| ~ 2*velocity/element_length
    * @param vel SUPG velocity
-   * @param dim dimension of problem
+   * @param dimen dimension of problem
    * @param xi_prime spatial gradient of the isoparametric coordinate xi
    * @param eta_prime spatial gradient of the isoparametric coordinate eta
    * @param zeta_prime spatial gradient of the isoparametric coordinate zeta
@@ -111,6 +114,13 @@ class RichardsSUPG : public GeneralUserObject
    * @param db2_dp derivative of b*b wrt porepressure
    */
   virtual Real dtauSUPG_dp(RealVectorValue vel, RealVectorValue dvel_dp, Real traceperm, RealVectorValue b, Real db2_dp) const = 0;
+
+  /**
+   * Returns true if SUPG is trivial.
+   * This may used for optimization since typically
+   * SUPG stuff is quite expensive to calculate
+   */
+  virtual bool SUPG_trivial() const = 0;
 };
 
 #endif // RICHARDSSUPG_H

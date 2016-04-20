@@ -15,12 +15,16 @@
 #ifndef MOOSERANDOM_H
 #define MOOSERANDOM_H
 
-#include "mtwist.h"
-
+// MOOSE includes
 #include "MooseError.h"
 
+// libMesh includes
 #include "libmesh/libmesh_config.h"
 #include LIBMESH_INCLUDE_UNORDERED_MAP
+
+// External library includes
+#include "randistrs.h"
+
 
 /**
  * This class encapsulates a useful, consistent, cross-platform random number generator
@@ -60,6 +64,26 @@ public:
   }
 
   /**
+   * This method returns the next random number (double format) from the generator,
+   * drawn from a normal distribution centered around mean, with a width of sigma
+   * @param mean     center of the random number distribution
+   * @param sigma    width  of the random number distribution
+   * @return      the next random number following a normal distribution of width sigma around mean with 64-bit precision
+   */
+  static inline double randNormal(double mean, double sigma)
+  {
+    return rd_normal(mean, sigma);
+  }
+
+  /**
+   * Return next random number drawn from a standard distribution.
+   */
+  static inline double randNormal()
+  {
+    return randNormal(0.0, 1.0);
+  }
+
+  /**
    * This method returns the next random number (long format) from the generator
    * @return      the next random number in the range [0,max(uinit32_t)) with 32-bit number
    */
@@ -69,13 +93,13 @@ public:
   }
 
   /**
-   * The methoed seeds one of the independent random number generators
+   * The method seeds one of the independent random number generators
    * @param i     the index of the generator
    * @param seed  the seed number
    */
   inline void seed(unsigned int i, unsigned int seed)
   {
-    mts_seed32new(&(_states[i]), seed);
+    mts_seed32new(&(_states[i].first), seed);
   }
 
   /**
@@ -86,7 +110,29 @@ public:
   inline double rand(unsigned int i)
   {
     mooseAssert(_states.find(i) != _states.end(), "No random state initialized for id: " << i);
-    return mts_ldrand(&(_states[i]));
+    return mts_ldrand(&(_states[i].first));
+  }
+
+  /**
+   * This method returns the next random number (double format) from the specified generator,
+   * drawn from a normal distribution centered around mean, with a width of sigma
+   * @param i     the index of the generator
+   * @param mean     center of the random number distribution
+   * @param sigma    width  of the random number distribution
+   * @return      the next random number following a normal distribution of width sigma around mean with 64-bit precision
+   */
+  inline double randNormal(unsigned int i, double mean, double sigma)
+  {
+    mooseAssert(_states.find(i) != _states.end(), "No random state initialized for id: " << i);
+    return rds_normal(&(_states[i].first), mean, sigma);
+  }
+
+  /**
+   * Return next random number drawn from a standard distribution.
+   */
+  inline double randNormal(unsigned int i)
+  {
+    return randNormal(i, 0.0, 1.0);
   }
 
   /**
@@ -97,7 +143,7 @@ public:
   inline uint32_t randl(unsigned int i)
   {
     mooseAssert(_states.find(i) != _states.end(), "No random state initialized for id: " << i);
-    return mts_lrand(&(_states[i]));
+    return mts_lrand(&(_states[i].first));
   }
 
   /**
@@ -106,7 +152,9 @@ public:
    */
   void saveState()
   {
-    _old_states = _states;
+    for (LIBMESH_BEST_UNORDERED_MAP<unsigned int, std::pair<mt_state, mt_state> >::iterator it = _states.begin();
+         it != _states.end(); ++it)
+      it->second.second = it->second.first;
   }
 
   /**
@@ -114,12 +162,19 @@ public:
    */
   void restoreState()
   {
-    _states = _old_states;
+    for (LIBMESH_BEST_UNORDERED_MAP<unsigned int, std::pair<mt_state, mt_state> >::iterator it = _states.begin();
+         it != _states.end(); ++it)
+      it->second.first = it->second.second;
   }
 
 private:
-  LIBMESH_BEST_UNORDERED_MAP<unsigned int, mt_state> _states;
-  LIBMESH_BEST_UNORDERED_MAP<unsigned int, mt_state> _old_states;
+
+  /**
+   * We store a pair of states in this map. The first one is the active state, the
+   * second is the backup state. It is used to restore state at a later time
+   * to the active state.
+   */
+  LIBMESH_BEST_UNORDERED_MAP<unsigned int, std::pair<mt_state, mt_state> > _states;
 };
 
 #endif // MOOSERANDOM_H

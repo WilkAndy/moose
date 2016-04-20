@@ -66,11 +66,6 @@
 
 [Outputs]
   file_base = out_block
-  output_initial = true
   exodus = false
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

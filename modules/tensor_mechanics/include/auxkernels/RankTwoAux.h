@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef RANKTWOAUX_H
 #define RANKTWOAUX_H
 
@@ -18,18 +24,17 @@ InputParameters validParams<RankTwoAux>();
 class RankTwoAux : public AuxKernel
 {
 public:
-  RankTwoAux(const std::string & name, InputParameters parameters);
-
-  virtual ~ RankTwoAux() {}
+  RankTwoAux(const InputParameters & parameters);
+  virtual ~RankTwoAux() {}
 
 protected:
   virtual Real computeValue();
 
 private:
 
-  MaterialProperty<RankTwoTensor> & _tensor;
-  const int _i;
-  const int _j;
+  const MaterialProperty<RankTwoTensor> & _tensor;
+  const unsigned int _i;
+  const unsigned int _j;
 };
 
 #endif //RANKTWOAUX_H

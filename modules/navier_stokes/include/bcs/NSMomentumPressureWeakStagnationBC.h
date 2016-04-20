@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSMOMENTUMPRESSUREWEAKSTAGNATIONBC_H
 #define NSMOMENTUMPRESSUREWEAKSTAGNATIONBC_H
 
@@ -9,7 +15,6 @@ class NSMomentumPressureWeakStagnationBC;
 template<>
 InputParameters validParams<NSMomentumPressureWeakStagnationBC>();
 
-
 /**
  * This class implements the pressure term of the momentum
  * equation boundary integral for use in weak stagnation
@@ -17,11 +22,8 @@ InputParameters validParams<NSMomentumPressureWeakStagnationBC>();
  */
 class NSMomentumPressureWeakStagnationBC : public NSWeakStagnationBC
 {
-
 public:
-  NSMomentumPressureWeakStagnationBC(const std::string & name, InputParameters parameters);
-
-  virtual ~NSMomentumPressureWeakStagnationBC(){}
+  NSMomentumPressureWeakStagnationBC(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
@@ -29,7 +31,7 @@ protected:
   virtual Real computeQpOffDiagJacobian(unsigned jvar);
 
   // Required parameters
-  unsigned _component;
+  const unsigned int _component;
 };
 
 #endif // NSMOMENTUMPRESSUREWEAKSTAGNATIONBC_H

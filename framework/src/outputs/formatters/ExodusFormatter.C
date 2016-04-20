@@ -12,12 +12,17 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 
+// MOOSE includes
 #include "ExodusFormatter.h"
 #include "Parser.h"
 #include "MooseApp.h"
-// libMesh
+#include "SystemInfo.h"
+#include "CommandLine.h"
+
+// libMesh includes
 #include "libmesh/exodusII.h"
-//
+
+// C++
 #include <sstream>
 #include <vector>
 
@@ -39,8 +44,11 @@ ExodusFormatter::printInputFile(ActionWarehouse & wh)
   if (wh.mooseApp().commandLine())
     wh.mooseApp().commandLine()->print("", _ss, 1);
 
-  _ss << "### Version Info ###\n"
-      << wh.mooseApp().getSystemInfo()->getInfo() << "\n";
+  if (wh.mooseApp().getSystemInfo() != NULL)
+  {
+    _ss << "### Version Info ###\n"
+        << wh.mooseApp().getSystemInfo()->getInfo() << "\n";
+  }
 
   _ss << "### Input File ###" << std::endl;
   wh.printInputFile(_ss);

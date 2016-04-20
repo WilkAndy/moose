@@ -2,7 +2,7 @@
 #
 # If you want to add another test for another UserObject
 # then add the UserObject, add a Function defining the expected result,
-# add an AuxVariable and AuxKernel that will record the UserObject's value
+# add an AuxVariable and AuxKernel that will record the UserObjects value
 # and finally add a NodalL2Error that compares this with the Function
 
 [UserObjects]
@@ -22,6 +22,21 @@
   [../]
   [./DensityMethane20degC]
     type = RichardsDensityMethane20degC
+  [../]
+  [./DensityVDW]
+    type = RichardsDensityVDW
+    a = 0.2303
+    b = 4.31E-4
+    temperature = 293
+    molar_mass = 16.04246E-3
+    infinity_ratio = 10
+  [../]
+  [./DensityConstBulkCut]
+    type = RichardsDensityConstBulkCut
+    dens0 = 1000
+    bulk_mod = 2E6
+    cut_limit = 1E6
+    zero_point = -1E6
   [../]
 
   # following are unimportant in this test
@@ -107,6 +122,48 @@
     direction = '1 0 0'
     value = if(x>0,(0.00654576947608E-3*x+1.04357716547E-13*x^2),0)+if(x<0,0.1*(e^(6.54576947608E-5*x)-1),0)
   [../]
+
+  [./answer_DensityVDW]
+    type = ParsedFunction
+    value = if(x>0,-(molar_mass*(-2+(2*pow(2,0.3333333333333333)*(a-3*b*(b*x+rt)))/pow(-2*pow(a,3)+9*pow(a,2)*b*(-2*b*x+rt)+pow(pow(a,3)*(a*pow(2*a+9*b*(2*b*x-rt),2)-4*pow(a-3*b*(b*x+rt),3)),0.5),0.3333333333333333)+(pow(2,0.6666666666666666)*pow(-2*pow(a,3)+9*pow(a,2)*b*(-2*b*x+rt)+pow(pow(a,3)*(a*pow(2*a+9*b*(2*b*x-rt),2)-4*pow(a-3*b*(b*x+rt),3)),0.5),0.3333333333333333))/a))/(6.*b)+(molar_mass*(-2+(2*pow(2,0.3333333333333333)*(a-3*b*(b*0+rt)))/pow(-2*pow(a,3)+9*pow(a,2)*b*(-2*b*0+rt)+pow(pow(a,3)*(a*pow(2*a+9*b*(2*b*0-rt),2)-4*pow(a-3*b*(b*0+rt),3)),0.5),0.3333333333333333)+(pow(2,0.6666666666666666)*pow(-2*pow(a,3)+9*pow(a,2)*b*(-2*b*0+rt)+pow(pow(a,3)*(a*pow(2*a+9*b*(2*b*0-rt),2)-4*pow(a-3*b*(b*0+rt),3)),0.5),0.3333333333333333))/a))/(6.*b),infinityratio*molar_mass*(e^(slope0*x)-1))
+    vars = 'a b rt molar_mass infinityratio slope0'
+    vals = '0.2303 0.000431 2436.1403 0.01604246 10 4.10485e-05'
+  [../]
+  [./answer_dDensityVDW]
+    type = GradParsedFunction
+    direction = '1 0 0'
+    value = if(x>0,-(molar_mass*(-2+(2*pow(2,0.3333333333333333)*(a-3*b*(b*x+rt)))/pow(-2*pow(a,3)+9*pow(a,2)*b*(-2*b*x+rt)+pow(pow(a,3)*(a*pow(2*a+9*b*(2*b*x-rt),2)-4*pow(a-3*b*(b*x+rt),3)),0.5),0.3333333333333333)+(pow(2,0.6666666666666666)*pow(-2*pow(a,3)+9*pow(a,2)*b*(-2*b*x+rt)+pow(pow(a,3)*(a*pow(2*a+9*b*(2*b*x-rt),2)-4*pow(a-3*b*(b*x+rt),3)),0.5),0.3333333333333333))/a))/(6.*b),infinityratio*molar_mass*(e^(slope0*x)-1))
+    vars = 'a b rt molar_mass infinityratio slope0'
+    vals = '0.2303 0.000431 2436.1403 0.01604246 10 4.10485e-05'
+  [../]
+  [./answer_d2DensityVDW]
+    type = Grad2ParsedFunction
+    direction = '1 0 0'
+    value = if(x>0,-(molar_mass*(-2+(2*pow(2,0.3333333333333333)*(a-3*b*(b*x+rt)))/pow(-2*pow(a,3)+9*pow(a,2)*b*(-2*b*x+rt)+pow(pow(a,3)*(a*pow(2*a+9*b*(2*b*x-rt),2)-4*pow(a-3*b*(b*x+rt),3)),0.5),0.3333333333333333)+(pow(2,0.6666666666666666)*pow(-2*pow(a,3)+9*pow(a,2)*b*(-2*b*x+rt)+pow(pow(a,3)*(a*pow(2*a+9*b*(2*b*x-rt),2)-4*pow(a-3*b*(b*x+rt),3)),0.5),0.3333333333333333))/a))/(6.*b),infinityratio*molar_mass*(e^(slope0*x)-1))
+    vars = 'a b rt molar_mass infinityratio slope0'
+    vals = '0.2303 0.000431 2436.1403 0.01604246 10 4.10485e-05'
+  [../]
+
+  [./answer_DensityConstBulkCut]
+    type = ParsedFunction
+    value = if(x<zero_pt,0,if(x>cut_limit,dens0*exp(x/bulk_mod),(3*cut_limit-2*x-zero_pt)*(x-zero_pt)*(x-zero_pt)*dens0*exp(x/bulk_mod)/(cut_limit-zero_pt)/(cut_limit-zero_pt)/(cut_limit-zero_pt)))
+    vars = 'dens0 bulk_mod zero_pt cut_limit'
+    vals = '1000 2E6 -1E6 1E6'
+  [../]
+  [./answer_dDensityConstBulkCut]
+    type = GradParsedFunction
+    direction = '1 0 0'
+    value = if(x<zero_pt,0,if(x>cut_limit,dens0*exp(x/bulk_mod),(3*cut_limit-2*x-zero_pt)*(x-zero_pt)*(x-zero_pt)*dens0*exp(x/bulk_mod)/(cut_limit-zero_pt)/(cut_limit-zero_pt)/(cut_limit-zero_pt)))
+    vars = 'dens0 bulk_mod zero_pt cut_limit'
+    vals = '1000 2E6 -1E6 1E6'
+  [../]
+  [./answer_d2DensityConstBulkCut]
+    type = Grad2ParsedFunction
+    direction = '1 0 0'
+    value = if(x<zero_pt,0,if(x>cut_limit,dens0*exp(x/bulk_mod),(3*cut_limit-2*x-zero_pt)*(x-zero_pt)*(x-zero_pt)*dens0*exp(x/bulk_mod)/(cut_limit-zero_pt)/(cut_limit-zero_pt)/(cut_limit-zero_pt)))
+    vars = 'dens0 bulk_mod zero_pt cut_limit'
+    vals = '1000 2E6 -1E6 1E6'
+  [../]
 []
 
 [AuxVariables]
@@ -129,6 +186,20 @@
   [./dDensityMethane20degC_Aux]
   [../]
   [./d2DensityMethane20degC_Aux]
+  [../]
+
+  [./DensityVDW_Aux]
+  [../]
+  [./dDensityVDW_Aux]
+  [../]
+  [./d2DensityVDW_Aux]
+  [../]
+
+  [./DensityConstBulkCut_Aux]
+  [../]
+  [./dDensityConstBulkCut_Aux]
+  [../]
+  [./d2DensityConstBulkCut_Aux]
   [../]
 
   [./check_Aux]
@@ -193,10 +264,48 @@
     pressure_var = pressure
   [../]
 
+  [./DensityVDW_AuxK]
+    type = RichardsDensityAux
+    variable = DensityVDW_Aux
+    density_UO = DensityVDW
+    pressure_var = pressure
+  [../]
+  [./dDensityVDW_AuxK]
+    type = RichardsDensityPrimeAux
+    variable = dDensityVDW_Aux
+    density_UO = DensityVDW
+    pressure_var = pressure
+  [../]
+  [./d2DensityVDW_AuxK]
+    type = RichardsDensityPrimePrimeAux
+    variable = d2DensityVDW_Aux
+    density_UO = DensityVDW
+    pressure_var = pressure
+  [../]
+
+  [./DensityConstBulkCut_AuxK]
+    type = RichardsDensityAux
+    variable = DensityConstBulkCut_Aux
+    density_UO = DensityConstBulkCut
+    pressure_var = pressure
+  [../]
+  [./dDensityConstBulkCut_AuxK]
+    type = RichardsDensityPrimeAux
+    variable = dDensityConstBulkCut_Aux
+    density_UO = DensityConstBulkCut
+    pressure_var = pressure
+  [../]
+  [./d2DensityConstBulkCut_AuxK]
+    type = RichardsDensityPrimePrimeAux
+    variable = d2DensityConstBulkCut_Aux
+    density_UO = DensityConstBulkCut
+    pressure_var = pressure
+  [../]
+
   [./check_AuxK]
     type = FunctionAux
     variable = check_Aux
-    function = answer_DensityMethane20degC
+    function = answer_d2DensityConstBulkCut
   [../]
 []
 
@@ -248,13 +357,45 @@
     function = answer_d2DensityMethane20degC
     variable = d2DensityMethane20degC_Aux
   [../]
+
+  [./cf_DensityVDW]
+    type = NodalL2Error
+    function = answer_DensityVDW
+    variable = DensityVDW_Aux
+  [../]
+  [./cf_dDensityVDW]
+    type = NodalL2Error
+    function = answer_dDensityVDW
+    variable = dDensityVDW_Aux
+  [../]
+  [./cf_d2DensityVDW]
+    type = NodalL2Error
+    function = answer_d2DensityVDW
+    variable = d2DensityVDW_Aux
+  [../]
+
+  [./cf_DensityConstBulkCut]
+    type = NodalL2Error
+    function = answer_DensityConstBulkCut
+    variable = DensityConstBulkCut_Aux
+  [../]
+  [./cf_dDensityConstBulkCut]
+    type = NodalL2Error
+    function = answer_dDensityConstBulkCut
+    variable = dDensityConstBulkCut_Aux
+  [../]
+  [./cf_d2DensityConstBulkCut]
+    type = NodalL2Error
+    function = answer_d2DensityConstBulkCut
+    variable = d2DensityConstBulkCut_Aux
+  [../]
 []
 
 
 
 #############################################################################
 #
-# Following is largely unimportant as we're not running an actual similation
+# Following is largely unimportant as we are not running an actual similation
 #
 #############################################################################
 [Mesh]
@@ -277,7 +418,7 @@
 []
 
 [Kernels]
-  active = 'richardsf richardst'
+  active = 'richardst'
   [./richardst]
     type = RichardsMassChange
     richardsVarNames_UO = PPNames
@@ -326,17 +467,12 @@
 []
 
 [Outputs]
-  active = 'console csv'
+  execute_on = 'timestep_end'
+  active = 'csv'
   file_base = uo2
-  [./console]
-    type = Console
-    linear_residuals = false
-    perf_log = false
-  [../]
   [./csv]
     type = CSV
-    interval = 1
-  [../]
+    [../]
   [./exodus]
     type = Exodus
     hide = pressure

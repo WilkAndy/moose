@@ -115,12 +115,13 @@
   [./pp]
     type = ElementIntegralVariablePostprocessor
     variable = u
-    execute_on = residual
+    execute_on = linear
   [../]
   [./l2_err]
     type = ElementL2Error
     variable = u
     function = exact_fn
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -140,11 +141,6 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  hide = 'lambda'
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
+  hide = lambda
 []

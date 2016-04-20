@@ -15,30 +15,37 @@
 #ifndef ADAPTIVITY_H
 #define ADAPTIVITY_H
 
-#include "Moose.h"
-#include "MooseError.h"
-#include "MooseEnum.h"
+#include "libmesh/libmesh_config.h"
 
 #ifdef LIBMESH_ENABLE_AMR
 
-#include <string>
+#include "Moose.h"
+#include "MooseError.h"
+#include "ConsoleStreamInterface.h"
+#include "MooseTypes.h"
 
 // libMesh
-#include "libmesh/system_norm.h"
 #include "libmesh/mesh_refinement.h"
-#include "libmesh/error_vector.h"
-#include "libmesh/error_estimator.h"
 
 class FEProblem;
 class MooseMesh;
 class DisplacedProblem;
 class MooseVariable;
+class MooseEnum;
+
+// Forward declare classes in libMesh
+namespace libMesh
+{
+class SystemNorm;
+class ErrorVector;
+class ErrorEstimator;
+}
 
 /**
  * Takes care of everything related to mesh adaptivity
  *
  */
-class Adaptivity
+class Adaptivity : public ConsoleStreamInterface
 {
 public:
   Adaptivity(FEProblem & subproblem);
@@ -100,6 +107,25 @@ public:
   unsigned int getCyclesPerStep() const { return _cycles_per_step; }
 
   /**
+   * Set the number of cycles_per_step
+   * @param num The number of cycles per step to execute
+   */
+  void setCyclesPerStep(const unsigned int & num){ _cycles_per_step = num; }
+
+  /**
+   * Pull out the _recompute_markers_during_cycles flag previously set through the AdaptivityAction
+   *
+   * @return the flag to recompute markers during adaptivity cycles
+   */
+  bool getRecomputeMarkersFlag() const { return _recompute_markers_during_cycles; }
+
+  /**
+   * Set the flag to recompute markers during adaptivity cycles
+   * @param flag The flag to recompute markers
+   */
+  void setRecomputeMarkersFlag(const bool flag){ _recompute_markers_during_cycles = flag; }
+
+  /**
    * Adapts the mesh based on the error estimator used
    *
    * @return a boolean that indicates whether the mesh was changed
@@ -112,9 +138,18 @@ public:
   void initialAdaptMesh();
 
   /**
-   * Does 'level' levels of uniform refinements
+   * Performs uniform refinement of the passed Mesh object. The
+   * number of levels of refinement performed is stored in the
+   * MooseMesh object. No solution projection is performed in this
+   * version.
    */
-  void uniformRefine(unsigned int level);
+  static void uniformRefine(MooseMesh *mesh);
+
+  /**
+   * Performs uniform refinement on the meshes in the current
+   * object. Projections are performed of the solution vectors.
+   */
+  void uniformRefineWithProjection();
 
   /**
    * Is adaptivity on?
@@ -194,7 +229,8 @@ protected:
   /// Error vector for use with the error estimator.
   ErrorVector * _error;
 
-  DisplacedProblem * & _displaced_problem;
+  MooseSharedPointer<DisplacedProblem> _displaced_problem;
+
   /// A mesh refinement object for displaced mesh
   MeshRefinement * _displaced_mesh_refinement;
 
@@ -227,6 +263,9 @@ protected:
   /// The maximum number of refinement levels
   unsigned int _max_h_level;
 
+  /// Whether or not to recompute markers during adaptivity cycles
+  bool _recompute_markers_during_cycles;
+
   /// Stores pointers to ErrorVectors associated with indicator field names
   std::map<std::string, ErrorVector *> _indicator_field_to_error_vector;
 };
@@ -255,6 +294,8 @@ Adaptivity::setParam(const std::string &param_name, const T &param_value)
   }
   else if (param_name == "cycles_per_step")
     _cycles_per_step = param_value;
+  else if (param_name == "recompute_markers_during_cycles")
+    _recompute_markers_during_cycles = param_value;
   else
     mooseError("Invalid Param in adaptivity object");
 }

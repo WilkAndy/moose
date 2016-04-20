@@ -1,9 +1,16 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "ThumbIC.h"
 
 template<>
 InputParameters validParams<ThumbIC>()
 {
   InputParameters params = validParams<InitialCondition>();
+  params.addClassDescription("Thumb shaped bicrystal for grain boundary mobility tests");
   params.addRequiredParam<Real>("xcoord", "The x coordinate of the circle center");
   params.addRequiredParam<Real>("width", "The y coordinate of the circle center");
   params.addRequiredParam<Real>("height", "The z coordinate of the circle center");
@@ -13,9 +20,8 @@ InputParameters validParams<ThumbIC>()
   return params;
 }
 
-ThumbIC::ThumbIC(const std::string & name,
-                 InputParameters parameters) :
-    InitialCondition(name, parameters),
+ThumbIC::ThumbIC(const InputParameters & parameters) :
+    InitialCondition(parameters),
     _xcoord(parameters.get<Real>("xcoord")),
     _width(parameters.get<Real>("width")),
     _height(parameters.get<Real>("height")),
@@ -52,3 +58,4 @@ ThumbIC::value(const Point & p)
 
   return value;
 }
+

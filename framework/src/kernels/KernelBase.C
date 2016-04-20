@@ -18,6 +18,7 @@
 #include "Problem.h"
 #include "SubProblem.h"
 #include "SystemBase.h"
+#include "NonlinearSystem.h"
 
 // libmesh includes
 #include "libmesh/threads.h"
@@ -29,6 +30,8 @@ InputParameters validParams<KernelBase>()
   params += validParams<TransientInterface>();
   params += validParams<BlockRestrictable>();
   params += validParams<RandomInterface>();
+  params += validParams<MeshChangedInterface>();
+  params += validParams<MaterialPropertyInterface>();
 
   params.addRequiredParam<NonlinearVariableName>("variable", "The name of the variable that this Kernel operates on");
   params.addParam<std::vector<AuxVariableName> >("save_in", "The name of auxiliary variables to save this Kernel's residual contributions to.  Everything about that variable must match everything about this variable (the type, what blocks it's on, etc.)");
@@ -39,23 +42,25 @@ InputParameters validParams<KernelBase>()
 
   params.addParamNamesToGroup("diag_save_in save_in", "Advanced");
 
+  params.declareControllable("enable");
   return params;
 }
 
-KernelBase::KernelBase(const std::string & name, InputParameters parameters) :
-    MooseObject(name, parameters),
-    BlockRestrictable(name, parameters),
-    SetupInterface(parameters),
+KernelBase::KernelBase(const InputParameters & parameters) :
+    MooseObject(parameters),
+    BlockRestrictable(parameters),
+    SetupInterface(this),
     CoupleableMooseVariableDependencyIntermediateInterface(parameters, false),
-    FunctionInterface(parameters),
-    UserObjectInterface(parameters),
-    TransientInterface(parameters, name, "kernels"),
-    PostprocessorInterface(parameters),
-    MaterialPropertyInterface(parameters),
-    RandomInterface(name, parameters, *parameters.get<FEProblem *>("_fe_problem"), parameters.get<THREAD_ID>("_tid"), false),
-    GeometricSearchInterface(parameters),
-    Restartable(name, parameters, "Kernels"),
+    FunctionInterface(this),
+    UserObjectInterface(this),
+    TransientInterface(this),
+    PostprocessorInterface(this),
+    MaterialPropertyInterface(this, blockIDs()),
+    RandomInterface(parameters, *parameters.get<FEProblem *>("_fe_problem"), parameters.get<THREAD_ID>("_tid"), false),
+    GeometricSearchInterface(this),
+    Restartable(parameters, "Kernels"),
     ZeroInterface(parameters),
+    MeshChangedInterface(parameters),
     _subproblem(*parameters.get<SubProblem *>("_subproblem")),
     _fe_problem(*parameters.get<FEProblem *>("_fe_problem")),
     _sys(*parameters.get<SystemBase *>("_sys")),
@@ -86,8 +91,11 @@ KernelBase::KernelBase(const std::string & name, InputParameters parameters) :
   {
     MooseVariable * var = &_subproblem.getVariable(_tid, _save_in_strings[i]);
 
+    if (_fe_problem.getNonlinearSystem().hasVariable(_save_in_strings[i]))
+      mooseError("Trying to use solution variable "+_save_in_strings[i]+" as a save_in variable in "+name());
+
     if (var->feType() != _var.feType())
-      mooseError("Error in " + _name + ". When saving residual values in an Auxiliary variable the AuxVariable must be the same type as the nonlinear variable the object is acting on.");
+      mooseError("Error in " + name() + ". When saving residual values in an Auxiliary variable the AuxVariable must be the same type as the nonlinear variable the object is acting on.");
 
     _save_in[i] = var;
     var->sys().addVariableToZeroOnResidual(_save_in_strings[i]);
@@ -101,8 +109,11 @@ KernelBase::KernelBase(const std::string & name, InputParameters parameters) :
   {
     MooseVariable * var = &_subproblem.getVariable(_tid, _diag_save_in_strings[i]);
 
+    if (_fe_problem.getNonlinearSystem().hasVariable(_diag_save_in_strings[i]))
+      mooseError("Trying to use solution variable "+_diag_save_in_strings[i]+" as a diag_save_in variable in "+name());
+
     if (var->feType() != _var.feType())
-      mooseError("Error in " + _name + ". When saving diagonal Jacobian values in an Auxiliary variable the AuxVariable must be the same type as the nonlinear variable the object is acting on.");
+      mooseError("Error in " + name() + ". When saving diagonal Jacobian values in an Auxiliary variable the AuxVariable must be the same type as the nonlinear variable the object is acting on.");
 
     _diag_save_in[i] = var;
     var->sys().addVariableToZeroOnJacobian(_diag_save_in_strings[i]);

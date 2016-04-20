@@ -15,8 +15,6 @@
 #include "AverageNodalVariableValue.h"
 #include "MooseMesh.h"
 #include "SubProblem.h"
-// libMesh
-#include "libmesh/boundary_info.h"
 
 template<>
 InputParameters validParams<AverageNodalVariableValue>()
@@ -25,8 +23,8 @@ InputParameters validParams<AverageNodalVariableValue>()
   return params;
 }
 
-AverageNodalVariableValue::AverageNodalVariableValue(const std::string & name, InputParameters parameters) :
-    NodalVariablePostprocessor(name, parameters),
+AverageNodalVariableValue::AverageNodalVariableValue(const InputParameters & parameters) :
+    NodalVariablePostprocessor(parameters),
     _avg(0),
     _n(0)
 {

@@ -39,8 +39,8 @@ InputParameters validParams<AddPeriodicBCAction>()
   return params;
 }
 
-AddPeriodicBCAction::AddPeriodicBCAction(const std::string & name, InputParameters params) :
-    Action(name, params)
+AddPeriodicBCAction::AddPeriodicBCAction(InputParameters params) :
+    Action(params)
 {
 }
 
@@ -180,3 +180,4 @@ AddPeriodicBCAction::act()
     mooseError("You have to specify either 'auto_direction', 'translation' or 'trans_func' in your period boundary section '" + _name + "'");
   }
 }
+

@@ -17,17 +17,20 @@
 
 #include "NodalVariablePostprocessor.h"
 
-//Forward Declarations
+// Forward Declarations
 class NodalProxyMaxValue;
-class MooseMesh;
 
 template<>
 InputParameters validParams<NodalProxyMaxValue>();
 
+/**
+ * Computes the max value at a node and broadcasts it to all
+ * processors.
+ */
 class NodalProxyMaxValue : public NodalVariablePostprocessor
 {
 public:
-  NodalProxyMaxValue(const std::string & name, InputParameters parameters);
+  NodalProxyMaxValue(const InputParameters & parameters);
 
   virtual void initialize();
   virtual Real computeValue();
@@ -39,7 +42,7 @@ public:
 protected:
 
   Real _value;
-  unsigned int _node_id;
+  dof_id_type _node_id;
 };
 
 #endif //NODALPROXYMAXVALUE_H

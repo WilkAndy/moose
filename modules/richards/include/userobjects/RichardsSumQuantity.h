@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSSUMQUANTITY_H
 #define RICHARDSSUMQUANTITY_H
@@ -23,7 +26,7 @@ InputParameters validParams<RichardsSumQuantity>();
 class RichardsSumQuantity : public GeneralUserObject
 {
 public:
-  RichardsSumQuantity(const std::string & name, InputParameters parameters);
+  RichardsSumQuantity(const InputParameters & parameters);
   virtual ~RichardsSumQuantity();
 
   /// sets _total = 0

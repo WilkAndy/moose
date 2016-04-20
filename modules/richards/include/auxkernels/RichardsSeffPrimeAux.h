@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSSEFFPRIMEAUX_H
 #define RICHARDSSEFFPRIMEAUX_H
@@ -22,7 +25,7 @@ InputParameters validParams<RichardsSeffPrimeAux>();
 class RichardsSeffPrimeAux: public AuxKernel
 {
 public:
-  RichardsSeffPrimeAux(const std::string & name, InputParameters parameters);
+  RichardsSeffPrimeAux(const InputParameters & parameters);
 
 protected:
   virtual Real computeValue();
@@ -45,7 +48,10 @@ protected:
    * where N is the number of arguments that the _seff_UO requires)
    * Eg, for twophase simulations N=2
    */
-  std::vector<VariableValue *> _pressure_vals;
+  std::vector<const VariableValue *> _pressure_vals;
+
+  /// array of derivtives: This auxkernel returns _mat[_wrt1]
+  std::vector<Real> _mat;
 };
 
 #endif // RICHARDSSEFFPRIMEAUX_H

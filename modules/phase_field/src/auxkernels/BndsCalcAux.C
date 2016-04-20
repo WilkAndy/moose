@@ -1,34 +1,36 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "BndsCalcAux.h"
-#include "AddV.h"
 
 template<>
 InputParameters validParams<BndsCalcAux>()
 {
   InputParameters params = validParams<AuxKernel>();
-  params.addCoupledVar("v", "Array of coupled variables");
-  params.addRequiredParam<unsigned int>("crys_num", "number of grains");
-  params.addRequiredParam<std::string>("var_name_base", "base for variable names");
-
+  params.addClassDescription("Calculate location of grain boundaries in a polycrystalline sample");
+  params.addRequiredCoupledVarWithAutoBuild("v", "var_name_base", "op_num", "Array of coupled variables");
   return params;
 }
 
-BndsCalcAux::BndsCalcAux(const std::string & name, InputParameters parameters) :
-    AuxKernel(name, AddV(parameters) )
+BndsCalcAux::BndsCalcAux(const InputParameters & parameters) :
+    AuxKernel(parameters),
+    _ncrys(coupledComponents("v")),
+    _vals(_ncrys)
 {
-  _ncrys = coupledComponents("v");
-  _vals.resize(_ncrys);
-
-  for (unsigned int i=0; i < _ncrys; ++i)
+  for (unsigned int i = 0; i < _ncrys; ++i)
     _vals[i] = &coupledValue("v", i);
 }
 
 Real
 BndsCalcAux::computeValue()
 {
-  Real value = 0;
+  Real value = 0.0;
 
-  for (unsigned int i=0; i < _ncrys; ++i)
-    value += (*_vals[i])[_qp]*(*_vals[i])[_qp];
+  for (unsigned int i = 0; i < _ncrys; ++i)
+    value += (*_vals[i])[_qp] * (*_vals[i])[_qp];
 
   return value;
 }

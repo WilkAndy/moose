@@ -19,13 +19,15 @@
 #include <string>
 #include <vector>
 
+// MOOSE includes
+#include "ParallelUniqueId.h"
+#include "MooseError.h"
+
 // libMesh includes
-#include "libmesh/dense_vector.h"
-#include "libmesh/point.h"
 #include "libmesh/parsed_function.h"
 
-// MOOSE includes
-#include "FEProblem.h"
+// Forward declarations
+class FEProblem;
 
 /**
  * A wrapper class for creating and evaluating parsed functions via the
@@ -48,7 +50,8 @@ public:
   MooseParsedFunctionWrapper(FEProblem & feproblem,
                               const std::string & function_str,
                               const std::vector<std::string> & vars,
-                              const std::vector<std::string> & vals);
+                              const std::vector<std::string> & vals,
+                              const THREAD_ID tid = 0);
 
   /**
    * Class destruction
@@ -64,6 +67,18 @@ public:
    */
   template<typename T>
   T evaluate(Real t, const Point & p);
+
+  /**
+   * Evaluate the gradient of the function which libMesh provides through
+   * automatic differentiation
+   */
+  RealGradient evaluateGradient(Real t, const Point & p);
+
+  /**
+   * Evaluate the time derivative of the function which libMesh provides through
+   * automatic differentiation
+   */
+  Real evaluateDot(Real t, const Point & p);
 
 private:
 
@@ -89,10 +104,19 @@ private:
   std::vector<unsigned int> _pp_index;
 
   /// Vector of pointers to PP values
-  std::vector<Real *> _pp_vals;
+  std::vector<const Real *> _pp_vals;
+
+  /// Stores the relative location of variables (in _vars) that are connected to Postprocessors
+  std::vector<unsigned int> _scalar_index;
+
+  /// Vector of pointers to PP values
+  std::vector<Real *> _scalar_vals;
 
   /// Vector of pointers to the variables in libMesh::ParsedFunction
   std::vector<Real *> _addr;
+
+  /// The thread id passed from owning Function object
+  const THREAD_ID _tid;
 
   /**
    * Initialization method that prepares the vars and vals for use

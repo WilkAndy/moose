@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "C1ICBase.h"
 
 //Portions of this code Copyright 2007-2009 Roy Stogner
@@ -33,9 +39,8 @@ InputParameters validParams<C1ICBase>()
   return params;
 }
 
-C1ICBase::C1ICBase(const std::string & name,
-                   InputParameters parameters) :
-    InitialCondition(name, parameters),
+C1ICBase::C1ICBase(const InputParameters & parameters) :
+    InitialCondition(parameters),
     _average(parameters.get<Real>("average")),
     _amplitude(parameters.get<Real>("amplitude")),
     _length(parameters.get<Real>("length")),
@@ -66,3 +71,4 @@ C1ICBase::interfaceDerivative(Real r)
 
   return ((12.0*x*x - 12.0*x) * _amplitude);
 }
+

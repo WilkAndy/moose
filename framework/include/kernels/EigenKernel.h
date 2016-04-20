@@ -24,7 +24,7 @@ class EigenSystem;
 template<>
 InputParameters validParams<EigenKernel>();
 
-/*
+/**
  * The behavior of this kernel is controlled by one problem-wise global parameter
  *    eigen_on_current - bool, to indicate if this kernel is operating on the current solution or old solution
  * This kernel also obtain the postprocessor for eigenvalue by one problem-wise global parameter
@@ -39,18 +39,18 @@ public:
   virtual void computeOffDiagJacobian(unsigned int /*jvar*/) {}
   virtual void computeOffDiagJacobianScalar(unsigned int /*jvar*/) {}
 
-  EigenKernel(const std::string & name, InputParameters parameters);
-  virtual bool isActive();
+  EigenKernel(const InputParameters & parameters);
+  virtual bool enabled();
 
 protected:
   virtual Real computeQpResidual() = 0;
   virtual Real computeQpJacobian();
 
   /// Holds the solution at current quadrature points
-  VariableValue & _u;
+  const VariableValue & _u;
 
   /// Holds the solution gradient at the current quadrature points
-  VariableGradient & _grad_u;
+  const VariableGradient & _grad_u;
 
   /// flag for as an eigen kernel or a normal kernel
   bool _eigen;
@@ -58,10 +58,10 @@ protected:
   /// EigenKernel always lives in EigenSystem
   EigenSystem * _eigen_sys;
 
-  /// name of the postprocessor for evaluating eigenvalue
-  PostprocessorName _eigen_pp;
-
-  /// eigenvalue
+  /**
+   * A pointer to the eigenvalue that is stored in a postprocessor
+   * This is a pointer so that the method for retrieval (old vs current) may be changed.
+   */
   const Real * _eigenvalue;
 };
 

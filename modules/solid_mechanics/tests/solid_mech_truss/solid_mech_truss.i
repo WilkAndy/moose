@@ -115,27 +115,6 @@
     boundary = 3
     value = 0
   [../]
-
-  [./fixDummyHex_x]
-    type = DirichletBC
-    variable = disp_x
-    boundary = 1000
-    value = 0
-  [../]
-
-  [./fixDummyHex_y]
-    type = DirichletBC
-    variable = disp_y
-    boundary = 1000
-    value = 0
-  [../]
-
-  [./fixDummyHex_z]
-    type = DirichletBC
-    variable = disp_z
-    boundary = 1000
-    value = 0
-  [../]
 []
 
 [AuxKernels]
@@ -156,7 +135,7 @@
     block = '1 2'
     variable = area
     value = 1.0
-    execute_on = timestep_begin
+    execute_on = 'initial timestep_begin'
   [../]
 []
 
@@ -213,35 +192,7 @@
   [../]
 []
 
-[SolidMechanics]
-#  [./solid]
-#    type = truss
-#    disp_x = disp_x
-#    disp_y = disp_y
-#    disp_z = disp_z
-#    area = area
-#    save_in = react_x
-#    save_in = react_y
-#    save_in = react_z
-#  [../]
-  [./dummyHex]
-    block = 1000
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
-  [../]
-[]
-
 [Materials]
-  [./goo]
-    type = Elastic
-    block = 1000
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
-    youngs_modulus = 1e6
-    poissons_ratio = 0
-  [../]
   [./linelast]
     type = TrussMaterial
     block = '1 2'
@@ -257,11 +208,5 @@
 
 [Outputs]
   file_base = solid_mech_truss_out
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

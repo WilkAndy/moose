@@ -231,11 +231,5 @@
 
 [Outputs]
   file_base = pl_test4q_out
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

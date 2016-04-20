@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef PFMOBILITY_H
 #define PFMOBILITY_H
 
@@ -12,8 +18,7 @@ InputParameters validParams<PFMobility>();
 class PFMobility : public Material
 {
 public:
-  PFMobility(const std::string & name,
-             InputParameters parameters);
+  PFMobility(const InputParameters & parameters);
 
 protected:
   virtual void computeProperties();

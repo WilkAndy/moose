@@ -84,7 +84,8 @@
 []
 
 [Outputs]
-  console = true # this is the default, this is what is being tested
+  execute_on = 'timestep_end'
+  console = true
 []
 
 [ICs]

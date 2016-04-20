@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef INSPROJECTION_H
 #define INSPROJECTION_H
 
@@ -19,7 +25,7 @@ InputParameters validParams<INSProjection>();
 class INSProjection : public Kernel
 {
 public:
-  INSProjection(const std::string & name, InputParameters parameters);
+  INSProjection(const InputParameters & parameters);
 
   virtual ~INSProjection(){}
 
@@ -29,12 +35,12 @@ protected:
   virtual Real computeQpOffDiagJacobian(unsigned jvar);
 
   // Coupled variables
-  VariableValue& _a1;
-  VariableValue& _a2;
-  VariableValue& _a3;
+  const VariableValue & _a1;
+  const VariableValue & _a2;
+  const VariableValue & _a3;
 
   // Gradients
-  VariableGradient& _grad_p;
+  const VariableGradient & _grad_p;
 
   // Variable numberings
   unsigned _a1_var_number;

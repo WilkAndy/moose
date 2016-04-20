@@ -12,10 +12,14 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 
+// MOOSE includes
 #include "Steady.h"
 #include "FEProblem.h"
 #include "Factory.h"
 #include "MooseApp.h"
+#include "NonlinearSystem.h"
+
+// libMesh includes
 #include "libmesh/equation_systems.h"
 
 template<>
@@ -25,9 +29,9 @@ InputParameters validParams<Steady>()
 }
 
 
-Steady::Steady(const std::string & name, InputParameters parameters) :
-    Executioner(name, parameters),
-    _problem(*parameters.getCheckedPointerParam<FEProblem *>("_fe_problem", "This might happen if you don't have a mesh")),
+Steady::Steady(const InputParameters & parameters) :
+    Executioner(parameters),
+    _problem(_fe_problem),
     _time_step(_problem.timeStep()),
     _time(_problem.time())
 {
@@ -45,14 +49,6 @@ Steady::Steady(const std::string & name, InputParameters parameters) :
 
 Steady::~Steady()
 {
-  // This problem was built by the Factory and needs to be released by this destructor
-  delete &_problem;
-}
-
-Problem &
-Steady::problem()
-{
-  return _problem;
 }
 
 void
@@ -60,16 +56,14 @@ Steady::init()
 {
   if (_app.isRecovering())
   {
-    Moose::out<<"\nCannot recover steady solves!\nExiting...\n"<<std::endl;
+    _console << "\nCannot recover steady solves!\nExiting...\n" << std::endl;
     return;
   }
 
   checkIntegrity();
   _problem.initialSetup();
 
-  Moose::setup_perf_log.push("Output Initial Condition","Setup");
-  _output_warehouse.outputInitial();
-  Moose::setup_perf_log.pop("Output Initial Condition","Setup");
+  _problem.outputStep(EXEC_INITIAL);
 }
 
 void
@@ -79,6 +73,8 @@ Steady::execute()
     return;
 
   preExecute();
+
+  _problem.advanceState();
 
   // first step in any steady state solve is always 1 (preserving backwards compatibility)
   _time_step = 1;
@@ -91,22 +87,30 @@ Steady::execute()
   for (unsigned int r_step=0; r_step<=steps; r_step++)
   {
 #endif //LIBMESH_ENABLE_AMR
-    _problem.computeUserObjects(EXEC_TIMESTEP_BEGIN, UserObjectWarehouse::PRE_AUX);
     preSolve();
-    _problem.updateMaterials();
     _problem.timestepSetup();
-    _problem.computeUserObjects(EXEC_TIMESTEP_BEGIN, UserObjectWarehouse::POST_AUX);
+    _problem.execute(EXEC_TIMESTEP_BEGIN);
+    _problem.outputStep(EXEC_TIMESTEP_BEGIN);
+
+    // Update warehouse active objects
+    _problem.updateActiveObjects();
+
     _problem.solve();
     postSolve();
 
-    _problem.computeUserObjects(EXEC_TIMESTEP, UserObjectWarehouse::PRE_AUX);
+    if (!lastSolveConverged())
+    {
+      _console << "Aborting as solve did not converge\n";
+      break;
+    }
+
     _problem.onTimestepEnd();
+    _problem.execute(EXEC_TIMESTEP_END);
 
-    _problem.computeAuxiliaryKernels(EXEC_TIMESTEP);
-    _problem.computeUserObjects(EXEC_TIMESTEP, UserObjectWarehouse::POST_AUX);
-    _problem.computeIndicatorsAndMarkers();
+    _problem.computeIndicators();
+    _problem.computeMarkers();
 
-    _output_warehouse.outputStep();
+    _problem.outputStep(EXEC_TIMESTEP_END);
 
 #ifdef LIBMESH_ENABLE_AMR
     if (r_step != steps)

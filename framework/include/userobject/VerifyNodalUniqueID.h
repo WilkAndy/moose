@@ -15,10 +15,10 @@
 #ifndef VERIFYNODALUNIQUEID_H
 #define VERIFYNODALUNIQUEID_H
 
+// MOOSE includes
 #include "NodalUserObject.h"
-#include "libmesh/id_types.h"
 
-//Forward Declarations
+// Forward Declarations
 class VerifyNodalUniqueID;
 
 template<>
@@ -27,7 +27,7 @@ InputParameters validParams<VerifyNodalUniqueID>();
 class VerifyNodalUniqueID : public NodalUserObject
 {
 public:
-  VerifyNodalUniqueID(const std::string & name, InputParameters parameters);
+  VerifyNodalUniqueID(const InputParameters & parameters);
 
   virtual void initialize();
   virtual void execute();

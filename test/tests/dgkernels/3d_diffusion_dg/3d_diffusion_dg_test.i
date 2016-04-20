@@ -101,21 +101,23 @@
   [./h]
     type = AverageElementSize
     variable = u
+    execute_on = 'initial timestep_end'
   [../]
 
   [./dofs]
     type = NumDOFs
+    execute_on = 'initial timestep_end'
   [../]
 
   [./l2_err]
     type = ElementL2Error
     variable = u
     function = exact_fn
+    execute_on = 'initial timestep_end'
   [../]
 []
 
 [Outputs]
   file_base = out
-  output_initial = true
   exodus = true
 []

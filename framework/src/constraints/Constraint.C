@@ -19,27 +19,29 @@ template<>
 InputParameters validParams<Constraint>()
 {
   InputParameters params = validParams<MooseObject>();
-  // Add the SetupInterface parameter, 'execute_on', default is 'residual'
+  // Add the SetupInterface parameter, 'execute_on', default is 'linear'
   params += validParams<SetupInterface>();
 
   params.addRequiredParam<NonlinearVariableName>("variable", "The name of the variable that this constraint is applied to.");
   params.addParam<bool>("use_displaced_mesh", false, "Whether or not this object should use the displaced mesh for computation.  Note that in the case this is true but no displacements are provided in the Mesh block the undisplaced mesh will still be used.");
   params.addParamNamesToGroup("use_displaced_mesh", "Advanced");
 
+  params.declareControllable("enable");
   params.registerBase("Constraint");
 
   return params;
 }
 
-Constraint::Constraint(const std::string & name, InputParameters parameters) :
-  MooseObject(name, parameters),
-  SetupInterface(parameters),
-  FunctionInterface(parameters),
-  UserObjectInterface(parameters),
-  TransientInterface(parameters, name, "constraint"),
-  GeometricSearchInterface(parameters),
-  Restartable(name, parameters, "Constraints"),
+Constraint::Constraint(const InputParameters & parameters) :
+  MooseObject(parameters),
+  SetupInterface(this),
+  FunctionInterface(this),
+  UserObjectInterface(this),
+  TransientInterface(this),
+  GeometricSearchInterface(this),
+  Restartable(parameters, "Constraints"),
   ZeroInterface(parameters),
+  MeshChangedInterface(parameters),
   _subproblem(*parameters.get<SubProblem *>("_subproblem")),
   _sys(*parameters.get<SystemBase *>("_sys")),
   _tid(parameters.get<THREAD_ID>("_tid")),

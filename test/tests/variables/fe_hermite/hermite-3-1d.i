@@ -1,3 +1,11 @@
+###########################################################
+# This is a simple test demonstrating the use of the
+# Hermite variable type.
+#
+# @Requirement F3.10
+###########################################################
+
+
 [Mesh]
   type = GeneratedMesh
   dim = 1
@@ -28,6 +36,7 @@
     grad_x = 3*x*x
 []
 
+# Hermite Variable type
 [Variables]
   [./u]
     order = THIRD
@@ -103,12 +112,7 @@
 []
 
 [Outputs]
-  output_initial = false
+  execute_on = 'timestep_end'
   exodus = true
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

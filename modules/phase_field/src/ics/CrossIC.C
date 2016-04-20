@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "CrossIC.h"
 
 //Portions of this code Copyright 2007-2009 Roy Stogner
@@ -22,6 +28,7 @@ template<>
 InputParameters validParams<CrossIC>()
 {
   InputParameters params = validParams<C1ICBase>();
+  params.addClassDescription("Cross-shaped initial condition");
   params.addParam<Real>("x1", 0.0, "The x coordinate of the lower left-hand corner of the box");
   params.addParam<Real>("y1", 0.0, "The y coordinate of the lower left-hand corner of the box");
 
@@ -31,9 +38,8 @@ InputParameters validParams<CrossIC>()
   return params;
 }
 
-CrossIC::CrossIC(const std::string & name,
-                 InputParameters parameters) :
-    C1ICBase(name, parameters),
+CrossIC::CrossIC(const InputParameters & parameters) :
+    C1ICBase(parameters),
     _x1(parameters.get<Real>("x1")),
     _y1(parameters.get<Real>("y1")),
     _x2(parameters.get<Real>("x2")),
@@ -303,3 +309,4 @@ RealGradient CrossIC::gradient(const Point & p)
   return Gradient((uxplus - uxminus) / 2.0 / TOLERANCE,
                   (uyplus - uyminus) / 2.0 / TOLERANCE);
 }
+

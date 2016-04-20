@@ -48,23 +48,21 @@
 [Executioner]
   # Preconditioned JFNK (default)
   type = Transient
-  num_steps = 20
+  num_steps = 10
   dt = 0.1
   solve_type = PJFNK
   petsc_options_iname = '-pc_type -pc_hypre_type'
   petsc_options_value = 'hypre boomeramg'
-  restart_file_base = csv_restart_part1_out_cp/0010
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   [./csv]
     type = CSV
     file_base = csv_restart_part2_out
   [../]
-  [./console]
-    type = Console
-    perf_log = true
-    nonlinear_residuals = true
-    linear_residuals = true
-  [../]
+[]
+
+[Problem]
+  restart_file_base = csv_restart_part1_out_cp/0010
 []

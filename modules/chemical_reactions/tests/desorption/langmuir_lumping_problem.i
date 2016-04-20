@@ -95,11 +95,5 @@
 
 [Outputs]
   file_base = langmuir_lumping_problem
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

@@ -19,6 +19,10 @@
     type = 'Exodiff'
     input = 'output_final.i'
     exodiff = 'output_final_out.e'
+
+    # There is no timestep output at all during the first stage of this test
+    # so recover does not work with this input file.
+    recover = false
   [../]
   [./sync_times]
     # Test useage of sync times in an output object
@@ -34,9 +38,10 @@
   [../]
   [./no_output]
     # Test if all output being disabled works
-    type = CheckFiles
+    type = RunException
     input = no_output.i
-    check_not_exists = no_output_out.e
+#    check_not_exists = no_output_out.e
+    expect_err = "The current settings results in only the input file and no variables being output to the Exodus file, this is not supported."
   [../]
   [./no_intermediate]
     # Test that intermediate steps may be disabled

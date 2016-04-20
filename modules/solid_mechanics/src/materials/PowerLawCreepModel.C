@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "PowerLawCreepModel.h"
 
 #include "SymmIsotropicElasticityTensor.h"
@@ -20,9 +26,8 @@ InputParameters validParams<PowerLawCreepModel>()
 }
 
 
-PowerLawCreepModel::PowerLawCreepModel( const std::string & name,
-                                InputParameters parameters )
-  :ReturnMappingModel( name, parameters ),
+PowerLawCreepModel::PowerLawCreepModel( const InputParameters & parameters)
+  :ReturnMappingModel(parameters),
    _coefficient(parameters.get<Real>("coefficient")),
    _n_exponent(parameters.get<Real>("n_exponent")),
    _m_exponent(parameters.get<Real>("m_exponent")),
@@ -73,3 +78,4 @@ PowerLawCreepModel::computeDerivative(unsigned /*qp*/, Real effectiveTrialStress
   return -3*_coefficient*_shear_modulus*_n_exponent*
       std::pow(effectiveTrialStress-3*_shear_modulus*scalar, _n_exponent-1)*_exponential*_expTime - 1/_dt;
 }
+

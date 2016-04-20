@@ -36,10 +36,9 @@ public:
   /**
    * Factory constructor initializes all internal references needed for residual computation.
    *
-   * @param name The name of this kernel.
    * @param parameters The parameters object for holding additional parameters for kernels and derived kernels
    */
-  KernelGrad(const std::string & name, InputParameters parameters);
+  KernelGrad(const InputParameters & parameters);
 
   virtual ~KernelGrad();
 
@@ -68,10 +67,7 @@ protected:
    * Called before forming the jacobian for an element
    */
   virtual RealGradient precomputeQpJacobian();
-
   virtual Real computeQpResidual();
-
-  RealGradient _value;
 };
 
 #endif //KERNELGRAD_H

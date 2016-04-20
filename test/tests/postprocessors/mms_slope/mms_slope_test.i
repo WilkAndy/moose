@@ -71,6 +71,8 @@
 
   solve_type = NEWTON
 
+  nl_abs_tol = 1e-14
+
   [./Adaptivity]
     # if the refine fraction is 1 it will refine every element
     # remember < 1 means only refine that percentage of elements
@@ -112,10 +114,7 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = out
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

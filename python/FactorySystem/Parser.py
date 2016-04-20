@@ -6,29 +6,44 @@ import ParseGetPot, Factory
 from MooseObject import MooseObject
 from Warehouse import Warehouse
 
-
+"""
+Parser object for reading GetPot formatted files
+"""
 class Parser:
   def __init__(self, factory, warehouse):
     self.factory = factory
     self.warehouse = warehouse
     self.params_parsed = set()
     self.params_ignored = set()
+    self.root = None
 
+  """
+  Parse the passed filename filling the warehouse with populated InputParameter objects
+  Error codes:
+    0x00 - Success
+    0x01 - pyGetpot parsing error
+    0x02 - Unrecogonized Boolean key/value pair
+    0x04 - Missing required parameter
+  """
   def parse(self, filename):
-    try:
-      root = ParseGetPot.readInputFile(filename)
-    except:
-      print "Parse Error: " + filename
-      sys.exit(1)
+    error_code = 0x00
 
-    self._parseNode(root)
+    try:
+      self.root = ParseGetPot.readInputFile(filename)
+    except ParseGetPot.ParseException, ex:
+      print "Parse Error in " + filename + ": " + ex.msg
+      return 0x01 # Parse Error
+
+    error_code = self._parseNode(filename, self.root)
 
     if len(self.params_ignored):
-      print "Warning detected during test specification parsing\n  File: " #+ os.path.join(test_dir, filename)
+      print 'Warning detected when parsing file "' + os.path.join(os.getcwd(), filename) + '"'
       print '       Ignored Parameter(s): ', self.params_ignored
 
+    return error_code
 
-  def extractParams(self, params, getpot_node):
+  def extractParams(self, filename, params, getpot_node):
+    error_code = 0x00
     full_name = getpot_node.fullName()
 
     # Populate all of the parameters of this test node
@@ -55,7 +70,8 @@ class Parser:
                 params[key] = False
               else:
                 print "Unrecognized (key,value) pair: (", key, ',', value, ")"
-                sys.exit(1)
+                params['error_code'] = 0x02
+                error_code = error_code | params['error_code']
 
               # Otherwise, just do normal assignment
             else:
@@ -66,11 +82,17 @@ class Parser:
     # Make sure that all required parameters are supplied
     required_params_missing = params.required_keys() - local_parsed
     if len(required_params_missing):
-      print "Error detected during test specification parsing\n  File: " #+ os.path.join(test_dir, filename)
+      print 'Error detected when parsing file "' + os.path.join(os.getcwd(), filename) + '"'
       print '       Required Missing Parameter(s): ', required_params_missing
+      params['error_code'] = 0x04 # Missing required params
+      error_code = params['error_code']
+
+    return error_code
 
   # private:
-  def _parseNode(self, node):
+  def _parseNode(self, filename, node):
+    error_code = 0x00
+
     if 'type' in node.params:
       moose_type = node.params['type']
 
@@ -78,7 +100,13 @@ class Parser:
       params = self.factory.validParams(moose_type)
 
       # Extract the parameters from the Getpot node
-      self.extractParams(params, node)
+      error_code = error_code | self.extractParams(filename, params, node)
+
+      # Add factory and warehouse as private params of the object
+      params.addPrivateParam('_factory', self.factory)
+      params.addPrivateParam('_warehouse', self.warehouse)
+      params.addPrivateParam('_parser', self)
+      params.addPrivateParam('_root', self.root)
 
       # Build the object
       moose_object = self.factory.create(moose_type, node.name, params)
@@ -88,4 +116,6 @@ class Parser:
 
     # Loop over the section names and parse them
     for child in node.children_list:
-      self._parseNode(node.children[child])
+      error_code = error_code | self._parseNode(filename, node.children[child])
+
+    return error_code

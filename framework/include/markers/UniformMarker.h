@@ -17,9 +17,6 @@
 
 #include "Marker.h"
 
-// libmesh includes
-#include "libmesh/mesh_tools.h"
-
 class UniformMarker;
 
 template<>
@@ -28,7 +25,7 @@ InputParameters validParams<UniformMarker>();
 class UniformMarker : public Marker
 {
 public:
-  UniformMarker(const std::string & name, InputParameters parameters);
+  UniformMarker(const InputParameters & parameters);
   virtual ~UniformMarker(){};
 
 protected:

@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSDENSITYCONSTBULK_H
 #define RICHARDSDENSITYCONSTBULK_H
@@ -19,8 +22,8 @@ InputParameters validParams<RichardsDensityConstBulk>();
  */
 class RichardsDensityConstBulk : public RichardsDensity
 {
- public:
-  RichardsDensityConstBulk(const std::string & name, InputParameters parameters);
+public:
+  RichardsDensityConstBulk(const InputParameters & parameters);
 
   /**
    * fluid density as a function of porepressure
@@ -40,7 +43,7 @@ class RichardsDensityConstBulk : public RichardsDensity
    */
   Real d2density(Real p) const;
 
- protected:
+protected:
 
   /// density = _dens0*exp(p/_bulk)
   Real _dens0;

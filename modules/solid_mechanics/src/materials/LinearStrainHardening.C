@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "LinearStrainHardening.h"
 
 template<>
@@ -21,11 +27,10 @@ InputParameters validParams<LinearStrainHardening>()
 }
 
 
-LinearStrainHardening::LinearStrainHardening( const std::string & name,
-                                              InputParameters parameters )
-  :SolidModel( name, parameters )
+LinearStrainHardening::LinearStrainHardening( const InputParameters & parameters)
+  :SolidModel(parameters)
 {
 
-  createConstitutiveModel("IsotropicPlasticity", parameters);
+  createConstitutiveModel("IsotropicPlasticity");
 
 }

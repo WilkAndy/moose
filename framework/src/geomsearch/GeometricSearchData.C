@@ -18,6 +18,7 @@
 #include "PenetrationLocator.h"
 #include "SubProblem.h"
 #include "MooseMesh.h"
+#include "Assembly.h"
 
 static const unsigned int MORTAR_BASE_ID = 2e6;
 
@@ -128,6 +129,39 @@ GeometricSearchData::reinit()
 
     pl->reinit();
   }
+}
+
+void
+GeometricSearchData::clearNearestNodeLocators()
+{
+  std::map<std::pair<unsigned int, unsigned int>, NearestNodeLocator *>::iterator nnl_it = _nearest_node_locators.begin();
+  const std::map<std::pair<unsigned int, unsigned int>, NearestNodeLocator *>::iterator nnl_end = _nearest_node_locators.end();
+
+  for (; nnl_it != nnl_end; ++nnl_it)
+  {
+    NearestNodeLocator * nnl = nnl_it->second;
+
+    nnl->reinit();
+  }
+}
+
+Real
+GeometricSearchData::maxPatchPercentage()
+{
+  Real max = 0.0;
+
+  std::map<std::pair<unsigned int, unsigned int>, NearestNodeLocator *>::iterator nnl_it = _nearest_node_locators.begin();
+  const std::map<std::pair<unsigned int, unsigned int>, NearestNodeLocator *>::iterator nnl_end = _nearest_node_locators.end();
+
+  for (; nnl_it != nnl_end; ++nnl_it)
+  {
+    NearestNodeLocator * nnl = nnl_it->second;
+
+    if (nnl->_max_patch_percentage > max)
+      max = nnl->_max_patch_percentage;
+  }
+
+  return max;
 }
 
 PenetrationLocator &

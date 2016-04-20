@@ -145,13 +145,8 @@
 []      # Executioner END
 
 [Outputs]    # Output Start
-  file_base =  out_rz
-  output_initial = true
+  # Output Start
+  file_base = out_rz
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
- []      # Output END
+[]      # Output END
 #      # Input file END

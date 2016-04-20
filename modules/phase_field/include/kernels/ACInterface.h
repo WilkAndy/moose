@@ -1,34 +1,72 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef ACInterface_H
 #define ACInterface_H
 
-#include "KernelGrad.h"
+#include "Kernel.h"
+#include "JvarMapInterface.h"
+#include "DerivativeMaterialInterface.h"
 
-//Forward Declarations
 class ACInterface;
 
 template<>
 InputParameters validParams<ACInterface>();
 
-class ACInterface : public KernelGrad
+/**
+ * Compute the Allen-Cahn interface term with the weak form residual
+ * \f$ \left( \kappa_i \nabla\eta_i, \nabla (L_i \psi) \right) \f$
+ */
+class ACInterface : public DerivativeMaterialInterface<JvarMapInterface<Kernel> >
 {
 public:
-  ACInterface(const std::string & name, InputParameters parameters);
+  ACInterface(const InputParameters & parameters);
+  virtual void initialSetup();
 
 protected:
-  enum PFFunctionType
-  {
-    Jacobian,
-    Residual
-  };
-  virtual RealGradient precomputeQpResidual();
-  virtual RealGradient precomputeQpJacobian();
-  std::string _mob_name;
-  std::string _kappa_name;
+  virtual Real computeQpResidual();
+  virtual Real computeQpJacobian();
+  virtual Real computeQpOffDiagJacobian(unsigned int jvar);
 
+  RealGradient gradL();
+  RealGradient gradKappa();
 
-private:
-  MaterialProperty<Real> & _kappa;
-  MaterialProperty<Real> & _L;
+  /// the \f$ \kappa\nabla(L\psi) \f$ term
+  RealGradient kappaNablaLPsi();
+
+  /// Mobility
+  const MaterialProperty<Real> & _L;
+  /// Interfacial parameter
+  const MaterialProperty<Real> & _kappa;
+
+  /// flag set if L is a function of non-linear variables in args
+  const bool _variable_L;
+
+  /// @{ Mobility derivatives w.r.t. order parameter
+  const MaterialProperty<Real> & _dLdop;
+  const MaterialProperty<Real> & _d2Ldop2;
+  /// @}
+
+  /// kappa derivative w.r.t. order parameter
+  const MaterialProperty<Real> & _dkappadop;
+
+  /// number of coupled variables
+  const unsigned int _nvar;
+
+  /// @{ Mobility derivative w.r.t. other coupled variables
+  std::vector<const MaterialProperty<Real> *> _dLdarg;
+  std::vector<const MaterialProperty<Real> *> _d2Ldargdop;
+  std::vector<std::vector<const MaterialProperty<Real> *> > _d2Ldarg2;
+  /// @}
+
+  /// kappa derivative w.r.t. other coupled variables
+  std::vector<const MaterialProperty<Real> *> _dkappadarg;
+
+  /// Gradients for all coupled variables
+  std::vector<const VariableGradient *> _gradarg;
 };
 
 #endif //ACInterface_H

@@ -25,6 +25,9 @@ class RunParallel:
     ## The test harness to run callbacks on
     self.harness = harness
 
+    # Retrieve and store the TestHarness options for use in this object
+    self.options = harness.getOptions()
+
     ## List of currently running jobs as (Popen instance, command, test, time when expires) tuples
     # None means no job is running in this slot
     self.jobs = [None] * max_processes
@@ -54,7 +57,7 @@ class RunParallel:
       self.startReadyJobs()
 
     # Now make sure that this job doesn't have an unsatisfied prereq
-    if tester.specs['prereq'] != None and len(set(tester.specs['prereq']) - self.finished_jobs):
+    if tester.specs['prereq'] != None and len(set(tester.specs['prereq']) - self.finished_jobs) and self.options.pbs is None:
       self.queue.append([tester, command, os.getcwd()])
       return
 
@@ -75,8 +78,18 @@ class RunParallel:
     # It deadlocks rather easy.  Instead we will use temporary files
     # to hold the output as it is produced
     try:
+      if self.options.dry_run:
+        tmp_command = command
+        command = "echo"
+
       f = TemporaryFile()
-      p = Popen([command],stdout=f,stderr=f,close_fds=False, shell=True)
+
+      # On Windows, there is an issue with path translation when the command is passed in
+      # as a list.
+      p = Popen(command,stdout=f,stderr=f,close_fds=False, shell=True)
+
+      if self.options.dry_run:
+        command = tmp_command
     except:
       print "Error in launching a new task"
       raise
@@ -102,8 +115,9 @@ class RunParallel:
     log( 'Command %d done:    %s' % (job_index, command) )
     did_pass = True
 
+    output = 'Working Directory: ' + tester.specs['test_dir'] + '\nRunning command: ' + command + '\n'
+    output += self.readOutput(f)
     if p.poll() == None: # process has not completed, it timed out
-      output = self.readOutput(f)
       output += '\n' + "#"*80 + '\nProcess terminated by test harness. Max time exceeded (' + str(tester.specs['max_time']) + ' seconds)\n' + "#"*80 + '\n'
       f.close()
       os.kill(p.pid, SIGTERM)        # Python 2.4 compatibility
@@ -112,8 +126,6 @@ class RunParallel:
       if not self.harness.testOutputAndFinish(tester, RunParallel.TIMEOUT, output, time, clock()):
         did_pass = False
     else:
-      output = 'Working Directory: ' + tester.specs['test_dir'] + '\nRunning command: ' + command + '\n'
-      output += self.readOutput(f)
       f.close()
 
       if tester in self.reported_jobs:
@@ -174,8 +186,17 @@ class RunParallel:
       sleep(time_to_wait)
 
   def satisfyLoad(self):
+    # Get the current load average, or zero if it isn't available for some reason (such as being
+    #   run on a non-posix operating system)
+    loadAverage = 0.0
+    try:
+      loadAverage = os.getloadavg()[0]
+    except AttributeError:
+      pass      # getloadavg() not available in this implementation of os
+
     # We'll always run at least one job regardless of load or we'll starve!
-    while self.jobs.count(None) < len(self.jobs) and os.getloadavg()[0] >= self.average_load:
+    while self.jobs.count(None) < len(self.jobs) and loadAverage >= self.average_load:
+
 #      print "DEBUG: Sleeping... ", len(self.jobs) - self.jobs.count(None), " jobs running (load average: ", os.getloadavg()[0], ")\n"
       self.spinwait(0.5) # If the load average is high we'll sleep longer here to let things clear out
 #      print "DEBUG: Ready to run (load average: ", os.getloadavg()[0], ")\n"

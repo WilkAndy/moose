@@ -40,12 +40,13 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   [./exodus]
-    type = 'Exodus'
+    type = Exodus
     file_base = duplicate_output_files_out
   [../]
   [./exodus_two]
-    type = 'Exodus'
+    type = Exodus
     file_base = duplicate_output_files_out
   [../]
 []

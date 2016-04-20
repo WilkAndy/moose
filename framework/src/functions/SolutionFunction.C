@@ -14,6 +14,7 @@
 
 #include "MooseError.h"
 #include "SolutionFunction.h"
+#include "SolutionUserObject.h"
 
 
 template<>
@@ -24,7 +25,7 @@ InputParameters validParams<SolutionFunction>()
 
   // Add required parameters
   params.addRequiredParam<UserObjectName>("solution", "The SolutionUserObject to extract data from.");
-  params.addParam<std::string>("from_variable", "The name of the variable in the file that is too be extracted");
+  params.addParam<std::string>("from_variable", "The name of the variable in the file that is to be extracted");
 
   // Add optional paramters
   params.addParam<Real>("scale_factor", 1.0, "Scale factor (a) to be applied to the solution (x): ax+b, where b is the 'add_factor'");
@@ -34,8 +35,8 @@ InputParameters validParams<SolutionFunction>()
   return params;
 }
 
-SolutionFunction::SolutionFunction(const std::string & name, InputParameters parameters) :
-    Function(name, parameters),
+SolutionFunction::SolutionFunction(const InputParameters & parameters) :
+    Function(parameters),
     _solution_object_ptr(NULL),
     _scale_factor(getParam<Real>("scale_factor")),
     _add_factor(getParam<Real>("add_factor"))
@@ -53,29 +54,31 @@ SolutionFunction::initialSetup()
   // construction of the function
   _solution_object_ptr = &getUserObject<SolutionUserObject>("solution");
 
+  std::string var_name;
+
   // If 'from_variable' is supplied, use the value
   if (isParamValid("from_variable"))
-    _var_name = getParam<std::string>("from_variable");
+    var_name = getParam<std::string>("from_variable");
 
   // If not, get the value from the SolutionUserObject
   else
   {
     // Get all the variables from the SolutionUserObject
-    std::vector<std::string> vars = _solution_object_ptr->getParam<std::vector<std::string> >("nodal_variables");
-    std::vector<std::string> elem_vars = _solution_object_ptr->getParam<std::vector<std::string> >("elemental_variables");
-    vars.insert(vars.end(), elem_vars.begin(), elem_vars.end());
+    const std::vector<std::string> & vars = _solution_object_ptr->variableNames();
 
     // If there are more than one, throw an error
     if (vars.size() > 1)
       mooseError("The SolutionUserObject contains multiple variables, the SolutionFunction must specifiy the desired variable in the input file with 'from_variable'");
 
     // Define the variable
-    _var_name = vars[0];
+    var_name = vars[0];
   }
+  _solution_object_var_index = _solution_object_ptr->getLocalVarIndex(var_name);
 }
 
 Real
 SolutionFunction::value(Real t, const Point & p)
 {
-  return _scale_factor*(_solution_object_ptr->pointValue(t, p, _var_name)) + _add_factor;
+  return _scale_factor*(_solution_object_ptr->pointValue(t, p, _solution_object_var_index)) + _add_factor;
 }
+

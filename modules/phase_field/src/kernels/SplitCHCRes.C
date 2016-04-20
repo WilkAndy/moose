@@ -1,23 +1,26 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "SplitCHCRes.h"
-// The couple, SplitCHCRes and SplitCHWRes, splits the CH equation by replacing chemical potential with 'w'.
+
 template<>
 InputParameters validParams<SplitCHCRes>()
 {
   InputParameters params = validParams<SplitCHBase>();
-
+  params.addClassDescription("Split formulation Cahn-Hilliard Kernel");
   params.addRequiredCoupledVar("w", "chem poten");
-  params.addRequiredParam<std::string>("kappa_name", "The kappa used with the kernel");
-
+  params.addRequiredParam<MaterialPropertyName>("kappa_name", "The kappa used with the kernel");
   return params;
 }
 
-SplitCHCRes::SplitCHCRes(const std::string & name, InputParameters parameters) :
-    SplitCHBase(name, parameters),
-    _kappa_name(getParam<std::string>("kappa_name")),
-    _kappa(getMaterialProperty<Real>(_kappa_name)),
+SplitCHCRes::SplitCHCRes(const InputParameters & parameters) :
+    SplitCHBase(parameters),
+    _kappa(getMaterialProperty<Real>("kappa_name")),
     _w_var(coupled("w")),
-    _w(coupledValue("w")),
-    _grad_w(coupledGradient("w"))
+    _w(coupledValue("w"))
 {
 }
 
@@ -35,7 +38,7 @@ SplitCHCRes::computeDFDC(PFFunctionType type)
   }
 
   mooseError("Invalid type passed in");
-  }*/
+}*/
 
 Real
 SplitCHCRes::computeQpResidual()
@@ -68,3 +71,4 @@ SplitCHCRes::computeQpOffDiagJacobian(unsigned int jvar)
 
   return 0.0;
 }
+

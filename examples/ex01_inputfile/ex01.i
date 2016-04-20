@@ -40,19 +40,10 @@
 
 [Executioner]
   type = Steady
-
-  #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-
-
 []
 
 [Outputs]
-  file_base = out
+  execute_on = 'timestep_end'
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

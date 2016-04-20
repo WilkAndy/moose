@@ -1,6 +1,13 @@
-#include "AbaqusUmatMaterial.h"
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 
+#include "AbaqusUmatMaterial.h"
 #include "Factory.h"
+#include "MooseMesh.h"
 
 #include <dlfcn.h>
 #define QUOTE(macro) stringifyName(macro)
@@ -16,9 +23,8 @@ InputParameters validParams<AbaqusUmatMaterial>()
   return params;
 }
 
-AbaqusUmatMaterial::AbaqusUmatMaterial(const std::string  & name,
-                                 InputParameters parameters) :
-    SolidModel( name, parameters ),
+AbaqusUmatMaterial::AbaqusUmatMaterial(const InputParameters & parameters) :
+    SolidModel(parameters),
     _plugin(getParam<FileName>("plugin")),
     _mechanical_constants(getParam<std::vector<Real> >("mechanical_constants")),
     _thermal_constants(getParam<std::vector<Real> >("thermal_constants")),
@@ -225,3 +231,4 @@ void AbaqusUmatMaterial::computeStress()
   SymmTensor stressnew(_STRESS[0], _STRESS[1], _STRESS[2], _STRESS[3], _STRESS[4], _STRESS[5]);
   _stress[_qp] = stressnew;
 }
+

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef CONTACTAPP_H
 #define CONTACTAPP_H
 
@@ -11,7 +17,7 @@ InputParameters validParams<ContactApp>();
 class ContactApp : public MooseApp
 {
 public:
-  ContactApp(const std::string & name, InputParameters parameters);
+  ContactApp(const InputParameters & parameters);
   virtual ~ContactApp();
 
   static void registerApps();

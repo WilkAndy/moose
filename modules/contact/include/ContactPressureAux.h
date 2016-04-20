@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef CONTACTPRESSUREAUX_H
 #define CONTACTPRESSUREAUX_H
 
@@ -10,7 +16,7 @@ class ContactPressureAux : public AuxKernel
 {
 public:
 
-  ContactPressureAux(const std::string & name, InputParameters parameters);
+  ContactPressureAux(const InputParameters & parameters);
 
   virtual ~ContactPressureAux();
 

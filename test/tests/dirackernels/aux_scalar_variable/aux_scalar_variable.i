@@ -44,6 +44,7 @@
   [./source_value]
     type = ScalarVariable
     variable = shared
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -56,14 +57,8 @@
 []
 
 [Outputs]
-  output_initial = true
   hide = shared
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []
 
 [DiracKernels]

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef PRESETVELOCITY_H
 #define PRESETVELOCITY_H
 
@@ -7,7 +13,7 @@
 class PresetVelocity : public PresetNodalBC
 {
 public:
-  PresetVelocity(const std::string & name, InputParameters parameters);
+  PresetVelocity(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpValue();

@@ -33,6 +33,14 @@
   [../]
 []
 
+[ICs]
+  [./ic_x]
+    type = ScalarConstantIC
+    variable = x
+    value = 11
+  [../]
+[]
+
 [Functions]
   [./forcing_fn]
     type = ParsedFunction
@@ -85,11 +93,13 @@
     type = ElementL2Error
     variable = u
     function = exact_fn
+    execute_on = 'initial timestep_end'
   [../]
 
   [./x]
     type = ScalarVariable
     variable = x
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -112,11 +122,5 @@
 []
 
 [Outputs]
-  output_initial = true
-  interval = 1
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

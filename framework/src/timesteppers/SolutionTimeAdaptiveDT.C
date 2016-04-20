@@ -28,8 +28,8 @@ InputParameters validParams<SolutionTimeAdaptiveDT>()
   return params;
 }
 
-SolutionTimeAdaptiveDT::SolutionTimeAdaptiveDT(const std::string & name, InputParameters parameters) :
-    TimeStepper(name, parameters),
+SolutionTimeAdaptiveDT::SolutionTimeAdaptiveDT(const InputParameters & parameters) :
+    TimeStepper(parameters),
     _direction(getParam<int>("initial_direction")),
     _percent_change(getParam<Real>("percent_change")),
     _older_sol_time_vs_dt(std::numeric_limits<Real>::max()),
@@ -50,14 +50,12 @@ SolutionTimeAdaptiveDT::~SolutionTimeAdaptiveDT()
 }
 
 void
-SolutionTimeAdaptiveDT::preSolve()
+SolutionTimeAdaptiveDT::step()
 {
   gettimeofday(&_solve_start, NULL);
-}
 
-void
-SolutionTimeAdaptiveDT::postSolve()
-{
+  TimeStepper::step();
+
   if (converged())
   {
     gettimeofday (&_solve_end, NULL);
@@ -111,9 +109,10 @@ SolutionTimeAdaptiveDT::computeDT()
 void
 SolutionTimeAdaptiveDT::rejectStep()
 {
-  Moose::out << "Solve failed... cutting timestep" << std::endl;
+  _console << "Solve failed... cutting timestep" << std::endl;
   if (_adapt_log)
     _adaptive_log << "Solve failed... cutting timestep" << std::endl;
 
   TimeStepper::rejectStep();
 }
+

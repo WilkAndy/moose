@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "ACBulk.h"
 
 #ifndef ACGBPOLY_H
@@ -9,27 +15,20 @@ class ACGBPoly;
 template<>
 InputParameters validParams<ACGBPoly>();
 
-class ACGBPoly : public ACBulk
+class ACGBPoly : public ACBulk<Real>
 {
 public:
-  ACGBPoly(const std::string & name, InputParameters parameters);
+  ACGBPoly(const InputParameters & parameters);
 
 protected:
   virtual Real computeDFDOP(PFFunctionType type);
   virtual Real computeQpOffDiagJacobian(unsigned int jvar);
 
-private:
-  /**
-   * Coupled things come through as std::vector _refernces_.
-   *
-   * Since this is a reference it MUST be set in the Initialization List of the
-   * constructor!
-   */
-  VariableValue & _c;
+  const VariableValue & _c;
   unsigned int _c_var;
 
-  MaterialProperty<Real> & _mu;
-  MaterialProperty<Real> & _gamma;
+  const MaterialProperty<Real> & _mu;
+  const MaterialProperty<Real> & _gamma;
 
   Real _en_ratio;
 };

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef SOLIDMECH_H
 #define SOLIDMECH_H
 
@@ -18,7 +24,7 @@ class SolidMech : public Kernel
 {
 public:
 
-  SolidMech(const std::string & name, InputParameters parameters);
+  SolidMech(const InputParameters & parameters);
 
   virtual void subdomainSetup();
 
@@ -46,8 +52,8 @@ protected:
 
   Real _density;
 
-  MaterialProperty<Real> & _E_prop;
-  MaterialProperty<Real> & _nu_prop;
+  const MaterialProperty<Real> & _E_prop;
+  const MaterialProperty<Real> & _nu_prop;
 
   bool _constant_properties;
 };

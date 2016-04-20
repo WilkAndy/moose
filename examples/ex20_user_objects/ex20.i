@@ -48,6 +48,7 @@
     type = BlockAverageValue
     variable = u
     execute_on = timestep_begin
+    outputs = none
   [../]
 []
 
@@ -64,11 +65,5 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

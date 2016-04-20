@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSFLUX
 #define RICHARDSFLUX
@@ -23,8 +26,7 @@ class RichardsFlux : public Kernel
 {
 public:
 
-  RichardsFlux(const std::string & name,
-                        InputParameters parameters);
+  RichardsFlux(const InputParameters & parameters);
 
 
 protected:
@@ -50,39 +52,47 @@ protected:
   unsigned int _pvar;
 
   /// Richards flux
-  MaterialProperty<std::vector<RealVectorValue> > &_flux;
+  const MaterialProperty<std::vector<RealVectorValue> > &_flux;
 
   /// d(Richards flux_i)/d(variable_j), here flux_i is the i_th flux, which is itself a RealVectorValue
-  MaterialProperty<std::vector<std::vector<RealVectorValue> > > &_dflux_dv;
+  const MaterialProperty<std::vector<std::vector<RealVectorValue> > > &_dflux_dv;
 
   /// d(Richards flux_i)/d(grad(variable_j)), here flux_i is the i_th flux, which is itself a RealVectorValue
-  MaterialProperty<std::vector<std::vector<RealTensorValue> > > &_dflux_dgradv;
+  const MaterialProperty<std::vector<std::vector<RealTensorValue> > > &_dflux_dgradv;
 
   /// d^2(Richards flux_i)/d(variable_j)/d(variable_k), here flux_i is the i_th flux, which is itself a RealVectorValue
-  MaterialProperty<std::vector<std::vector<std::vector<RealVectorValue> > > > &_d2flux_dvdv;
+  const MaterialProperty<std::vector<std::vector<std::vector<RealVectorValue> > > > &_d2flux_dvdv;
 
   /// d^2(Richards flux_i)/d(grad(variable_j))/d(variable_k), here flux_i is the i_th flux, which is itself a RealVectorValue
-  MaterialProperty<std::vector<std::vector<std::vector<RealTensorValue> > > > &_d2flux_dgradvdv;
+  const MaterialProperty<std::vector<std::vector<std::vector<RealTensorValue> > > > &_d2flux_dgradvdv;
 
   /// d^2(Richards flux_i)/d(variable_j)/d(grad(variable_k)), here flux_i is the i_th flux, which is itself a RealVectorValue
-  MaterialProperty<std::vector<std::vector<std::vector<RealTensorValue> > > > &_d2flux_dvdgradv;
+  const MaterialProperty<std::vector<std::vector<std::vector<RealTensorValue> > > > &_d2flux_dvdgradv;
 
 
 
   /// grad_i grad_j porepressure.  This is used in SUPG
-  VariableSecond & _second_u;
+  const VariableSecond & _second_u;
 
   /// interpolation function for the _second_u
-  VariablePhiSecond & _second_phi;
+  const VariablePhiSecond & _second_phi;
 
   /// SUPGtau*SUPGvel (a vector of these if multiphase)
-  MaterialProperty<std::vector<RealVectorValue> >&_tauvel_SUPG;
+  const MaterialProperty<std::vector<RealVectorValue> >&_tauvel_SUPG;
 
-  /// derivative of SUPGtau*SUPGvel wrt grad(variable)
-  MaterialProperty<std::vector<RealTensorValue> >&_dtauvel_SUPG_dgradv;
+  /// derivative of SUPGtau*SUPGvel_i wrt grad(variable_j)
+  const MaterialProperty<std::vector<std::vector<RealTensorValue> > >&_dtauvel_SUPG_dgradv;
 
-  /// derivative of SUPGtau*SUPGvel wrt variable
-  MaterialProperty<std::vector<RealVectorValue> >&_dtauvel_SUPG_dv;
+  /// derivative of SUPGtau*SUPGvel_i wrt variable_j
+  const MaterialProperty<std::vector<std::vector<RealVectorValue> > >&_dtauvel_SUPG_dv;
+
+  /**
+   * Computes diagonal and off-diagonal jacobian entries.
+   * Since the code is almost identical for both cases it's
+   * better to use just one function
+   * @param wrt_num take the derivative of the residual wrt this richards variable
+   */
+  Real computeQpJac(unsigned int wrt_num);
 };
 
 #endif //RICHARDSFLUX

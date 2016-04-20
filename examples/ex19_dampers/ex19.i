@@ -35,14 +35,14 @@
   [./left]
     type = DirichletBC
     variable = diffusion
-    boundary = 1
+    boundary = 3
     value = 3
   [../]
 
   [./right]
     type = DirichletBC
     variable = diffusion
-    boundary = 2
+    boundary = 1
     value = 1
   [../]
 []
@@ -66,12 +66,5 @@
 []
 
 [Outputs]
-  file_base = out
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

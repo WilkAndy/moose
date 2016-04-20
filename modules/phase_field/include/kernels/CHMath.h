@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef CHMATH_H
 #define CHMATH_H
 
@@ -14,10 +20,10 @@ InputParameters validParams<CHMath>();
  * and implements a simple polynomial double well to model spinodal decomposition.
  * See M.R. Tonks et al. / Computational Materials Science 51 (2012) 20–29, Eqs 11 and 12.
  **/
-class CHMath : public CHBulk
+class CHMath : public CHBulk<Real>
 {
 public:
-  CHMath(const std::string & name, InputParameters parameters);
+  CHMath(const InputParameters & parameters);
 
 protected:
   virtual RealGradient computeGradDFDCons(PFFunctionType type);

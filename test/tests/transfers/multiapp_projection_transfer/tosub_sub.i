@@ -14,20 +14,20 @@
   [../]
 []
 
-#[AuxVariables]
-#  [./u_nodal]
-#  [../]
-#  [./u_elemental]
-#    order = CONSTANT
-#    family = MONOMIAL
-#  [../]
-#  [./x_elemental]
-#    order = CONSTANT
-#    family = MONOMIAL
-#  [../]
-#  [./x_nodal]
-#  [../]
-#[]
+[AuxVariables]
+  [./u_nodal]
+  [../]
+  [./u_elemental]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./x_elemental]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./x_nodal]
+  [../]
+[]
 
 [Kernels]
   [./diff]
@@ -57,15 +57,11 @@
   dt = 1
 
   solve_type = 'NEWTON'
-  print_linear_residuals = true
 []
 
 [Outputs]
-  output_initial = true
-  exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
+  [./out]
+    type = Exodus
+    elemental_as_nodal = true
   [../]
 []

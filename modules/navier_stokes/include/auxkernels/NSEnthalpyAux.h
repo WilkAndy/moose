@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSENTHALPYAUX_H
 #define NSENTHALPYAUX_H
 
@@ -22,23 +28,16 @@ InputParameters validParams<NSEnthalpyAux>();
 class NSEnthalpyAux : public AuxKernel
 {
 public:
-
-  /**
-   * Factory constructor, takes parameters so that all derived classes can be built using the same
-   * constructor.
-   */
-  NSEnthalpyAux(const std::string & name, InputParameters parameters);
-
-  virtual ~NSEnthalpyAux() {}
+  NSEnthalpyAux(const InputParameters & parameters);
 
 protected:
   virtual Real computeValue();
 
-  VariableValue & _rho;
-  VariableValue & _rhoe;
-  VariableValue & _pressure;
+  const VariableValue & _rho;
+  const VariableValue & _rhoe;
+  const VariableValue & _pressure;
 
-  Real _gamma;
+  const Real _gamma;
 };
 
 #endif // NSENTHALPYAUX_H

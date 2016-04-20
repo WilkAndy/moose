@@ -15,6 +15,10 @@
   elem_type = QUAD4
 []
 
+[GlobalParams]
+  displacements = 'disp_x disp_y'
+[]
+
 [Variables]
   [./disp_x]
     order = FIRST
@@ -42,10 +46,8 @@
   [../]
 []
 
-[TensorMechanics]
-  [./solid]
-    disp_x = disp_x
-    disp_y = disp_y
+[Kernels]
+  [./TensorMechanics]
   [../]
 []
 
@@ -53,35 +55,47 @@
   [./matl_e11]
     type = RankTwoAux
     rank_two_tensor = stress
-    index_i = 1
-    index_j = 1
+    index_i = 0
+    index_j = 0
     variable = e11_aux
   [../]
   [./matl_e12]
     type = RankTwoAux
     rank_two_tensor = elastic_strain
-    index_i = 1
-    index_j = 2
+    index_i = 0
+    index_j = 1
     variable = e12_aux
   [../]
   [./matl_e22]
     type = RankTwoAux
     rank_two_tensor = elastic_strain
-    index_i = 2
-    index_j = 2
+    index_i = 1
+    index_j = 1
     variable = e22_aux
   [../]
 []
 
 [Materials]
-  [./Anisotropic]
-    type = LinearElasticMaterial
+  [./elasticity_tensor]
+    type = ComputeElasticityTensor
     block = 0
-    disp_x = disp_x
-    disp_y = disp_y
-    all_21 = false
+    fill_method = symmetric9
     C_ijkl = '1e6 0 0 1e6 0 1e6 .5e6 .5e6 .5e6'
-    applied_strain_vector = '0.1 0.05 0 0 0 0.01'
+  [../]
+  [./strain]
+    type = ComputeSmallStrain
+    block = 0
+    displacements = 'disp_x disp_y'
+  [../]
+  [./stress]
+    type = ComputeLinearElasticStress
+    block = 0
+  [../]
+  [./eigenstrain]
+    type = ComputeEigenstrain
+    block = 0
+    eigen_base = '0.1 0.05 0 0 0 0.01'
+    prefactor = -1
   [../]
 []
 
@@ -118,11 +132,5 @@
 
 [Outputs]
   file_base = applied_strain
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

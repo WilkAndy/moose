@@ -23,8 +23,8 @@ InputParameters validParams<EqualValueConstraint>()
   return params;
 }
 
-EqualValueConstraint::EqualValueConstraint(const std::string & name, InputParameters parameters) :
-    FaceFaceConstraint(name, parameters)
+EqualValueConstraint::EqualValueConstraint(const InputParameters & parameters) :
+    FaceFaceConstraint(parameters)
 {
 }
 
@@ -66,3 +66,4 @@ EqualValueConstraint::computeQpJacobianSide(Moose::ConstraintJacobianType jac_ty
     return 0;
   }
 }
+

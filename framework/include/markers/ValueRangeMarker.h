@@ -15,24 +15,21 @@
 #ifndef VALUERANGEMARKER_H
 #define VALUERANGEMARKER_H
 
-#include "Marker.h"
-
-// libmesh includes
-#include "libmesh/mesh_tools.h"
+#include "QuadraturePointMarker.h"
 
 class ValueRangeMarker;
 
 template<>
 InputParameters validParams<ValueRangeMarker>();
 
-class ValueRangeMarker : public Marker
+class ValueRangeMarker : public QuadraturePointMarker
 {
 public:
-  ValueRangeMarker(const std::string & name, InputParameters parameters);
+  ValueRangeMarker(const InputParameters & parameters);
   virtual ~ValueRangeMarker(){};
 
 protected:
-  virtual MarkerValue computeElementMarker();
+  virtual MarkerValue computeQpMarker();
 
   Real _lower_bound;
   Real _upper_bound;
@@ -42,12 +39,7 @@ protected:
   MarkerValue _inside;
   MarkerValue _outside;
 
-  VariableName _variable_name;
-  MooseVariable & _variable;
-  SystemBase & _variable_sys;
-  const NumericVector<Number> * & _variable_sys_solution;
-  FEType _variable_fe_type;
-  std::vector<dof_id_type> _variable_dof_indices;
+  const VariableValue & _u;
 };
 
 #endif /* VALUERANGEMARKER_H */

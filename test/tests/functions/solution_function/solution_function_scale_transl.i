@@ -18,7 +18,7 @@
     type = SolutionUserObject
     mesh = cube_with_u_equals_x.e
     timestep = 1
-    nodal_variables = u
+    system_variables = u
     scale = '0.5 1 1'
     translation = '2 0 0'
     transformation_order = 'scale translation'
@@ -68,10 +68,7 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = solution_function_scale_transl
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

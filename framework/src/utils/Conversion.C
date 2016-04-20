@@ -12,19 +12,19 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 
+// MOOSE includes
 #include "Conversion.h"
-#include "MooseTypes.h"
 #include "MooseError.h"
-#include <map>
-#include <algorithm>
+#include "MultiMooseEnum.h"
+
+// libMesh includes
 #include "libmesh/string_to_enum.h"
 
-namespace Moose {
-
+namespace Moose
+{
   std::map<std::string, ExecFlagType> execstore_type_to_enum;
   std::map<std::string, QuadratureType> quadrature_type_to_enum;
   std::map<std::string, CoordinateSystemType> coordinate_system_type_to_enum;
-  std::map<std::string, PPSOutputType> pps_output_type_to_enum;
   std::map<std::string, SolveType> solve_type_to_enum;
   std::map<std::string, LineSearchType> line_search_type_to_enum;
 
@@ -33,9 +33,9 @@ namespace Moose {
     if (execstore_type_to_enum.empty())
     {
       execstore_type_to_enum["INITIAL"]  = EXEC_INITIAL;
-      execstore_type_to_enum["RESIDUAL"] = EXEC_RESIDUAL;
-      execstore_type_to_enum["JACOBIAN"] = EXEC_JACOBIAN;
-      execstore_type_to_enum["TIMESTEP"] = EXEC_TIMESTEP;
+      execstore_type_to_enum["LINEAR"] = EXEC_LINEAR;
+      execstore_type_to_enum["NONLINEAR"] = EXEC_NONLINEAR;
+      execstore_type_to_enum["TIMESTEP_END"] = EXEC_TIMESTEP_END;
       execstore_type_to_enum["TIMESTEP_BEGIN"] = EXEC_TIMESTEP_BEGIN;
       execstore_type_to_enum["CUSTOM"] = EXEC_CUSTOM;
     }
@@ -52,6 +52,7 @@ namespace Moose {
       quadrature_type_to_enum["MONOMIAL"] = QMONOMIAL;
       quadrature_type_to_enum["SIMPSON"]  = QSIMPSON;
       quadrature_type_to_enum["TRAP"]     = QTRAP;
+      quadrature_type_to_enum["GAUSS_LOBATTO"] = QGAUSS_LOBATTO;
     }
   }
 
@@ -62,18 +63,6 @@ namespace Moose {
       coordinate_system_type_to_enum["XYZ"] = COORD_XYZ;
       coordinate_system_type_to_enum["RZ"]  = COORD_RZ;
       coordinate_system_type_to_enum["RSPHERICAL"]  = COORD_RSPHERICAL;
-    }
-  }
-
-  void initPPSOutputType()
-  {
-    if (pps_output_type_to_enum.empty())
-    {
-      pps_output_type_to_enum["NONE"]   = PPS_OUTPUT_NONE;
-      pps_output_type_to_enum["AUTO"]   = PPS_OUTPUT_AUTO;
-      pps_output_type_to_enum["SCREEN"] = PPS_OUTPUT_SCREEN;
-      pps_output_type_to_enum["FILE"]   = PPS_OUTPUT_FILE;
-      pps_output_type_to_enum["BOTH"]   = PPS_OUTPUT_BOTH;
     }
   }
 
@@ -110,7 +99,6 @@ namespace Moose {
 #endif
     }
   }
-
 
   template<>
   ExecFlagType stringToEnum(const std::string & s)
@@ -168,20 +156,6 @@ namespace Moose {
   }
 
   template<>
-  PPSOutputType stringToEnum<PPSOutputType>(const std::string & s)
-  {
-    initPPSOutputType();
-
-    std::string upper(s);
-    std::transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
-
-    if (!pps_output_type_to_enum.count(upper))
-      mooseError("Unknown PPS output type: " << upper);
-
-    return pps_output_type_to_enum[upper];
-  }
-
-  template<>
   SolveType stringToEnum<SolveType>(const std::string & s)
   {
     initSolveType();
@@ -209,6 +183,15 @@ namespace Moose {
     return line_search_type_to_enum[upper];
   }
 
+  template<>
+  std::vector<ExecFlagType> vectorStringsToEnum<ExecFlagType>(const MultiMooseEnum & v)
+  {
+    std::vector<ExecFlagType> exec_flags(v.size());
+    for (unsigned int i=0; i<v.size(); ++i)
+      exec_flags[i] = stringToEnum<ExecFlagType>(v[i]);
+
+    return exec_flags;
+  }
 
   template<>
   std::string stringify(const SolveType & t)
@@ -220,6 +203,26 @@ namespace Moose {
     case ST_PJFNK:  return "Preconditioned JFNK";
     case ST_FD:     return "FD";
     case ST_LINEAR: return "Linear";
+    }
+    return "";
+  }
+
+  template<>
+  std::string stringify(const ExecFlagType & t)
+  {
+    switch (t)
+    {
+    case EXEC_INITIAL:        return "INITIAL";
+    case EXEC_LINEAR:         return "LINEAR";
+    case EXEC_NONLINEAR:      return "NONLINEAR";
+    case EXEC_TIMESTEP_END:   return "TIMESTEP_END";
+    case EXEC_TIMESTEP_BEGIN: return "TIMESTEP_BEGIN";
+    case EXEC_CUSTOM:         return "CUSTOM";
+    case EXEC_FINAL:          return "FINAL";
+    case EXEC_FORCED:         return "FORCED";
+    case EXEC_FAILED:         return "FAILED";
+    case EXEC_SUBDOMAIN:      return "SUBDOMAIN";
+    case EXEC_NONE:           return "NONE";
     }
     return "";
   }

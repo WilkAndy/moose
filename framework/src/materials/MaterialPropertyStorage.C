@@ -17,7 +17,9 @@
 #include "MaterialData.h"
 #include "MooseMesh.h"
 
+// libmesh includes
 #include "libmesh/fe_interface.h"
+#include "libmesh/quadrature.h"
 
 std::map<std::string, unsigned int> MaterialPropertyStorage::_prop_ids;
 
@@ -134,6 +136,7 @@ MaterialPropertyStorage::prolongStatefulProps(const std::vector<std::vector<QpMa
 
     const Elem * child_elem = elem.child(child);
 
+    mooseAssert(child < refinement_map.size(), "Refinement_map vector not initialized");
     const std::vector<QpMap> & child_map = refinement_map[child];
 
     if (props()[child_elem][child_side].size() == 0) props()[child_elem][child_side].resize(_stateful_prop_id_to_prop_id.size());
@@ -154,6 +157,7 @@ MaterialPropertyStorage::prolongStatefulProps(const std::vector<std::vector<QpMa
       for (unsigned int qp=0; qp<refinement_map[child].size(); qp++)
       {
         PropertyValue * child_property = props()[child_elem][child_side][i];
+        mooseAssert(props().contains(&elem), "Parent pointer is not in the MaterialProps data structure");
         PropertyValue * parent_property = parent_material_props.props()[&elem][parent_side][i];
 
         child_property->qpCopy(qp, parent_property, child_map[qp]._to);
@@ -212,11 +216,15 @@ MaterialPropertyStorage::restrictStatefulProps(const std::vector<std::pair<unsig
   {
     const std::pair<unsigned int, QpMap> & qp_pair = coarsening_map[qp];
     unsigned int child = qp_pair.first;
+
+    mooseAssert(child < coarsened_element_children.size(), "Coarsened element children vector not initialized");
     const Elem * child_elem = coarsened_element_children[child];
     const QpMap & qp_map = qp_pair.second;
 
     for (unsigned int i=0; i < _stateful_prop_id_to_prop_id.size(); ++i)
     {
+      mooseAssert(props().contains(child_elem), "Child element pointer is not in the MaterialProps data structure");
+
       PropertyValue * child_property = props()[child_elem][side][i];
       PropertyValue * parent_property = props()[&elem][side][i];
 
@@ -230,10 +238,8 @@ MaterialPropertyStorage::restrictStatefulProps(const std::vector<std::pair<unsig
 }
 
 
-
-
 void
-MaterialPropertyStorage::initStatefulProps(MaterialData & material_data, std::vector<Material *> & mats, unsigned int n_qpoints, const Elem & elem, unsigned int side/* = 0*/)
+MaterialPropertyStorage::initStatefulProps(MaterialData & material_data, const std::vector<MooseSharedPointer<Material> > & mats, unsigned int n_qpoints, const Elem & elem, unsigned int side/* = 0*/)
 {
   // NOTE: since materials are storing their computed properties in MaterialData class, we need to
   // juggle the memory between MaterialData and MaterialProperyStorage classes
@@ -257,7 +263,7 @@ MaterialPropertyStorage::initStatefulProps(MaterialData & material_data, std::ve
   // copy from storage to material data
   swap(material_data, elem, side);
   // run custom init on properties
-  for (std::vector<Material *>::iterator it = mats.begin(); it != mats.end(); ++it)
+  for (std::vector<MooseSharedPointer<Material> >::const_iterator it = mats.begin(); it != mats.end(); ++it)
     (*it)->initStatefulProperties(n_qpoints);
   swapBack(material_data, elem, side);
 
@@ -271,7 +277,6 @@ MaterialPropertyStorage::initStatefulProps(MaterialData & material_data, std::ve
           propsOlder()[&elem][side][i]->qpCopy(qp, props()[&elem][side][i], qp);
       }
 }
-
 void
 MaterialPropertyStorage::shift()
 {
@@ -286,6 +291,37 @@ MaterialPropertyStorage::shift()
   else
   {
     std::swap(_props_elem, _props_elem_old);
+  }
+}
+
+void
+MaterialPropertyStorage::copy(MaterialData & material_data, const Elem & elem_to, const Elem & elem_from, unsigned int side, unsigned int n_qpoints)
+{
+  // WARNING: This is not capable of copying material data to/from elements on other processors.
+  //          It only works if both elem_to and elem_from are both on the local processor.
+  //          We can't currently check to ensure that they're on processor here because this isn't a ParallelObject.
+
+  if (props()[&elem_to][side].size() == 0) props()[&elem_to][side].resize(_stateful_prop_id_to_prop_id.size());
+  if (propsOld()[&elem_to][side].size() == 0) propsOld()[&elem_to][side].resize(_stateful_prop_id_to_prop_id.size());
+  if (hasOlderProperties())
+    if (propsOlder()[&elem_to][side].size() == 0) propsOlder()[&elem_to][side].resize(_stateful_prop_id_to_prop_id.size());
+  // init properties (allocate memory. etc)
+  for (unsigned int i=0; i < _stateful_prop_id_to_prop_id.size(); ++i)
+  {
+    // duplicate the stateful property in property storage (all three states - we will reuse the allocated memory there)
+    // also allocating the right amount of memory, so we do not have to resize, etc.
+    if (props()[&elem_to][side][i] == NULL) props()[&elem_to][side][i] = material_data.props()[ _stateful_prop_id_to_prop_id[i] ]->init(n_qpoints);
+    if (propsOld()[&elem_to][side][i] == NULL) propsOld()[&elem_to][side][i] = material_data.propsOld()[ _stateful_prop_id_to_prop_id[i] ]->init(n_qpoints);
+    if (hasOlderProperties())
+      if (propsOlder()[&elem_to][side][i] == NULL) propsOlder()[&elem_to][side][i] = material_data.propsOlder()[ _stateful_prop_id_to_prop_id[i] ]->init(n_qpoints);
+
+    for (unsigned int qp=0; qp<n_qpoints; ++qp)
+    {
+      props()[&elem_to][side][i]->qpCopy(qp, props()[&elem_from][side][i], qp);
+      propsOld()[&elem_to][side][i]->qpCopy(qp, propsOld()[&elem_from][side][i], qp);
+      if (hasOlderProperties())
+        propsOlder()[&elem_to][side][i]->qpCopy(qp, propsOlder()[&elem_from][side][i], qp);
+    }
   }
 }
 

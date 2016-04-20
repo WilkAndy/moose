@@ -36,10 +36,9 @@ public:
   /**
    * Factory constructor initializes all internal references needed for residual computation.
    *
-   * @param name The name of this kernel.
    * @param parameters The parameters object for holding additional parameters for kernels and derived kernels
    */
-  KernelValue(const std::string & name, InputParameters parameters);
+  KernelValue(const InputParameters & parameters);
 
   virtual ~KernelValue();
 
@@ -68,10 +67,7 @@ protected:
    * Called before forming the jacobian for an element
    */
   virtual Real precomputeQpJacobian();
-
   virtual Real computeQpResidual();
-
-  Real _value;
 };
 
 #endif //KERNELVALUE_H

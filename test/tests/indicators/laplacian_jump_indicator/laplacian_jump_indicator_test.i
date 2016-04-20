@@ -58,17 +58,12 @@
 
 [Executioner]
   type = Steady
+  nl_rel_tol = 1.e-11
 
   # Preconditioned JFNK (default)
   solve_type = 'PJFNK'
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

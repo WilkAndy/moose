@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 // Original class author: A.M. Jokisaari, O. Heinonen
 
 #include "LinearElasticMaterial.h"
@@ -12,30 +18,22 @@ template<>
 InputParameters validParams<LinearElasticMaterial>()
 {
   InputParameters params = validParams<TensorMechanicsMaterial>();
-  params.addParam<Real>("thermal_expansion_coeff",0,"Thermal expansion coefficient in 1/K");
-  params.addParam<Real>("T0",300,"Reference temperature for thermal expansion in K");
-  params.addParam<Real>("Temp",300,"Current temperature for thermal expansion in K");
-  params.addCoupledVar("T", "Temperature in Kelvin");
-  params.addParam<std::vector<Real> >("applied_strain_vector","Applied strain: e11, e22, e33, e23, e13, e12");
-
+  params.addParam<Real>("thermal_expansion_coeff", 0, "Thermal expansion coefficient in 1/K");
+  params.addParam<Real>("T0", 300, "Reference temperature for thermal expansion in K");
+  params.addCoupledVar("T", 300, "Temperature in Kelvin");
+  params.addParam<std::vector<Real> >("applied_strain_vector", "Applied strain: e11, e22, e33, e23, e13, e12");
   return params;
 }
 
-LinearElasticMaterial::LinearElasticMaterial(const std::string & name,
-                                             InputParameters parameters)
-    : TensorMechanicsMaterial(name, parameters),
-      _eigenstrain(declareProperty<RankTwoTensor>("eigenstrain")),
-      _delasticity_tensor_dc(declareProperty<ElasticityTensorR4>("delasticity_tensor_dc")),
-      _d2elasticity_tensor_dc2(declareProperty<ElasticityTensorR4>("d2elasticity_tensor_dc2")),
-      _deigenstrain_dc(declareProperty<RankTwoTensor>("deigenstrain_dc")),
-      _d2eigenstrain_dc2(declareProperty<RankTwoTensor>("d2eigenstrain_dc2")),
-      _has_T(isCoupled("T")),
-      _T(_has_T ? &coupledValue("T") : NULL),
-      _thermal_expansion_coeff(getParam<Real>("thermal_expansion_coeff")),
-      _Temp(getParam<Real>("Temp")),
-      _T0(getParam<Real>("T0")),
-      _applied_strain_vector(getParam<std::vector<Real> >("applied_strain_vector"))
+LinearElasticMaterial::LinearElasticMaterial(const InputParameters & parameters) :
+    TensorMechanicsMaterial(parameters),
+    _T(coupledValue("T")),
+    _T0(getParam<Real>("T0")),
+    _thermal_expansion_coeff(getParam<Real>("thermal_expansion_coeff")),
+    _applied_strain_vector(getParam<std::vector<Real> >("applied_strain_vector"))
 {
+  mooseDeprecated("LinearElasticMaterial is deprecated. Refer to http://mooseframework.org/wiki/PhysicsModules/TensorMechanics/Deprecations/LinearElasticMaterial to convert this input file.");
+
   //Initialize applied strain tensor from input vector
   if (_applied_strain_vector.size() == 6)
     _applied_strain_tensor.fillFromInputVector(_applied_strain_vector);
@@ -43,46 +41,38 @@ LinearElasticMaterial::LinearElasticMaterial(const std::string & name,
     _applied_strain_tensor.zero();
 }
 
-void LinearElasticMaterial::computeQpStrain()
+void
+LinearElasticMaterial::computeQpStrain()
 {
   //strain = (grad_disp + grad_disp^T)/2
-  RankTwoTensor grad_tensor(_grad_disp_x[_qp],_grad_disp_y[_qp],_grad_disp_z[_qp]);
+  RankTwoTensor grad_tensor(_grad_disp_x[_qp], _grad_disp_y[_qp], _grad_disp_z[_qp]);
 
-  if (_t_step > 1000000)
-  {
-    RankTwoTensor test = grad_tensor;
-    test.addIa(1.0);
-
-    RankTwoTensor eye = test*test.inverse();
-    eye.print();
-  }
-
-  _elastic_strain[_qp] = (grad_tensor + grad_tensor.transpose())/2.0;
-
+  _elastic_strain[_qp] = (grad_tensor + grad_tensor.transpose()) / 2.0;
+  _total_strain[_qp] = _elastic_strain[_qp];
 }
 
-void LinearElasticMaterial::computeQpStress()
+void
+LinearElasticMaterial::computeQpStress()
 {
   //Calculation and Apply stress free strain
   RankTwoTensor stress_free_strain = computeStressFreeStrain();
 
+  // add the stress free strain on here
+  // ther derivatives of elastic_strain w.r.t. c are built down in EigenstrainBaseMaterial
   _elastic_strain[_qp] += stress_free_strain;
 
+  _total_strain[_qp] = _elastic_strain[_qp];
+
   // stress = C * e
-  _stress[_qp] = _elasticity_tensor[_qp]*_elastic_strain[_qp];
+  _stress[_qp] = _elasticity_tensor[_qp] * _elastic_strain[_qp];
 }
 
-RankTwoTensor LinearElasticMaterial::computeStressFreeStrain()
+RankTwoTensor
+LinearElasticMaterial::computeStressFreeStrain()
 {
   //Apply thermal expansion
-  Real T;
-  if (_has_T)
-    T = (*_T)[_qp];
-  else
-    T = _Temp;
-
   RankTwoTensor stress_free_strain;
-  stress_free_strain.addIa(-_thermal_expansion_coeff*(T - _T0));
+  stress_free_strain.addIa(-_thermal_expansion_coeff * (_T[_qp] - _T0));
 
   //Apply uniform applied strain
   if (_applied_strain_vector.size() == 6)

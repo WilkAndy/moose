@@ -1,18 +1,24 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "ACGBPoly.h"
-
 #include "Material.h"
 
 template<>
 InputParameters validParams<ACGBPoly>()
 {
-  InputParameters params = validParams<ACBulk>();
+  InputParameters params = ACBulk<Real>::validParams();
+  params.addClassDescription("Grain-Boundary model concentration dependent residual");
   params.addRequiredCoupledVar("c", "Other species concentration");
   params.addParam<Real>("en_ratio", 1.0, "Ratio of surface energy to GB energy");
   return params;
 }
 
-ACGBPoly::ACGBPoly(const std::string & name, InputParameters parameters) :
-    ACBulk(name,parameters),
+ACGBPoly::ACGBPoly(const InputParameters & parameters) :
+    ACBulk<Real>(parameters),
     _c(coupledValue("c")),
     _c_var(coupled("c")),
     _mu(getMaterialProperty<Real>("mu")),

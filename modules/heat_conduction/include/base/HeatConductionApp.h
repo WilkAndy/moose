@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef HEAT_CONDUCTIONAPP_H
 #define HEAT_CONDUCTIONAPP_H
 
@@ -11,7 +17,7 @@ InputParameters validParams<HeatConductionApp>();
 class HeatConductionApp : public MooseApp
 {
 public:
-  HeatConductionApp(const std::string & name, InputParameters parameters);
+  HeatConductionApp(const InputParameters & parameters);
   virtual ~HeatConductionApp();
 
   static void registerApps();

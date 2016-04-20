@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef THERMALCONTACTAUXVARSACTION_H
 #define THERMALCONTACTAUXVARSACTION_H
 
@@ -6,7 +12,7 @@
 class ThermalContactAuxVarsAction : public Action
 {
 public:
-  ThermalContactAuxVarsAction(const std::string & name, InputParameters params);
+  ThermalContactAuxVarsAction(const InputParameters & params);
   virtual ~ThermalContactAuxVarsAction(){}
   virtual void act();
 

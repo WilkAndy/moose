@@ -22,6 +22,8 @@
 #include "Factory.h"
 #include "MooseEnum.h"
 #include "EigenSystem.h"
+#include "MooseObjectAction.h"
+#include "MooseMesh.h"
 
 // libMesh includes
 #include "libmesh/libmesh.h"
@@ -43,21 +45,23 @@ InputParameters validParams<AddVariableAction>()
 
   // Define the general input options
   InputParameters params = validParams<Action>();
+  params += validParams<OutputInterface>();
   params.addParam<MooseEnum>("family", families, "Specifies the family of FE shape functions to use for this variable");
   params.addParam<MooseEnum>("order", orders,  "Specifies the order of the FE shape function to use for this variable (additional orders not listed are allowed)");
-  params.addParam<Real>("initial_condition", 0.0, "Specifies the initial condition for this variable");
+  params.addParam<Real>("initial_condition", "Specifies the initial condition for this variable");
   params.addParam<std::vector<SubdomainName> >("block", "The block id where this variable lives");
   params.addParam<bool>("eigen", false, "True to make this variable an eigen variable");
 
   // Advanced input options
   params.addParam<Real>("scaling", 1.0, "Specifies a scaling factor to apply to this variable");
-  params.addParamNamesToGroup("scaling", "Advanced");
+  params.addParamNamesToGroup("scaling eigen", "Advanced");
 
   return params;
 }
 
-AddVariableAction::AddVariableAction(const std::string & name, InputParameters params) :
-    Action(name, params),
+AddVariableAction::AddVariableAction(InputParameters params) :
+    Action(params),
+    OutputInterface(params, false),
     _fe_type(Utility::string_to_enum<Order>(getParam<MooseEnum>("order")),
              Utility::string_to_enum<FEFamily>(getParam<MooseEnum>("family"))),
     _scalar_var(_fe_type.family == SCALAR)
@@ -67,75 +71,80 @@ AddVariableAction::AddVariableAction(const std::string & name, InputParameters p
 MooseEnum
 AddVariableAction::getNonlinearVariableFamilies()
 {
-  return MooseEnum("LAGRANGE, MONOMIAL, HERMITE, SCALAR, HIERARCHIC, CLOUGH, XYZ, SZABAB, BERNSTEIN, L2_LAGRANGE, L2_HIERARCHIC", "LAGRANGE");
+  return MooseEnum("LAGRANGE MONOMIAL HERMITE SCALAR HIERARCHIC CLOUGH XYZ SZABAB BERNSTEIN L2_LAGRANGE L2_HIERARCHIC", "LAGRANGE");
 }
 
 MooseEnum
 AddVariableAction::getNonlinearVariableOrders()
 {
-  return MooseEnum("CONSTANT, FIRST, SECOND, THIRD, FOURTH", "FIRST", true);
+  return MooseEnum("CONSTANT FIRST SECOND THIRD FOURTH", "FIRST", true);
 }
 
 void
 AddVariableAction::act()
 {
-  if (_current_action == "add_variable")
-  {
-    // Get necessary data for creating a variable
-    std::string var_name = getShortName();
-    std::set<SubdomainID> blocks = getSubdomainIDs();
-    Real scale_factor = isParamValid("scaling") ? getParam<Real>("scaling") : 1;
-
-    // Scalar variable
-    if (_scalar_var)
-      _problem->addScalarVariable(var_name, _fe_type.order, scale_factor);
-
-    // Block restricted variable
-    else if (blocks.empty())
-      _problem->addVariable(var_name, _fe_type, scale_factor);
-
-    // Non-block restricted variable
-    else
-      _problem->addVariable(var_name, _fe_type, scale_factor, &blocks);
-
-    if (getParam<bool>("eigen"))
-    {
-      EigenSystem & esys(static_cast<EigenSystem &>(_problem->getNonlinearSystem()));
-      esys.markEigenVariable(var_name);
-    }
-  }
+  // Get necessary data for creating a variable
+  std::string var_name = name();
+  addVariable(var_name);
 
   // Set the initial condition
-  if (_current_action == "add_ic")
-    setInitialCondition();
+  if (isParamValid("initial_condition"))
+    createInitialConditionAction();
 }
 
 void
-AddVariableAction::setInitialCondition()
+AddVariableAction::createInitialConditionAction()
 {
   // Variable name
-  std::string var_name = getShortName();
+  std::string var_name = name();
 
-  // Set initial condition
-  Real initial = getParam<Real>("initial_condition");
-  if (initial > _abs_zero_tol || initial < -_abs_zero_tol)
+  // Create the object name
+  std::string long_name("");
+  long_name += var_name;
+  long_name += "_moose";
+
+  // Set the parameters for the action
+  InputParameters action_params = _action_factory.getValidParams("AddOutputAction");
+  action_params.set<ActionWarehouse *>("awh") = &_awh;
+
+  if (_scalar_var)
+    action_params.set<std::string>("type") = "ScalarConstantIC";
+  else
+    action_params.set<std::string>("type") = "ConstantIC";
+
+  // Create the action
+  MooseSharedPointer<MooseObjectAction> action = MooseSharedNamespace::static_pointer_cast<MooseObjectAction>(_action_factory.create("AddInitialConditionAction", long_name, action_params));
+
+  // Set the required parameters for the object to be created
+  action->getObjectParams().set<VariableName>("variable") = var_name;
+  action->getObjectParams().set<Real>("value") = getParam<Real>("initial_condition");
+
+  // Store the action in the ActionWarehouse
+  _awh.addActionBlock(action);
+}
+
+void
+AddVariableAction::addVariable(std::string & var_name)
+{
+  std::set<SubdomainID> blocks = getSubdomainIDs();
+  Real scale_factor = isParamValid("scaling") ? getParam<Real>("scaling") : 1;
+
+  // Scalar variable
+  if (_scalar_var)
+    _problem->addScalarVariable(var_name, _fe_type.order, scale_factor);
+
+  // Block restricted variable
+  else if (blocks.empty())
+    _problem->addVariable(var_name, _fe_type, scale_factor);
+
+  // Non-block restricted variable
+  else
+    _problem->addVariable(var_name, _fe_type, scale_factor, &blocks);
+
+  if (getParam<bool>("eigen"))
   {
-    if (_scalar_var)
-    {
-      // built a ScalarConstantIC object
-      InputParameters params = _factory.getValidParams("ScalarConstantIC");
-      params.set<VariableName>("variable") = var_name;
-      params.set<Real>("value") = initial;
-      _problem->addInitialCondition("ScalarConstantIC", "ic", params);
-    }
-    else
-    {
-      // built a ConstantIC object
-      InputParameters params = _factory.getValidParams("ConstantIC");
-      params.set<VariableName>("variable") = var_name;
-      params.set<Real>("value") = initial;
-      _problem->addInitialCondition("ConstantIC", "ic", params);
-    }
+    EigenSystem & esys(static_cast<EigenSystem &>(_problem->getNonlinearSystem()));
+    esys.markEigenVariable(var_name);
   }
 }
 

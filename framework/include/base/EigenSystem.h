@@ -60,7 +60,7 @@ public:
    * Linear combination of the solution vectors
    *
    * @param tag System tag.
-   * @param fcoef Coefficients for current, old and older solutions.
+   * @param coefficients Coefficients for current, old and older solutions.
    */
   void combineSystemSolution(SYSTEMTAG tag, const std::vector<Real> & coefficients);
 
@@ -104,6 +104,11 @@ public:
    */
   void restoreOldSolutions();
 
+  /**
+   * Weather or not the system contains eigen kernels
+   */
+  bool containsEigenKernel() const;
+
 protected:
 
   std::set<VariableName> _eigen_var_names;
@@ -118,6 +123,8 @@ protected:
   NumericVector<Real> * _sys_sol_older;
   NumericVector<Real> * _aux_sol_old;
   NumericVector<Real> * _aux_sol_older;
+  /// counter of eigen kernels
+  unsigned int _eigen_kernel_counter;
 };
 
 #endif /* EIGENSYSTEM_H */

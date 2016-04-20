@@ -1,3 +1,13 @@
+###########################################################
+# This is a simple test of the Function System. This
+# test uses forcing terms produced from analytical
+# functions of space and time to verify a solution
+# using MMS.
+#
+# @Requirement F6.20
+###########################################################
+
+
 [Mesh]
   type = GeneratedMesh
   dim = 2
@@ -131,21 +141,25 @@
     type = PointValue
     variable = u
     point = '0.5 0.5 0'
+    execute_on = 'initial timestep_end'
   [../]
   [./u_midpoint_exact]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = u_exact
     point = '0.5 0.5 0.0'
+    execute_on = 'initial timestep_end'
   [../]
   [./u_error]
     type = ElementL2Error
     variable = u
     function = u_exact
+    execute_on = 'initial timestep_end'
   [../]
   [./v_error]
     type = ElementL2Error
     variable = v
     function = v_exact
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -160,12 +174,7 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []
 
 [ICs]

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSTHERMALINFLOWBC_H
 #define NSTHERMALINFLOWBC_H
 
@@ -17,10 +23,7 @@ InputParameters validParams<NSInflowThermalBC>();
 class NSInflowThermalBC : public NodalBC
 {
 public:
-
-  NSInflowThermalBC(const std::string & name, InputParameters parameters);
-
-  virtual ~NSInflowThermalBC(){}
+  NSInflowThermalBC(const InputParameters & parameters);
 
 protected:
   // In general, the residual equation is u-u_d=0, where u_d
@@ -31,17 +34,17 @@ protected:
 
   // Specific heat at constant volume, treated as a single
   // constant value.
-  Real _R;
-  Real _gamma;
+  const Real _R;
+  const Real _gamma;
 
   // The specified density for this inflow boundary
-  Real _specified_rho;
+  const Real _specified_rho;
 
   // The specified temperature for this inflow boundary
-  Real _specified_temperature;
+  const Real _specified_temperature;
 
   // The specified velocity magnitude for this inflow boundary
-  Real _specified_velocity_magnitude;
+  const Real _specified_velocity_magnitude;
 };
 
-#endif // NSTHERMALINFLOWBC_H
+#endif //NSTHERMALINFLOWBC_H

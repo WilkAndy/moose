@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef SOLIDMECHTEMPCOUPLE_H
 #define SOLIDMECHTEMPCOUPLE_H
 
@@ -16,7 +22,7 @@ class SolidMechTempCouple : public SolidMech
 {
 public:
 
-  SolidMechTempCouple(const std::string & name, InputParameters parameters);
+  SolidMechTempCouple(const InputParameters & parameters);
 
   virtual void subdomainSetup();
 
@@ -25,8 +31,8 @@ public:
 protected:
   unsigned int _temp_var;
 
-  MaterialProperty<Real> & _thermal_strain;
-  MaterialProperty<Real> & _alpha;
+  const MaterialProperty<Real> & _thermal_strain;
+  const MaterialProperty<Real> & _alpha;
 
   Real _c4;
 

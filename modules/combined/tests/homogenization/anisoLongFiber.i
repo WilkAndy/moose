@@ -317,6 +317,7 @@
     dy_yy = dy_yy
     dx_xy = dx_xy
     dy_xy = dy_xy
+    execute_on = 'initial timestep_end'
   [../]
 
   [./E2222]
@@ -331,6 +332,7 @@
     dy_yy = dy_yy
     dx_xy = dx_xy
     dy_xy = dy_xy
+    execute_on = 'initial timestep_end'
   [../]
 
   [./E1122]
@@ -345,6 +347,7 @@
     dy_yy = dx_yy
     dx_xy = dx_xy
     dy_xy = dx_xy
+    execute_on = 'initial timestep_end'
   [../]
 
 
@@ -360,6 +363,7 @@
     dy_yy = dx_yy
     dx_xy = dx_xy
     dy_xy = dx_xy
+    execute_on = 'initial timestep_end'
   [../]
 
 
@@ -375,6 +379,7 @@
     dy_yy = dy_yy
     dx_xy = dx_xy
     dy_xy = dy_xy
+    execute_on = 'initial timestep_end'
   [../]
 
 
@@ -422,12 +427,6 @@
 
 
 [Outputs]
-  output_initial = true
   exodus = true
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

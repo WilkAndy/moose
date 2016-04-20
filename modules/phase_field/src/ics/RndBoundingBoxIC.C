@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "RndBoundingBoxIC.h"
 #include "MooseRandom.h"
 
@@ -5,6 +11,8 @@ template<>
 InputParameters validParams<RndBoundingBoxIC>()
 {
   InputParameters params = validParams<InitialCondition>();
+  params.addClassDescription("Random noise with different min/max inside/outside of a bounding box");
+
   params.addRequiredParam<Real>("x1", "The x coordinate of the lower left-hand corner of the box");
   params.addRequiredParam<Real>("y1", "The y coordinate of the lower left-hand corner of the box");
   params.addParam<Real>("z1", 0.0, "The z coordinate of the lower left-hand corner of the box");
@@ -21,9 +29,8 @@ InputParameters validParams<RndBoundingBoxIC>()
   return params;
 }
 
-RndBoundingBoxIC::RndBoundingBoxIC(const std::string & name,
-                                   InputParameters parameters) :
-    InitialCondition(name, parameters),
+RndBoundingBoxIC::RndBoundingBoxIC(const InputParameters & parameters) :
+    InitialCondition(parameters),
     _x1(parameters.get<Real>("x1")),
     _y1(parameters.get<Real>("y1")),
     _z1(parameters.get<Real>("z1")),

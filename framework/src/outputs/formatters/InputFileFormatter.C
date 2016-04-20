@@ -26,7 +26,7 @@ InputFileFormatter::InputFileFormatter(bool dump_mode) :
 }
 
 std::string
-InputFileFormatter::printBlockOpen(const std::string &name, short depth, const std::string & /*type*/) const
+InputFileFormatter::printBlockOpen(const std::string &name, short depth, const std::string & /*doc*/) const
 {
   std::string indent(depth*2, ' ');
   std::string opening_string;
@@ -114,7 +114,8 @@ InputFileFormatter::printParams(const std::string & /*prefix*/, const std::strin
 
       found = true;
       oss << spacing << "  " << std::left << std::setw(offset) << iter->first << " = ";
-      size_t l_offset = 30;
+      // std::setw() takes an int
+      int l_offset = 30;
 
       if (!_dump_mode || value != "INVALID")
       {

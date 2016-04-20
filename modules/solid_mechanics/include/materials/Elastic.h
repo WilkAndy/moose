@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef ELASTIC_H
 #define ELASTIC_H
 
@@ -6,8 +12,7 @@
 class Elastic : public SolidModel
 {
 public:
-  Elastic( const std::string & name,
-           InputParameters parameters );
+  Elastic( const InputParameters & parameters);
   virtual ~Elastic();
 
 protected:

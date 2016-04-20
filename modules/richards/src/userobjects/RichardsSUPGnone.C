@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  User object to implement no SUPG
 //
@@ -15,8 +18,8 @@ InputParameters validParams<RichardsSUPGnone>()
   return params;
 }
 
-RichardsSUPGnone::RichardsSUPGnone(const std::string & name, InputParameters parameters) :
-  RichardsSUPG(name, parameters)
+RichardsSUPGnone::RichardsSUPGnone(const InputParameters & parameters) :
+    RichardsSUPG(parameters)
 {}
 
 RealVectorValue
@@ -77,3 +80,11 @@ RichardsSUPGnone::dtauSUPG_dp(RealVectorValue /*vel*/, RealVectorValue /*dvel_dp
 {
   return 0;
 }
+
+bool
+RichardsSUPGnone::SUPG_trivial() const
+{
+  return true;
+}
+
+

@@ -147,11 +147,5 @@
 
 [Outputs]
   file_base = out_hex20
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 [] # Output

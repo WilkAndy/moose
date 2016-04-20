@@ -1,3 +1,16 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #include "Convection.h"
 
 template<>
@@ -8,10 +21,11 @@ InputParameters validParams<Convection>()
   return params;
 }
 
-Convection::Convection(const std::string & name, InputParameters parameters) :
-    Kernel(name, parameters),
+Convection::Convection(const InputParameters & parameters) :
+    Kernel(parameters),
     _velocity(getParam<RealVectorValue>("velocity"))
-{}
+{
+}
 
 Real
 Convection::computeQpResidual()
@@ -24,4 +38,3 @@ Convection::computeQpJacobian()
 {
   return _test[_i][_qp]*(_velocity*_grad_phi[_j][_qp]);
 }
-

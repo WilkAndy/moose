@@ -130,13 +130,10 @@
 
 [Outputs]
   file_base = pps_out_interval
-  output_initial = true
   interval = 2
   exodus = true
   [./console]
     type = Console
-    perf_log = true
-    linear_residuals = true
     interval = 1
   [../]
 []

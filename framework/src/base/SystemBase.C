@@ -23,8 +23,8 @@
 #include "MooseTypes.h"
 #include "InitialCondition.h"
 #include "ScalarInitialCondition.h"
-// libMesh
-#include "libmesh/quadrature_gauss.h"
+#include "Assembly.h"
+#include "MooseMesh.h"
 
 /// Free function used for a libMesh callback
 void extraSendList(std::vector<dof_id_type> & send_list, void * context)
@@ -35,12 +35,46 @@ void extraSendList(std::vector<dof_id_type> & send_list, void * context)
 
 /// Free function used for a libMesh callback
 void extraSparsity(SparsityPattern::Graph & sparsity,
-                   std::vector<unsigned int> & n_nz,
-                   std::vector<unsigned int> & n_oz,
+                   std::vector<dof_id_type> & n_nz,
+                   std::vector<dof_id_type> & n_oz,
                    void * context)
 {
   SystemBase * sys = static_cast<SystemBase *>(context);
   sys->augmentSparsity(sparsity, n_nz, n_oz);
+}
+
+template<>
+void
+dataStore(std::ostream & stream, SystemBase & system_base, void * context)
+{
+  System & libmesh_system = system_base.system();
+
+  NumericVector<Real> & solution = *(libmesh_system.solution.get());
+
+  dataStore(stream, solution, context);
+
+  for (System::vectors_iterator it = libmesh_system.vectors_begin();
+       it != libmesh_system.vectors_end();
+       it++)
+    dataStore(stream, *(it->second), context);
+}
+
+template<>
+void
+dataLoad(std::istream & stream, SystemBase & system_base, void * context)
+{
+  System & libmesh_system = system_base.system();
+
+  NumericVector<Real> & solution = *(libmesh_system.solution.get());
+
+  dataLoad(stream, solution, context);
+
+  for (System::vectors_iterator it = libmesh_system.vectors_begin();
+       it != libmesh_system.vectors_end();
+       it++)
+    dataLoad(stream, *(it->second), context);
+
+  system_base.update();
 }
 
 SystemBase::SystemBase(SubProblem & subproblem, const std::string & name) :
@@ -50,7 +84,6 @@ SystemBase::SystemBase(SubProblem & subproblem, const std::string & name) :
     _factory(_app.getFactory()),
     _mesh(subproblem.mesh()),
     _name(name),
-    _currently_computing_jacobian(false),
     _vars(libMesh::n_threads()),
     _var_map()
 {
@@ -237,10 +270,10 @@ SystemBase::prepareNeighbor(THREAD_ID tid)
 void
 SystemBase::reinitElem(const Elem * /*elem*/, THREAD_ID tid)
 {
-  const std::set<MooseVariable *> & active_elemental_moose_variables = _subproblem.getActiveElementalMooseVariables(tid);
 
   if (_subproblem.hasActiveElementalMooseVariables(tid))
   {
+    const std::set<MooseVariable *> & active_elemental_moose_variables = _subproblem.getActiveElementalMooseVariables(tid);
     for (std::set<MooseVariable *>::iterator it = active_elemental_moose_variables.begin();
         it != active_elemental_moose_variables.end();
         ++it)
@@ -345,6 +378,18 @@ SystemBase::reinitNodes(const std::vector<dof_id_type> & nodes, THREAD_ID tid)
     MooseVariable *var = *it;
     var->reinitNodes(nodes);
     var->computeNodalValues();
+  }
+}
+
+void
+SystemBase::reinitNodesNeighbor(const std::vector<dof_id_type> & nodes, THREAD_ID tid)
+{
+  const std::vector<MooseVariable *> & vars = _vars[tid].variables();
+  for (std::vector<MooseVariable *>::const_iterator it = vars.begin(); it != vars.end(); ++it)
+  {
+    MooseVariable *var = *it;
+    var->reinitNodesNeighbor(nodes);
+    var->computeNodalNeighborValues();
   }
 }
 

@@ -1,4 +1,19 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
+
 #include "MMSCoupledDirichletBC.h"
+#include "MooseMesh.h"
 
 template<>
 InputParameters validParams<MMSCoupledDirichletBC>()
@@ -9,8 +24,8 @@ InputParameters validParams<MMSCoupledDirichletBC>()
   return params;
 }
 
-MMSCoupledDirichletBC::MMSCoupledDirichletBC(const std::string & name, InputParameters parameters) :
-    NodalBC(name, parameters),
+MMSCoupledDirichletBC::MMSCoupledDirichletBC(const InputParameters & parameters) :
+    NodalBC(parameters),
     //Grab the parameter for the multiplier.
     _value(getParam<Real>("value")),
     _mesh_dimension(_mesh.dimension())

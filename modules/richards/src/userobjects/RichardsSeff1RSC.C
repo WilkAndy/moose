@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  Rogers-Stallybrass-Clements version of effective saturation of water phase as a function of pressure, and derivatives wrt that pressure.
 //  This is mostly useful for 2phase, not single phase, models.
@@ -22,37 +25,32 @@ InputParameters validParams<RichardsSeff1RSC>()
   return params;
 }
 
-RichardsSeff1RSC::RichardsSeff1RSC(const std::string & name, InputParameters parameters) :
-  RichardsSeff(name, parameters),
-  _oil_viscosity(getParam<Real>("oil_viscosity")),
-  _scale_ratio(getParam<Real>("scale_ratio")),
-  _shift(getParam<Real>("shift")),
-  _scale(0.25*_scale_ratio*_oil_viscosity)
+RichardsSeff1RSC::RichardsSeff1RSC(const InputParameters & parameters) :
+    RichardsSeff(parameters),
+    _oil_viscosity(getParam<Real>("oil_viscosity")),
+    _scale_ratio(getParam<Real>("scale_ratio")),
+    _shift(getParam<Real>("shift")),
+    _scale(0.25*_scale_ratio*_oil_viscosity)
 {}
 
 Real
-RichardsSeff1RSC::seff(std::vector<VariableValue *> p, unsigned int qp) const
+RichardsSeff1RSC::seff(std::vector<const VariableValue *> p, unsigned int qp) const
 {
   Real pc = -(*p[0])[qp];
   return RichardsSeffRSC::seff(pc, _shift, _scale);
 }
 
-std::vector<Real>
-RichardsSeff1RSC::dseff(std::vector<VariableValue *> p, unsigned int qp) const
+void
+RichardsSeff1RSC::dseff(std::vector<const VariableValue *> p, unsigned int qp, std::vector<Real> &result) const
 {
-  std::vector<Real> dseff_dp(1);
   Real pc = -(*p[0])[qp];
-  dseff_dp[0] = -RichardsSeffRSC::dseff(pc, _shift, _scale);
-  return dseff_dp;
+  result[0] = -RichardsSeffRSC::dseff(pc, _shift, _scale);
 }
 
-std::vector<std::vector<Real> >
-RichardsSeff1RSC::d2seff(std::vector<VariableValue *> p, unsigned int qp) const
+void
+RichardsSeff1RSC::d2seff(std::vector<const VariableValue *> p, unsigned int qp, std::vector<std::vector<Real> > &result) const
 {
-  // create a dummy b that is 1x1 and zeroed
-  std::vector<Real> a(1, 0);
-  std::vector<std::vector <Real> > b(1, a);
   Real pc = -(*p[0])[qp];
-  b[0][0] = RichardsSeffRSC::d2seff(pc, _shift, _scale);
-  return b;
+  result[0][0] =  RichardsSeffRSC::d2seff(pc, _shift, _scale);
 }
+

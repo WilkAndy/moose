@@ -76,6 +76,7 @@
   [./y]
     type = ScalarVariable
     variable = y
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -87,10 +88,5 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

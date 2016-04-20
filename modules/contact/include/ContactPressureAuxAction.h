@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef CONTACTPRESSUREAUXACTION_H
 #define CONTACTPRESSUREAUXACTION_H
 
@@ -8,7 +14,7 @@
 class ContactPressureAuxAction: public Action
 {
 public:
-  ContactPressureAuxAction(const std::string & name, InputParameters params);
+  ContactPressureAuxAction(const InputParameters & params);
 
   virtual void act();
 

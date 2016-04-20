@@ -55,13 +55,13 @@
   [../]
 
   [./heat_rhs_x]
-    type = HomogenizationHeatConduction
+    type = HomogenizedHeatConduction
     variable = temp_x
     component = 0
   [../]
 
   [./heat_rhs_y]
-    type = HomogenizationHeatConduction
+    type = HomogenizedHeatConduction
     variable = temp_y
     component = 1
   [../]
@@ -150,13 +150,7 @@
 [] # Executioner
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 [] # Outputs
 
 [Postprocessors]
@@ -166,6 +160,7 @@
     temp_x = temp_x
     temp_y = temp_y
     component = 0
+    execute_on = 'initial timestep_end'
   [../]
   [./k_yy]
     type = HomogenizedThermalConductivity
@@ -173,5 +168,6 @@
     temp_x = temp_x
     temp_y = temp_y
     component = 1
+    execute_on = 'initial timestep_end'
   [../]
 []

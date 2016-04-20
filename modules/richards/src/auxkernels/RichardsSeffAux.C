@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  This post processor returns the effective saturation of a region.
 //
@@ -17,14 +20,14 @@ InputParameters validParams<RichardsSeffAux>()
   return params;
 }
 
-RichardsSeffAux::RichardsSeffAux(const std::string & name, InputParameters parameters) :
-  AuxKernel(name, parameters),
-  _seff_UO(getUserObject<RichardsSeff>("seff_UO"))
+RichardsSeffAux::RichardsSeffAux(const InputParameters & parameters) :
+    AuxKernel(parameters),
+    _seff_UO(getUserObject<RichardsSeff>("seff_UO"))
 {
   int n = coupledComponents("pressure_vars");
   _pressure_vals.resize(n);
 
-  for (int i=0 ; i<n; ++i)
+  for (int i = 0 ; i < n; ++i)
     _pressure_vals[i] = &coupledValue("pressure_vars", i);
 }
 
@@ -32,6 +35,6 @@ RichardsSeffAux::RichardsSeffAux(const std::string & name, InputParameters param
 Real
 RichardsSeffAux::computeValue()
 {
-  //Moose::out << "aux value " << _seff_UO.seff(_pressure_vals, _qp) << "\n";
   return _seff_UO.seff(_pressure_vals, _qp);
 }
+

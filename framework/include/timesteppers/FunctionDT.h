@@ -26,13 +26,13 @@ InputParameters validParams<FunctionDT>();
 class FunctionDT : public TimeStepper
 {
 public:
-  FunctionDT(const std::string & name, InputParameters parameters);
+  FunctionDT(const InputParameters & parameters);
 
   virtual void init();
 
   virtual void preExecute();
 
-  virtual void acceptStep();
+  virtual void postStep();
   virtual void rejectStep();
 
 protected:
@@ -42,12 +42,18 @@ protected:
   void removeOldKnots();
 
   const std::vector<Real> & _time_t;
+  const std::vector<Real> & _time_dt;
+
   /// Piecewise linear definition of time stepping
   LinearInterpolation _time_ipol;
   Real _growth_factor;
   /// True if cut back of the time step occurred
   bool _cutback_occurred;
   Real _min_dt;
+
+  /// Whether or not to interpolate DT between times
+  bool _interpolate;
+
   std::vector<Real> _time_knots;
 };
 

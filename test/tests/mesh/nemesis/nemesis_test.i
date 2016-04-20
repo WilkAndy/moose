@@ -1,6 +1,19 @@
+###########################################################
+# This test exercises the parallel computation aspect of
+# the framework. Seperate input mesh files are read on
+# different processors and separate output files are
+# produced on different processors.
+#
+# @Requirement P1.10
+###########################################################
+
+
 [Mesh]
   file = cylinder/cylinder.e
   nemesis = true
+  # This option lets us exodiff against a gold standard generated
+  # without repartitioning
+  skip_partitioning = true
 []
 
 [Variables]
@@ -55,11 +68,5 @@
 
 [Outputs]
   file_base = out
-  output_initial = true
   nemesis = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

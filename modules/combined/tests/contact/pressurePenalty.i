@@ -49,6 +49,7 @@
     formulation = penalty
 #    model = glued
     tangential_tolerance = 1e-3
+    tension_release = -1
   [../]
 []
 
@@ -58,7 +59,7 @@
     tensor = stress
     variable = stress_yy
     index = 1
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
 [] # AuxKernels
 
@@ -133,8 +134,8 @@
   line_search = 'none'
 
 
-  nl_rel_tol = 1e-5
-  nl_abs_tol = 1e-6
+  nl_rel_tol = 1e-9
+  nl_abs_tol = 1e-9
 
   l_max_its = 100
   nl_max_its = 10
@@ -143,11 +144,5 @@
 [] # Executioner
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 [] # Output

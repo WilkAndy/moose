@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef CAVITYPRESSUREUSEROBJECT_H
 #define CAVITYPRESSUREUSEROBJECT_H
 
@@ -7,7 +13,7 @@ class CavityPressureUserObject : public GeneralUserObject
 {
 public:
 
-  CavityPressureUserObject(const std::string & name, InputParameters parameters);
+  CavityPressureUserObject(const InputParameters & parameters);
 
   virtual ~CavityPressureUserObject(){}
 

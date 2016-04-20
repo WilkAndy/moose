@@ -1,3 +1,15 @@
+###########################################################
+# This is a simple test of the Material System. A
+# user-defined Material (MTMaterial) is providing a
+# Real property named "matp" that varies spatially
+# throughout the domain. This property is used as a
+# coefficient by MatDiffusion. It is also output
+# by MaterialRealAux for visualization purposes.
+#
+# @Requirement F4.10
+###########################################################
+
+
 [Mesh]
   type = GeneratedMesh
   dim = 2
@@ -10,8 +22,6 @@
 []
 
 [Variables]
-  active = 'u'
-
   [./u]
     order = FIRST
     family = LAGRANGE
@@ -19,7 +29,6 @@
 []
 
 [AuxVariables]
-active = 'mat'
   [./mat]
     order = CONSTANT
     family = MONOMIAL
@@ -27,8 +36,6 @@ active = 'mat'
 []
 
 [Kernels]
-  active = 'diff'
-
   [./diff]
     type = MatDiffusion
     variable = u
@@ -37,17 +44,15 @@ active = 'mat'
 []
 
 [AuxKernels]
-active = 'mat'
   [./mat]
     type = MaterialRealAux
     variable = mat
     property = matp
+    execute_on = timestep_end
   [../]
 []
 
 [BCs]
-  active = 'left right'
-
   [./left]
     type = DirichletBC
     variable = u
@@ -64,9 +69,8 @@ active = 'mat'
   [../]
 []
 
+# Materials System
 [Materials]
-  active = mat
-
   [./mat]
     type = MTMaterial
     block = 0
@@ -82,13 +86,8 @@ active = 'mat'
 
 [Outputs]
   file_base = out
-  output_initial = true
   [./exodus]
     type = Exodus
     elemental_as_nodal = true
-  [../]
-  [./console]
-    type = Console
-    perf_log = true
   [../]
 []

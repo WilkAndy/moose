@@ -4,22 +4,23 @@
     type = 'Exodiff'
     input = 'exodus.i'
     exodiff = 'exodus_out.e'
+    group = 'requirements'
   [../]
 
   [./input]
     # Test the ability to write the input file to the output; this currently just checks if
     # Moose runs with the output_input = true
     # \TODO Find a method for comparing files with and without information records
-    type = 'RunApp'
+    type = 'CheckFiles'
     input = 'exodus_input.i'
+    check_files = 'exodus_input_out.e'
   [../]
 
-  [./disable_initial]
-    # Tests the disabling of the initial condition for steady-state Executioner
+  [./enable_initial]
+    # Tests the enabling of the initial condition for steady-state Executioner
     type = 'Exodiff'
-    input = 'exodus.i'
-    exodiff = 'exodus_disable_initial_out.e'
-    cli_args = 'Outputs/out/output_initial=false Outputs/out/file_base=exodus_disable_initial_out'
+    input = 'exodus_enable_initial.i'
+    exodiff = 'exodus_enable_initial_out.e'
   [../]
 
   [./output_all]

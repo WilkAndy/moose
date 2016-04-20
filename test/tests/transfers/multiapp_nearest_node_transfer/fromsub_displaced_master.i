@@ -3,9 +3,6 @@
   dim = 2
   nx = 10
   ny = 10
-  # The Transfer system doesn't work quite right with ParallelMesh enabled.
-  # Form more information, see #2126
-  distribution = serial
 []
 
 [Variables]
@@ -57,13 +54,7 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []
 
 [MultiApps]

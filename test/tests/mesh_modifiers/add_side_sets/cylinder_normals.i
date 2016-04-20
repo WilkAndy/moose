@@ -1,3 +1,13 @@
+###########################################################
+# This is test of the Mesh Modification System. This
+# test adds sidesets to a mesh based on geometric normals
+# to the faces or edges of the mesh. In this case sidesets
+# are added to the top, bottom and side of a cylinder.
+#
+# @Requirement F2.20
+###########################################################
+
+
 [Mesh]
   type = FileMesh
   file = cylinder.e
@@ -13,7 +23,13 @@
     normals = '0  0  1
                0  1  0
                0  0 -1'
-    boundary = 'top side bottom'
+
+    # This parameter allows the normal
+    # to vary slightly from adjacent element
+    # to element so that a sidset can follow
+    # a curve. It is false by default.
+    fixed_normal = false
+    new_boundary = 'top side bottom'
   [../]
 []
 
@@ -55,11 +71,5 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

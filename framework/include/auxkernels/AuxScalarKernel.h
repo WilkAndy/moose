@@ -16,26 +16,21 @@
 #define AUXSCALARKERNEL_H
 
 #include "MooseObject.h"
-#include "Coupleable.h"
 #include "ScalarCoupleable.h"
 #include "SetupInterface.h"
 #include "FunctionInterface.h"
 #include "UserObjectInterface.h"
 #include "PostprocessorInterface.h"
+#include "DependencyResolverInterface.h"
 #include "TransientInterface.h"
-#include "Assembly.h"
 #include "MooseVariableScalar.h"
-#include "SubProblem.h"
 #include "ZeroInterface.h"
-// libMesh
-#include "libmesh/fe.h"
-#include "libmesh/quadrature.h"
+#include "MeshChangedInterface.h"
 
+// Forward declarations
 class MooseMesh;
-class Problem;
 class SubProblem;
-
-
+class Assembly;
 class AuxScalarKernel;
 
 template<>
@@ -51,11 +46,13 @@ class AuxScalarKernel :
   public FunctionInterface,
   public UserObjectInterface,
   public PostprocessorInterface,
+  public DependencyResolverInterface,
   public TransientInterface,
-  public ZeroInterface
+  public ZeroInterface,
+  public MeshChangedInterface
 {
 public:
-  AuxScalarKernel(const std::string & name, InputParameters parameters);
+  AuxScalarKernel(const InputParameters & parameters);
 
   virtual ~AuxScalarKernel();
 
@@ -70,6 +67,10 @@ public:
   MooseVariableScalar & variable() { return _var; }
 
   SubProblem & subProblem() { return _subproblem; }
+
+  virtual const std::set<std::string> & getRequestedItems();
+
+  virtual const std::set<std::string> & getSuppliedItems();
 
   /**
    * Use this to enable/disable the constraint
@@ -92,6 +93,10 @@ protected:
 
   VariableValue & _u;
   VariableValue & _u_old;
+
+  /// Depend AuxKernels
+  std::set<std::string> _depend_vars;
+  std::set<std::string> _supplied_vars;
 
   /**
    * Compute the value of this kernel.

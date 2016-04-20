@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef POLYCRYSTALRANDOMIC_H
 #define POLYCRYSTALRANDOMIC_H
 
@@ -22,12 +28,9 @@ public:
   /**
    * Constructor
    *
-   * @param name The name given to the initial condition in the input file.
    * @param parameters The parameters object holding data for the class to use.
-   * @param var_name The variable this InitialCondtion is supposed to provide values for.
    */
-  PolycrystalRandomIC(const std::string & name,
-                InputParameters parameters);
+  PolycrystalRandomIC(const InputParameters & parameters);
 
   /**
    * The value of the variable at a point.
@@ -37,8 +40,8 @@ public:
   virtual Real value(const Point & p);
 
 private:
-  unsigned int _crys_num;
-  unsigned int _crys_index;
+  unsigned int _op_num;
+  unsigned int _op_index;
   unsigned int _typ;
 };
 

@@ -65,10 +65,4 @@
   exodus = true
   csv = true
   file_base = out
-  output_initial = true
-  interval = 1
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
-[]
+  []

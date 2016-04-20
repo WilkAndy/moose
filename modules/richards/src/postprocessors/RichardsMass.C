@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  This post processor returns the mass value of a region.  It is used
 //  to check that mass is conserved
@@ -17,11 +20,11 @@ InputParameters validParams<RichardsMass>()
   return params;
 }
 
-RichardsMass::RichardsMass(const std::string & name, InputParameters parameters) :
-    ElementIntegralVariablePostprocessor(name, parameters),
+RichardsMass::RichardsMass(const InputParameters & parameters) :
+    ElementIntegralVariablePostprocessor(parameters),
 
     _richards_name_UO(getUserObject<RichardsVarNames>("richardsVarNames_UO")),
-    _pvar(_richards_name_UO.richards_var_num(_var.number())),
+    _pvar(_richards_name_UO.richards_var_num(coupled("variable"))),
 
     _mass(getMaterialProperty<std::vector<Real> >("mass"))
 {
@@ -32,3 +35,4 @@ RichardsMass::computeQpIntegral()
 {
   return _mass[_qp][_pvar];
 }
+

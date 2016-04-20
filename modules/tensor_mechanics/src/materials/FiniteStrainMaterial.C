@@ -1,34 +1,49 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 // Original class author: M.R. Tonks
 
 #include "FiniteStrainMaterial.h"
+
+// libmesh includes
+#include "libmesh/quadrature.h"
 
 template<>
 InputParameters validParams<FiniteStrainMaterial>()
 {
   InputParameters params = validParams<TensorMechanicsMaterial>();
-
+  params.addClassDescription("Computes incremental strain and deformation gradient for finite deformation");
   return params;
 }
 
-FiniteStrainMaterial::FiniteStrainMaterial(const std::string & name,
-                                             InputParameters parameters)
-    : TensorMechanicsMaterial(name, parameters),
-      _strain_rate(declareProperty<RankTwoTensor>("strain_rate")),
-      _strain_increment(declareProperty<RankTwoTensor>("strain_increment")),
-      _elastic_strain_old(declarePropertyOld<RankTwoTensor>("elastic_strain")),
-      _stress_old(declarePropertyOld<RankTwoTensor>("stress")),
-      _rotation_increment(declareProperty<RankTwoTensor>("rotation_increment")),
-      _dfgrd(declareProperty<RankTwoTensor>("deformation gradient"))
+FiniteStrainMaterial::FiniteStrainMaterial(const InputParameters & parameters) :
+    TensorMechanicsMaterial(parameters),
+    _strain_rate(declareProperty<RankTwoTensor>("strain_rate")),
+    _strain_increment(declareProperty<RankTwoTensor>("strain_increment")),
+    _total_strain_old(declarePropertyOld<RankTwoTensor>("total_strain")),
+    _elastic_strain_old(declarePropertyOld<RankTwoTensor>("elastic_strain")),
+    _stress_old(declarePropertyOld<RankTwoTensor>("stress")),
+    _rotation_increment(declareProperty<RankTwoTensor>("rotation_increment")),
+    _deformation_gradient(declareProperty<RankTwoTensor>("deformation_gradient"))
 {
 }
 
-void FiniteStrainMaterial::initQpStatefulProperties()
+void
+FiniteStrainMaterial::initQpStatefulProperties()
 {
-  _elastic_strain[_qp].zero();
-  _stress[_qp].zero();
+  TensorMechanicsMaterial::initQpStatefulProperties(); // initialises stress, total_strain and elastic_strain
+
+  _stress_old[_qp] = _stress[_qp];
+  _total_strain_old[_qp] = _total_strain[_qp];
+  _elastic_strain_old[_qp] = _elastic_strain[_qp];
+
 }
 
-void FiniteStrainMaterial::computeStrain()
+void
+FiniteStrainMaterial::computeStrain()
 {
   //Method from Rashid, 1993
   std::vector<RankTwoTensor> Fhat;
@@ -41,27 +56,25 @@ void FiniteStrainMaterial::computeStrain()
   for (_qp = 0; _qp < _qrule->n_points(); ++_qp)
   {
     //Deformation gradient
-    RankTwoTensor A(_grad_disp_x[_qp],_grad_disp_y[_qp],_grad_disp_z[_qp]); //Deformation gradient
-    RankTwoTensor Fbar(_grad_disp_x_old[_qp],_grad_disp_y_old[_qp],_grad_disp_z_old[_qp]); //Old Deformation gradient
+    RankTwoTensor A(_grad_disp_x[_qp], _grad_disp_y[_qp], _grad_disp_z[_qp]); //Deformation gradient
+    RankTwoTensor Fbar(_grad_disp_x_old[_qp], _grad_disp_y_old[_qp], _grad_disp_z_old[_qp]); //Old Deformation gradient
 
-    _dfgrd[_qp]=A;
-    _dfgrd[_qp].addIa(1.0);//Gauss point deformation gradient
+    _deformation_gradient[_qp] = A;
+    _deformation_gradient[_qp].addIa(1.0);//Gauss point deformation gradient
 
     A -= Fbar; //A = gradU - gradUold
 
     Fbar.addIa(1.0); //Fbar = ( I + gradUold)
 
     //Incremental deformation gradient Fhat = I + A Fbar^-1
-    Fhat[_qp] = A*Fbar.inverse();
+    Fhat[_qp] = A * Fbar.inverse();
     Fhat[_qp].addIa(1.0);
 
     //Calculate average Fhat for volumetric locking correction
-    ave_Fhat += Fhat[_qp]*_JxW[_qp];
+    ave_Fhat += Fhat[_qp] * _JxW[_qp];
     volume += _JxW[_qp];
 
-    ave_dfgrd_det += _dfgrd[_qp].det()*_JxW[_qp];//Average deformation gradient
-
-
+    ave_dfgrd_det += _deformation_gradient[_qp].det() * _JxW[_qp]; //Average deformation gradient
   }
 
   ave_Fhat /= volume; //This is needed for volumetric locking correction
@@ -69,25 +82,24 @@ void FiniteStrainMaterial::computeStrain()
 
   for (_qp = 0; _qp < _qrule->n_points(); ++_qp)
   {
-    Real factor( std::pow( ave_Fhat.det()/Fhat[_qp].det(), 1.0/3.0));
+    Real factor( std::pow( ave_Fhat.det() / Fhat[_qp].det(), 1.0/3.0));
     Fhat[_qp] *= factor; //Finalize volumetric locking correction
 
     computeQpStrain(Fhat[_qp]);
 
-    factor=pow(ave_dfgrd_det/_dfgrd[_qp].det(), 1.0/3.0);//Volumetric locking correction
-    _dfgrd[_qp] *=factor;//Volumetric locking correction
-
+    factor = std::pow(ave_dfgrd_det / _deformation_gradient[_qp].det(), 1.0/3.0);//Volumetric locking correction
+    _deformation_gradient[_qp] *= factor;//Volumetric locking correction
   }
-
-
-
 }
-void FiniteStrainMaterial::computeQpStrain()
+
+void
+FiniteStrainMaterial::computeQpStrain()
 {
   mooseError("Wrong computeQpStrain called in FiniteStrainMaterial");
 }
 
-void FiniteStrainMaterial::computeQpStrain(RankTwoTensor Fhat)
+void
+FiniteStrainMaterial::computeQpStrain(const RankTwoTensor & Fhat)
 {
   //Cinv - I = A A^T - A - A^T;
   RankTwoTensor A; //A = I - Fhatinv
@@ -106,7 +118,7 @@ void FiniteStrainMaterial::computeQpStrain(RankTwoTensor Fhat)
   B.addIa(-0.75);
   _strain_increment[_qp] = -B*A;*/
 
-  RankTwoTensor D = _strain_increment[_qp]/_t_step;
+  RankTwoTensor D = _strain_increment[_qp]/_dt;
   _strain_rate[_qp] = D;
 
   //Calculate rotation R_incr
@@ -119,7 +131,7 @@ void FiniteStrainMaterial::computeQpStrain(RankTwoTensor Fhat)
   Real q = (a[0]*a[0] + a[1]*a[1] + a[2]*a[2])/4.0;
   Real trFhatinv_1 = invFhat.trace() - 1.0;
   Real p = trFhatinv_1*trFhatinv_1/4.0;
-//  Real y = 1.0/((q + p)*(q + p)*(q + p));
+  // Real y = 1.0/((q + p)*(q + p)*(q + p));
 
   /*Real C1 = std::sqrt(p * (1 + (p*(q+q+(q+p))) * (1-(q+p)) * y));
   Real C2 = 0.125 + q * 0.03125 * (p*p - 12*(p-1)) / (p*p);

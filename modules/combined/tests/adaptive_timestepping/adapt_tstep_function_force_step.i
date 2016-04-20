@@ -87,7 +87,7 @@
     tensor = stress
     variable = vonmises
     quantity = vonmises
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
 []
 
@@ -169,24 +169,23 @@
   [./Temperatrue_of_Block]
     type = ElementAverageValue
     variable = temp
+    execute_on = 'initial timestep_end'
   [../]
 
   [./vonMises]
     type = ElementAverageValue
     variable = vonmises
+    execute_on = 'initial timestep_end'
   [../]
 []
 
 [Outputs]
-  output_initial = true
   [./out]
     type = Exodus
     elemental_as_nodal = true
   [../]
   [./console]
     type = Console
-    perf_log = true
-    linear_residuals = true
     max_rows = 10
   [../]
 []

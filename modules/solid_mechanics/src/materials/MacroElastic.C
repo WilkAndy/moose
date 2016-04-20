@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "MacroElastic.h"
 
 #include "SymmElasticityTensor.h"
@@ -19,9 +25,8 @@ InputParameters validParams<MacroElastic>()
   return params;
 }
 
-MacroElastic::MacroElastic( const std::string & name,
-                  InputParameters parameters )
-  :Elastic( name, parameters ),
+MacroElastic::MacroElastic( const InputParameters & parameters)
+  :Elastic(parameters),
    _C1111(getPostprocessorValue("C1111")),
    _C1122(getPostprocessorValue("C1122")),
    _C1133(getPostprocessorValue("C1133")),
@@ -66,3 +71,4 @@ MacroElastic::createElasticityTensor()
 {
   elasticityTensor( new SymmElasticityTensor(false) );
 }
+

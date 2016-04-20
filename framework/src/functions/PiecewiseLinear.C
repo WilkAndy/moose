@@ -21,8 +21,8 @@ InputParameters validParams<PiecewiseLinear>()
   return params;
 }
 
-PiecewiseLinear::PiecewiseLinear(const std::string & name, InputParameters parameters) :
-  Piecewise(name, parameters)
+PiecewiseLinear::PiecewiseLinear(const InputParameters & parameters) :
+  Piecewise(parameters)
 {
 }
 
@@ -71,3 +71,4 @@ PiecewiseLinear::average()
 {
   return integral()/(_linear_interp->domain(_linear_interp->getSampleSize()-1)-_linear_interp->domain(0));
 }
+

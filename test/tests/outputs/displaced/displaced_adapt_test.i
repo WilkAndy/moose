@@ -123,12 +123,9 @@
   [../]
 []
 
-##! [OutputDisplaced]
 [Outputs]
   [./out]
     type = Exodus
     use_displaced = true
-    output_initial = true
   [../]
 []
-##! [OutputDisplaced]

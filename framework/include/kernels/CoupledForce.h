@@ -29,7 +29,7 @@ InputParameters validParams<CoupledForce>();
 class CoupledForce : public Kernel
 {
 public:
-  CoupledForce(const std::string & name, InputParameters parameters);
+  CoupledForce(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
@@ -40,7 +40,7 @@ protected:
 
 private:
   unsigned int _v_var;
-  VariableValue & _v;
+  const VariableValue & _v;
 };
 
 #endif //COUPLEDFORCE_H

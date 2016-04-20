@@ -15,29 +15,33 @@
 #ifndef MOOSEMESH_H
 #define MOOSEMESH_H
 
-#include "InputParameters.h"
 #include "MooseObject.h"
 #include "BndNode.h"
 #include "BndElement.h"
-#include "MooseTypes.h"
 #include "Restartable.h"
 #include "MooseEnum.h"
 
 // libMesh
 #include "libmesh/mesh.h"
-#include "libmesh/boundary_info.h"
 #include "libmesh/elem_range.h"
 #include "libmesh/node_range.h"
-#include "libmesh/periodic_boundaries.h"
-#include "libmesh/quadrature.h"
-
-#include <map>
+#include "libmesh/mesh_tools.h"
 
 //forward declaration
 class MooseMesh;
 class NonlinearSystem;
 class Assembly;
-namespace libMesh { class ExodusII_IO; }
+
+// libMesh forward declarations
+namespace libMesh
+{
+class ExodusII_IO;
+class QBase;
+class PeriodicBoundaries;
+class Partitioner;
+}
+
+// Useful typedefs
 typedef StoredRange<std::set<Node *>::iterator, Node*> SemiLocalNodeRange;
 
 template<>
@@ -73,7 +77,7 @@ public:
   /**
    * Typical "Moose-style" constructor and copy constructor.
    */
-  MooseMesh(const std::string & name, InputParameters parameters);
+  MooseMesh(const InputParameters & parameters);
   MooseMesh(const MooseMesh & other_mesh);
 
   /**
@@ -112,13 +116,27 @@ public:
    * Returns a vector of boundary IDs for the requested element on the
    * requested side.
    */
-  std::vector<BoundaryID> boundaryIDs(const Elem *const elem, const unsigned short int side) const;
+  std::vector<BoundaryID> getBoundaryIDs(const Elem *const elem, const unsigned short int side) const;
 
   /**
    * Returns a const reference to a set of all user-specified
    * boundary IDs.
    */
   const std::set<BoundaryID> & getBoundaryIDs() const;
+
+  /**
+   * Templated helper that returns either block or boundary IDs depending on
+   * the template argument
+   */
+  template <typename T>
+  const std::set<T> & getBlockOrBoundaryIDs() const;
+
+  /**
+   * Templated helper that returns either the ang block or any boundary ID
+   * depending on the template argument
+   */
+  template <typename T>
+  T getAnyID() const;
 
   /**
    * Calls BoundaryInfo::build_node_list()/build_side_list() and *makes separate copies* of
@@ -131,9 +149,28 @@ public:
 
   /**
    * If not already created, creates a map from every node to all
-   * elements to which they are created.
+   * elements to which they are connected.
    */
-  std::map<unsigned int, std::vector<unsigned int> > & nodeToElemMap();
+  std::map<dof_id_type, std::vector<dof_id_type> > & nodeToElemMap();
+
+  /**
+   * If not already created, creates a map from every node to all
+   * _active_ _semilocal_ elements to which they are connected.
+   * Semilocal elements include local elements and elements that share at least
+   * one node with a local element.
+   * \note Extra ghosted elements are not included in this map!
+   */
+  std::map<dof_id_type, std::vector<dof_id_type> > & nodeToActiveSemilocalElemMap();
+
+  /**
+   * These structs are required so that the bndNodes{Begin,End} and
+   * bndElems{Begin,End} functions work...
+   */
+  struct bnd_node_iterator;
+  struct const_bnd_node_iterator;
+
+  struct bnd_elem_iterator;
+  struct const_bnd_elem_iterator;
 
   /**
    * Return iterators to the beginning/end of the boundary nodes list.
@@ -156,7 +193,7 @@ public:
    * Calls BoundaryInfo::build_side_list().
    * Fills in the three passed vectors with list logical (element, side, id) tuples.
    */
-  void buildSideList(std::vector<unsigned int> & el, std::vector<unsigned short int> & sl, std::vector<boundary_id_type> & il);
+  void buildSideList(std::vector<dof_id_type> & el, std::vector<unsigned short int> & sl, std::vector<boundary_id_type> & il);
 
   /**
    * Calls BoundaryInfo::side_with_boundary_id().
@@ -178,22 +215,22 @@ public:
   /**
    * Calls n_nodes/elem() on the underlying libMesh mesh object.
    */
-  virtual unsigned int nNodes() const;
-  virtual unsigned int nElem() const;
+  virtual dof_id_type nNodes() const;
+  virtual dof_id_type nElem() const;
 
   /**
    * Various accessors (pointers/references) for Node "i".
    */
-  virtual const Node & node (const unsigned int i) const;
-  virtual Node & node (const unsigned int i);
-  virtual const Node* nodePtr(const unsigned int i) const;
-  virtual Node* nodePtr(const unsigned int i);
+  virtual const Node & node (const dof_id_type i) const;
+  virtual Node & node (const dof_id_type i);
+  virtual const Node* nodePtr(const dof_id_type i) const;
+  virtual Node* nodePtr(const dof_id_type i);
 
   /**
    * Various accessors (pointers/references) for Elem "i".
    */
-  virtual Elem * elem(const unsigned int i);
-  virtual const Elem * elem(const unsigned int i) const;
+  virtual Elem * elem(const dof_id_type i);
+  virtual const Elem * elem(const dof_id_type i) const;
 
   /**
    * Setter/getter for the _is_changed flag.
@@ -206,6 +243,13 @@ public:
    */
   bool prepared() const;
   void prepared(bool state);
+
+  /**
+   * If this method is called, we will call libMesh's prepare_for_use method when we
+   * call Moose's prepare method. This should only be set when the mesh structure is changed
+   * by MeshModifiers (i.e. Element deletion).
+   */
+  void needsPrepareForUse();
 
   /**
    * Declares that the MooseMesh has changed, invalidates cached data
@@ -253,7 +297,7 @@ public:
    * Clears the "semi-local" node list and rebuilds it.  Semi-local nodes
    * consist of all nodes that belong to local and ghost elements.
    */
-  void updateActiveSemiLocalNodeRange(std::set<unsigned int> & ghosted_elems);
+  void updateActiveSemiLocalNodeRange(std::set<dof_id_type> & ghosted_elems);
 
   /**
    * Returns true if the node is semi-local
@@ -270,8 +314,8 @@ public:
   NodeRange * getActiveNodeRange();
   SemiLocalNodeRange * getActiveSemiLocalNodeRange();
   ConstNodeRange * getLocalNodeRange();
-  ConstBndNodeRange * getBoundaryNodeRange();
-  ConstBndElemRange * getBoundaryElementRange();
+  StoredRange<MooseMesh::const_bnd_node_iterator, const BndNode*> * getBoundaryNodeRange();
+  StoredRange<MooseMesh::const_bnd_elem_iterator, const BndElement*> * getBoundaryElementRange();
 
   /**
    * Returns a read-only reference to the set of subdomains currently
@@ -284,6 +328,18 @@ public:
    * present in the Mesh.
    */
   const std::set<BoundaryID> & meshBoundaryIds() const;
+
+  /**
+   * Sets the mapping between BoundaryID and normal vector
+   * Is called by AddAllSideSetsByNormals
+   */
+  void setBoundaryToNormalMap(std::map<BoundaryID, RealVectorValue> * boundary_map);
+
+  /**
+   * Sets the set of BoundaryIDs
+   * Is called by AddAllSideSetsByNormals
+   */
+  void setMeshBoundaryIDs(std::set<BoundaryID> boundary_IDs);
 
   /**
    * Returns the normal vector associated with a given BoundaryID.
@@ -302,12 +358,15 @@ public:
    */
   void update();
 
-#ifdef LIBMESH_ENABLE_AMR
   /**
    * Returns the level of uniform refinement requested (zero if AMR is disabled).
    */
-  unsigned int & uniformRefineLevel();
-#endif //LIBMESH_ENABLE_AMR
+  unsigned int uniformRefineLevel() const;
+
+  /**
+   * Set uniform refinement level
+   */
+  void setUniformRefineLevel(unsigned int);
 
   /**
    * This will add the boundary ids to be ghosted to this processor
@@ -339,12 +398,30 @@ public:
    * Getter/setter for the patch_size parameter.
    */
   void setPatchSize(const unsigned int patch_size);
-  unsigned int getPatchSize();
+  unsigned int getPatchSize() const;
+
+  /**
+   * Set the patch size update strategy
+   */
+  void setPatchUpdateStrategy(MooseEnum patch_update_strategy);
+
+  /**
+   * Get the current patch update strategy.
+   */
+  const MooseEnum & getPatchUpdateStrategy() const;
+
+  /**
+   * Get a (slightly inflated) processor bounding box.
+   *
+   * @param inflation_multiplier This amount will be multiplied by the length of the diagonal of the bounding box to find the amount to inflate the bounding box by in all directions.
+   */
+  MeshTools::BoundingBox getInflatedProcessorBoundingBox(Real inflation_multiplier = 0.01) const;
 
   /**
    * Implicit conversion operator from MooseMesh -> libMesh::MeshBase.
    */
-  operator libMesh::MeshBase &();
+  operator libMesh::MeshBase & ();
+  operator const libMesh::MeshBase & () const;
 
   /**
    * Accessor for the underlying libMesh Mesh object.
@@ -360,18 +437,18 @@ public:
   /**
    * Calls print_info() on the underlying Mesh.
    */
-  void printInfo(std::ostream &os=libMesh::out);
+  void printInfo(std::ostream &os=libMesh::out) const;
 
   /**
    * Return list of blocks to which the given node belongs.
    */
-  std::set<SubdomainID> & getNodeBlockIds(const Node & node);
+  const std::set<SubdomainID> & getNodeBlockIds(const Node & node) const;
 
   /**
    * Return a writable reference to a vector of node IDs that belong
    * to nodeset_id.
    */
-  std::vector<unsigned int> & getNodeList(boundary_id_type nodeset_id);
+  const std::vector<dof_id_type> & getNodeList(boundary_id_type nodeset_id) const;
 
   /**
    * Add a new node to the mesh.  If there is already a node located at the point passed
@@ -454,15 +531,14 @@ public:
 
   /**
    * This routine builds a multimap of boundary ids to matching boundary ids across all periodic boundaries
-   * in the system.  It does this only for active local elements so the list will not be globally complete when
-   * run in parallel!
+   * in the system.
    */
-  void buildPeriodicNodeMap(std::multimap<unsigned int, unsigned int> & periodic_node_map, unsigned int var_number, PeriodicBoundaries *pbs) const;
+  void buildPeriodicNodeMap(std::multimap<dof_id_type, dof_id_type> & periodic_node_map, unsigned int var_number, PeriodicBoundaries *pbs) const;
 
   /**
    * This routine builds a datastructure of node ids organized by periodic boundary ids
    */
-  void buildPeriodicNodeSets(std::map<BoundaryID, std::set<unsigned int> > & periodic_node_sets, unsigned int var_number, PeriodicBoundaries *pbs) const;
+  void buildPeriodicNodeSets(std::map<BoundaryID, std::set<dof_id_type> > & periodic_node_sets, unsigned int var_number, PeriodicBoundaries *pbs) const;
 
   /**
    * Returns the width of the requested dimension
@@ -567,31 +643,31 @@ public:
    * @param subdomain_id The subdomain ID you want to get the boundary ids for.
    * @return All boundary IDs connected to elements in the give
    */
-  const std::set<unsigned int> & getSubdomainBoundaryIds(unsigned int subdomain_id);
+  const std::set<BoundaryID> & getSubdomainBoundaryIds(SubdomainID subdomain_id) const;
 
   /**
    * Returns true if the requested node is in the list of boundary
    * nodes, false otherwise.
    */
-  bool isBoundaryNode(unsigned int node_id);
+  bool isBoundaryNode(dof_id_type node_id) const;
 
   /**
    * Returns true if the requested node is in the list of boundary
    * nodes for the specified boundary, false otherwise.
    */
-  bool isBoundaryNode(unsigned int node_id, BoundaryID bnd_id);
+  bool isBoundaryNode(dof_id_type node_id, BoundaryID bnd_id) const;
 
   /**
    * Returns true if the requested element is in the list of boundary
    * elements, false otherwise.
    */
-  bool isBoundaryElem(unsigned int elem_id);
+  bool isBoundaryElem(dof_id_type elem_id) const;
 
   /**
    * Returns true if the requested element is in the list of boundary
    * elements for the specified boundary, false otherwise.
    */
-  bool isBoundaryElem(unsigned int elem_id, BoundaryID bnd_id);
+  bool isBoundaryElem(dof_id_type elem_id, BoundaryID bnd_id) const;
 
   /**
    * Generate a unified error message if the underlying libMesh mesh
@@ -626,14 +702,6 @@ public:
    */
   void allowRecovery(bool allow) { _allow_recovery = allow; }
 
-  /**
-   * Add surface
-   * @param name The name of the surface
-   * @param bnd_id Boundary ID in the existing mesh this surface mesh will be created from
-   * @param domain_id New domain ID assigned to the surface mesh
-   */
-  void addSurface(const std::string & name, BoundaryID bnd_id, SubdomainID domain_id);
-
   class MortarInterface
   {
   public:
@@ -654,6 +722,20 @@ public:
   MooseMesh::MortarInterface * getMortarInterfaceByName(const std::string name);
   MooseMesh::MortarInterface * getMortarInterface(BoundaryID master, BoundaryID slave);
 
+  /**
+   * Setter for custom partitioner
+   */
+  void setCustomPartitioner(Partitioner * partitioner);
+
+  /**
+   * Setter and getter for _custom_partitioner_requested
+   */
+  bool isCustomPartitionerRequested() const;
+  void setIsCustomPartitionerRequested(bool cpr);
+
+  /// Getter to query if the mesh was detected to be regular and orthogonal
+  bool isRegularOrthogonal() { return _regular_orthogonal_mesh; }
+
 protected:
   /// Can be set to PARALLEL, SERIAL, or DEFAULT.  Determines whether
   /// the underlying libMesh mesh is a SerialMesh or ParallelMesh.
@@ -671,6 +753,10 @@ protected:
   /// The partitioner used on this mesh
   MooseEnum _partitioner_name;
   bool _partitioner_overridden;
+
+  /// The custom partitioner
+  UniquePtr<Partitioner> _custom_partitioner;
+  bool _custom_partitioner_requested;
 
   /// Convenience enums
   enum {
@@ -695,6 +781,9 @@ protected:
   /// True if prepare has been called on the mesh
   bool _is_prepared;
 
+  /// True if prepare_for_use should be called when Mesh is prepared
+  bool _needs_prepare_for_use;
+
   /// The elements that were just refined.
   ConstElemPointerRange * _refined_elements;
 
@@ -708,7 +797,7 @@ protected:
   std::set<Node *> _semilocal_node_list;
 
   /**
-   * A range for use with TBB.  We do this so that it doesn't have
+   * A range for use with threading.  We do this so that it doesn't have
    * to get rebuilt all the time (which takes time).
    */
   ConstElemRange * _active_local_elem_range;
@@ -716,12 +805,16 @@ protected:
   SemiLocalNodeRange * _active_semilocal_node_range;
   NodeRange * _active_node_range;
   ConstNodeRange * _local_node_range;
-  ConstBndNodeRange * _bnd_node_range;
-  ConstBndElemRange * _bnd_elem_range;
+  StoredRange<MooseMesh::const_bnd_node_iterator, const BndNode*> * _bnd_node_range;
+  StoredRange<MooseMesh::const_bnd_elem_iterator, const BndElement*> * _bnd_elem_range;
 
   /// A map of all of the current nodes to the elements that they are connected to.
-  std::map<unsigned int, std::vector<unsigned int> > _node_to_elem_map;
+  std::map<dof_id_type, std::vector<dof_id_type> > _node_to_elem_map;
   bool _node_to_elem_map_built;
+
+  /// A map of all of the current nodes to the active elements that they are connected to.
+  std::map<dof_id_type, std::vector<dof_id_type> > _node_to_active_semilocal_elem_map;
+  bool _node_to_active_semilocal_elem_map_built;
 
   /**
    * A set of subdomain IDs currently present in the mesh.
@@ -733,46 +826,46 @@ protected:
   /**
    * A set of boundary IDs currently present in the mesh.
    * In serial, this is equivalent to the values returned
-   * by _mesh.boundary_info->get_boundary_ids().  In parallel,
+   * by _mesh.get_boundary_info().get_boundary_ids().  In parallel,
    * it will contain off-processor boundary IDs as well.
-   *
-   * Note: This datastructure is directly accessed
-   * and modified by the friend "AddAllSideSetsByNormals".
    */
   std::set<BoundaryID> _mesh_boundary_ids;
 
   /// The boundary to normal map - valid only when AddAllSideSetsByNormals is active
-  AutoPtr<std::map<BoundaryID, RealVectorValue> > _boundary_to_normal_map;
+  UniquePtr<std::map<BoundaryID, RealVectorValue> > _boundary_to_normal_map;
 
   /// array of boundary nodes
   std::vector<BndNode *> _bnd_nodes;
   typedef std::vector<BndNode *>::iterator             bnd_node_iterator_imp;
   typedef std::vector<BndNode *>::const_iterator const_bnd_node_iterator_imp;
   /// Map of sets of node IDs in each boundary
-  std::map<boundary_id_type, std::set<unsigned int> > _bnd_node_ids;
+  std::map<boundary_id_type, std::set<dof_id_type> > _bnd_node_ids;
 
   /// array of boundary elems
   std::vector<BndElement *> _bnd_elems;
   typedef std::vector<BndElement *>::iterator             bnd_elem_iterator_imp;
   typedef std::vector<BndElement *>::const_iterator const_bnd_elem_iterator_imp;
   /// Map of set of elem IDs connected to each boundary
-  std::map<boundary_id_type, std::set<unsigned int> > _bnd_elem_ids;
+  std::map<boundary_id_type, std::set<dof_id_type> > _bnd_elem_ids;
 
-  std::map<unsigned int, Node *> _quadrature_nodes;
-  std::map<unsigned int, std::map<unsigned int, std::map<unsigned int, Node *> > > _elem_to_side_to_qp_to_quadrature_nodes;
+  std::map<dof_id_type, Node *> _quadrature_nodes;
+  std::map<dof_id_type, std::map<unsigned int, std::map<dof_id_type, Node *> > > _elem_to_side_to_qp_to_quadrature_nodes;
   std::vector<BndNode> _extra_bnd_nodes;
 
   /// list of nodes that belongs to a specified block (domain)
-  std::map<unsigned int, std::set<SubdomainID> > _block_node_list;
+  std::map<dof_id_type, std::set<SubdomainID> > _block_node_list;
 
   /// list of nodes that belongs to a specified nodeset: indexing [nodeset_id] -> [array of node ids]
-  std::map<boundary_id_type, std::vector<unsigned int> > _node_set_nodes;
+  std::map<boundary_id_type, std::vector<dof_id_type> > _node_set_nodes;
 
   std::set<unsigned int> _ghosted_boundaries;
   std::vector<Real> _ghosted_boundaries_inflation;
 
   /// The number of nodes to consider in the NearestNode neighborhood.
   unsigned int _patch_size;
+
+  /// The patch update strategy
+  MooseEnum _patch_update_strategy;
 
   /// file_name iff this mesh was read from a file
   std::string _file_name;
@@ -894,12 +987,127 @@ private:
   std::map<std::pair<int, ElemType>, std::vector<std::pair<unsigned int, QpMap> > > _elem_type_to_coarsening_map;
 
   /// Holds a map from subomdain ids to the boundary ids that are attached to it
-  std::map<unsigned int, std::set<unsigned int> > _subdomain_boundary_ids;
+  std::map<SubdomainID, std::set<BoundaryID> > _subdomain_boundary_ids;
 
   /// Whether or not this Mesh is allowed to read a recovery file
   bool _allow_recovery;
-
-  friend class AddAllSideSetsByNormals;
 };
+
+
+
+/**
+ * The definition of the bnd_node_iterator struct.
+ */
+struct
+MooseMesh::bnd_node_iterator :
+variant_filter_iterator<MeshBase::Predicate,
+                        BndNode*>
+{
+  // Templated forwarding ctor -- forwards to appropriate variant_filter_iterator ctor
+  template <typename PredType, typename IterType>
+  bnd_node_iterator (const IterType& d,
+                     const IterType& e,
+                     const PredType& p ) :
+      variant_filter_iterator<MeshBase::Predicate,
+                              BndNode*>(d,e,p) {}
+};
+
+
+
+/**
+ * The definition of the const_bnd_node_iterator struct.  It is similar to the
+ * iterator above, but also provides an additional conversion-to-const ctor.
+ */
+struct
+MooseMesh::const_bnd_node_iterator :
+variant_filter_iterator<MeshBase::Predicate,
+                        BndNode* const,
+                        BndNode* const&,
+                        BndNode* const*>
+{
+  // Templated forwarding ctor -- forwards to appropriate variant_filter_iterator ctor
+  template <typename PredType, typename IterType>
+  const_bnd_node_iterator (const IterType& d,
+                           const IterType& e,
+                           const PredType& p ) :
+    variant_filter_iterator<MeshBase::Predicate,
+                            BndNode* const,
+                            BndNode* const&,
+                            BndNode* const*>(d,e,p)  {}
+
+
+  // The conversion-to-const ctor.  Takes a regular iterator and calls the appropriate
+  // variant_filter_iterator copy constructor.  Note that this one is *not* templated!
+  const_bnd_node_iterator (const MooseMesh::bnd_node_iterator& rhs) :
+    variant_filter_iterator<MeshBase::Predicate,
+                            BndNode* const,
+                            BndNode* const&,
+                            BndNode* const*>(rhs)
+  {
+  }
+};
+
+
+
+/**
+ * The definition of the bnd_elem_iterator struct.
+ */
+struct
+MooseMesh::bnd_elem_iterator :
+variant_filter_iterator<MeshBase::Predicate,
+                        BndElement*>
+{
+  // Templated forwarding ctor -- forwards to appropriate variant_filter_iterator ctor
+  template <typename PredType, typename IterType>
+  bnd_elem_iterator (const IterType& d,
+                     const IterType& e,
+                     const PredType& p ) :
+      variant_filter_iterator<MeshBase::Predicate,
+                              BndElement*>(d,e,p) {}
+};
+
+
+
+/**
+ * The definition of the const_bnd_elem_iterator struct.  It is similar to the regular
+ * iterator above, but also provides an additional conversion-to-const ctor.
+ */
+struct
+MooseMesh::const_bnd_elem_iterator :
+variant_filter_iterator<MeshBase::Predicate,
+                        BndElement* const,
+                        BndElement* const&,
+                        BndElement* const*>
+{
+  // Templated forwarding ctor -- forwards to appropriate variant_filter_iterator ctor
+  template <typename PredType, typename IterType>
+  const_bnd_elem_iterator (const IterType& d,
+                           const IterType& e,
+                           const PredType& p ) :
+    variant_filter_iterator<MeshBase::Predicate,
+                            BndElement* const,
+                            BndElement* const&,
+                            BndElement* const*>(d,e,p)  {}
+
+
+  // The conversion-to-const ctor.  Takes a regular iterator and calls the appropriate
+  // variant_filter_iterator copy constructor.  Note that this one is *not* templated!
+  const_bnd_elem_iterator (const bnd_elem_iterator& rhs) :
+    variant_filter_iterator<MeshBase::Predicate,
+                            BndElement* const,
+                            BndElement* const&,
+                            BndElement* const*>(rhs)
+  {
+  }
+};
+
+
+
+/**
+ * Some useful StoredRange typedefs.  These are defined *outside* the
+ * MooseMesh class to mimic the Const{Node,Elem}Range classes in libmesh.
+ */
+typedef StoredRange<MooseMesh::const_bnd_node_iterator, const BndNode*> ConstBndNodeRange;
+typedef StoredRange<MooseMesh::const_bnd_elem_iterator, const BndElement*> ConstBndElemRange;
 
 #endif /* MOOSEMESH_H */

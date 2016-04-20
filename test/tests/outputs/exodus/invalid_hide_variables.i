@@ -84,9 +84,9 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   [./exodus]
     type = Exodus
-    output_initial = false
     hide = 'aux27 v num_aux'
   [../]
 []

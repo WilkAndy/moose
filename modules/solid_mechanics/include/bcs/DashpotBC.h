@@ -1,16 +1,10 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
+
 
 #ifndef DASHPOTBC_H
 #define DASHPOTBC_H
@@ -35,7 +29,7 @@ public:
    * Factory constructor, takes parameters so that all derived classes can be built using the same
    * constructor.
    */
-  DashpotBC(const std::string & name, InputParameters parameters);
+  DashpotBC(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
@@ -50,9 +44,9 @@ private:
   unsigned int _disp_y_var;
   unsigned int _disp_z_var;
 
-  VariableValue & _disp_x_dot;
-  VariableValue & _disp_y_dot;
-  VariableValue & _disp_z_dot;
+  const VariableValue & _disp_x_dot;
+  const VariableValue & _disp_y_dot;
+  const VariableValue & _disp_z_dot;
 };
 
 #endif //DASHPOTBC_H

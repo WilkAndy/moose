@@ -68,12 +68,8 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = out_auto_non_generated
-  output_initial = false
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []
 

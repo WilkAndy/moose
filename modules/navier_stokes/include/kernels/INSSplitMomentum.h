@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef INSSPLITMOMENTUM_H
 #define INSSPLITMOMENTUM_H
 
@@ -22,7 +28,7 @@ InputParameters validParams<INSSplitMomentum>();
 class INSSplitMomentum : public Kernel
 {
 public:
-  INSSplitMomentum(const std::string & name, InputParameters parameters);
+  INSSplitMomentum(const InputParameters & parameters);
 
   virtual ~INSSplitMomentum(){}
 
@@ -32,19 +38,19 @@ protected:
   virtual Real computeQpOffDiagJacobian(unsigned jvar);
 
   // Coupled variables
-  VariableValue& _u_vel;
-  VariableValue& _v_vel;
-  VariableValue& _w_vel;
+  const VariableValue & _u_vel;
+  const VariableValue & _v_vel;
+  const VariableValue & _w_vel;
 
   // Acceleration vector components
-  VariableValue& _a1;
-  VariableValue& _a2;
-  VariableValue& _a3;
+  const VariableValue & _a1;
+  const VariableValue & _a2;
+  const VariableValue & _a3;
 
   // Gradients
-  VariableGradient& _grad_u_vel;
-  VariableGradient& _grad_v_vel;
-  VariableGradient& _grad_w_vel;
+  const VariableGradient & _grad_u_vel;
+  const VariableGradient & _grad_v_vel;
+  const VariableGradient & _grad_w_vel;
 
   // Variable numberings
   unsigned _u_vel_var_number;

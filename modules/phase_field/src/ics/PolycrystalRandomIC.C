@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "PolycrystalRandomIC.h"
 #include "MooseRandom.h"
 
@@ -5,19 +11,16 @@ template<>
 InputParameters validParams<PolycrystalRandomIC>()
 {
   InputParameters params = validParams<InitialCondition>();
-  params.addRequiredParam<unsigned int>("crys_num", "Number of order parameters");
-  params.addRequiredParam<unsigned int>("crys_index", "The index for the current order parameter");
-
-  params.addRequiredParam<unsigned int>("typ", "Type of random grain structure");
-
+  params.addRequiredParam<unsigned int>("op_num", "Number of order parameters");
+  params.addRequiredParam<unsigned int>("op_index", "The index for the current order parameter");
+  params.addRequiredParam<unsigned int>("typ", "Type of random grain structure"); //TODO: this should be called "type"!
   return params;
 }
 
-PolycrystalRandomIC::PolycrystalRandomIC(const std::string & name,
-                             InputParameters parameters) :
-    InitialCondition(name, parameters),
-    _crys_num(getParam<unsigned int>("crys_num")),
-    _crys_index(getParam<unsigned int>("crys_index")),
+PolycrystalRandomIC::PolycrystalRandomIC(const InputParameters & parameters) :
+    InitialCondition(parameters),
+    _op_num(getParam<unsigned int>("op_num")),
+    _op_index(getParam<unsigned int>("op_index")),
     _typ(getParam<unsigned int>("typ"))
 {}
 
@@ -33,9 +36,9 @@ Real PolycrystalRandomIC::value(const Point & p)
 
     case 1: //Discretely random
     {
-      unsigned int rndind = _crys_num * val;
+      unsigned int rndind = _op_num * val;
 
-      if (rndind == _crys_index)
+      if (rndind == _op_index)
         return 1.0;
       else
         return 0.0;
@@ -44,3 +47,4 @@ Real PolycrystalRandomIC::value(const Point & p)
 
   mooseError("Bad case passed in PolycrystalRandomIC");
 }
+

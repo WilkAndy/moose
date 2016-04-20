@@ -56,6 +56,7 @@
     variable = u
     function = solution
     boundary = 'top left right bottom'
+    penalty = 1e6
   [../]
 []
 
@@ -95,12 +96,7 @@
 []
 
 [Outputs]
-  output_initial = false
-  interval = 1
+  execute_on = 'timestep_end'
   exodus = true
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

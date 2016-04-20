@@ -89,21 +89,10 @@
 
 [Executioner]
   type = Steady
-
-  l_max_its = 1
-  nl_max_its = 1
-
-
   solve_type = JFNK
-
 []
 
 [Outputs]
   file_base = pbp_out
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

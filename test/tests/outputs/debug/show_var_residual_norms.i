@@ -104,6 +104,7 @@
     variable = u
     function = slnu
     boundary = 'left right top bottom'
+    penalty = 1e6
   [../]
   [./bc_v]
     type = FunctionDirichletBC
@@ -117,6 +118,7 @@
     variable = u
     function = slnu
     boundary = 'left right top bottom'
+    penalty = 1e6
   [../]
   [./bc_u_tb]
     type = CoupledKernelGradBC
@@ -204,13 +206,8 @@
 []
 
 [Outputs]
-  output_initial = false
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
-  [./debug]
-    type = DebugOutput
-    show_var_residual_norms = true
+  execute_on = 'timestep_end'
+  [./debug] # This is a test, use the [Debug] block to enable this
+    type = VariableResidualNormsDebugOutput
   [../]
 []

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "ThermalContactAuxBCsAction.h"
 #include "ThermalContactAuxVarsAction.h"
 #include "Factory.h"
@@ -9,11 +15,11 @@ static unsigned int n = 0;
 template<>
 InputParameters validParams<ThermalContactAuxBCsAction>()
 {
-  MooseEnum orders("CONSTANT, FIRST, SECOND, THIRD, FOURTH", "FIRST");
+  MooseEnum orders("CONSTANT FIRST SECOND THIRD FOURTH", "FIRST");
 
   InputParameters params = validParams<Action>();
   params.addRequiredParam<std::string>("type", "A string representing the Moose object that will be used for heat conduction over the gap");
-  params.addParam<std::string>("gap_type", "GapValueAux", "A string representing the Moose object that will be used for computing the gap size");
+  params.addParam<std::string>("gap_aux_type", "GapValueAux", "A string representing the Moose object that will be used for computing the gap size");
   params.addRequiredParam<NonlinearVariableName>("variable", "The variable for thermal contact");
   params.addRequiredParam<BoundaryName>("master", "The master surface");
   params.addRequiredParam<BoundaryName>("slave", "The slave surface");
@@ -32,8 +38,8 @@ InputParameters validParams<ThermalContactAuxBCsAction>()
   return params;
 }
 
-ThermalContactAuxBCsAction::ThermalContactAuxBCsAction( const std::string & name, InputParameters params ) :
-  Action(name, params)
+ThermalContactAuxBCsAction::ThermalContactAuxBCsAction( const InputParameters & params) :
+  Action(params)
 {
 }
 
@@ -42,7 +48,7 @@ ThermalContactAuxBCsAction::act()
 {
   bool quadrature = getParam<bool>("quadrature");
 
-  InputParameters params = _factory.getValidParams(getParam<std::string>("gap_type"));
+  InputParameters params = _factory.getValidParams(getParam<std::string>("gap_aux_type"));
 
   params.set<AuxVariableName>("variable") = ThermalContactAuxVarsAction::getGapValueName(_pars);
 
@@ -63,14 +69,14 @@ ThermalContactAuxBCsAction::act()
     params.set<std::string>("normal_smoothing_method") = getParam<std::string>("normal_smoothing_method");
 
   params.set<bool>("warnings") = getParam<bool>("warnings");
-  _problem->addAuxKernel(getParam<std::string>("gap_type"), "gap_value_" + Moose::stringify(n), params);
+  _problem->addAuxKernel(getParam<std::string>("gap_aux_type"), "gap_value_" + Moose::stringify(n), params);
 
   if (quadrature)
   {
     std::vector<BoundaryName> bnds(1, getParam<BoundaryName>("master"));
     params.set<std::vector<BoundaryName> >("boundary") = bnds;
     params.set<BoundaryName>("paired_boundary") = getParam<BoundaryName>("slave");
-    _problem->addAuxKernel(getParam<std::string>("gap_type"), "gap_value_master_" + Moose::stringify(n), params);
+    _problem->addAuxKernel(getParam<std::string>("gap_aux_type"), "gap_value_master_" + Moose::stringify(n), params);
 
   }
 

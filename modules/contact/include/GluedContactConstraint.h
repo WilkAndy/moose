@@ -1,16 +1,10 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
+
 
 #ifndef GLUEDCONTACTCONSTRAINT_H
 #define GLUEDCONTACTCONSTRAINT_H
@@ -33,7 +27,7 @@ class GluedContactConstraint :
   public SparsityBasedContactConstraint
 {
 public:
-  GluedContactConstraint(const std::string & name, InputParameters parameters);
+  GluedContactConstraint(const InputParameters & parameters);
   virtual ~GluedContactConstraint(){}
 
   virtual void timestepSetup();
@@ -47,6 +41,14 @@ public:
 
   virtual Real computeQpJacobian(Moose::ConstraintJacobianType type);
 
+  /**
+   * Compute off-diagonal Jacobian entries
+   * @param type The type of coupling
+   * @param jvar The index of the coupled variable
+   */
+  virtual Real computeQpOffDiagJacobian(Moose::ConstraintJacobianType type,
+                                        unsigned int jvar);
+
   bool shouldApply();
 protected:
   const unsigned int _component;
@@ -57,7 +59,6 @@ protected:
   const Real _friction_coefficient;
   const Real _tension_release;
   bool _updateContactSet;
-  Real _time_last_called;
 
   NumericVector<Number> & _residual_copy;
 
@@ -65,7 +66,7 @@ protected:
   unsigned int _y_var;
   unsigned int _z_var;
 
-  RealVectorValue _vars;
+  VectorValue<unsigned> _vars;
 
   MooseVariable * _nodal_area_var;
   SystemBase & _aux_system;

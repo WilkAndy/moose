@@ -17,9 +17,6 @@
 
 #include "Marker.h"
 
-// libmesh includes
-#include "libmesh/mesh_tools.h"
-
 class ComboMarker;
 
 /**
@@ -31,7 +28,7 @@ InputParameters validParams<ComboMarker>();
 class ComboMarker : public Marker
 {
 public:
-  ComboMarker(const std::string & name, InputParameters parameters);
+  ComboMarker(const InputParameters & parameters);
   virtual ~ComboMarker(){};
 
 protected:
@@ -39,7 +36,7 @@ protected:
 
   std::vector<MarkerName> _names;
 
-  std::vector<VariableValue *> _markers;
+  std::vector<const VariableValue *> _markers;
 };
 
 #endif /* COMBOMARKER_H */

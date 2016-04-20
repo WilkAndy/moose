@@ -55,8 +55,7 @@
   [./soln]
     type = SolutionUserObject
     mesh = cubesource.e
-    nodal_variables = source_nodal
-    elemental_variables = source_element
+    system_variables = 'source_nodal source_element'
     timestep = 2
   [../]
 []
@@ -81,9 +80,6 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

@@ -67,7 +67,7 @@
     variable = aux1
     type = ConstantAux
     value = 1
-    execute_on = jacobian
+    execute_on = nonlinear
   [../]
 
   #AuxKernel that is setup only before the simulation starts
@@ -113,9 +113,4 @@
 [Outputs]
   exodus = true
   file_base = out_init
-  output_initial = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

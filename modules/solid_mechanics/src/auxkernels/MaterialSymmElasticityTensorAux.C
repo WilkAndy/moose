@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 /*************************************************************************
 *
 *  Welcome to HYRAX!
@@ -21,8 +27,8 @@ InputParameters validParams<MaterialSymmElasticityTensorAux>()
   return params;
 }
 
-MaterialSymmElasticityTensorAux::MaterialSymmElasticityTensorAux(const std::string & name, InputParameters parameters)
-    :AuxKernel(name, parameters),
+MaterialSymmElasticityTensorAux::MaterialSymmElasticityTensorAux(const InputParameters & parameters)
+    :AuxKernel(parameters),
      _tensor_matpro(getParam<std::string>("tensor_matpro")),
      _index(getParam<int>("index")),
      _tensor_prop(getMaterialProperty<SymmElasticityTensor>(_tensor_matpro))

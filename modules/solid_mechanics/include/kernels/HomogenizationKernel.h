@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef HOMOGENIZATIONKERNEL_H
 #define HOMOGENIZATIONKERNEL_H
 
@@ -16,12 +22,12 @@ class HomogenizationKernel : public Kernel
 {
 public:
 
-  HomogenizationKernel(const std::string & name, InputParameters parameters);
+  HomogenizationKernel(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
 
-  MaterialProperty<SymmElasticityTensor> & _elasticity_tensor;
+  const MaterialProperty<SymmElasticityTensor> & _elasticity_tensor;
 
 private:
   const unsigned int _component;

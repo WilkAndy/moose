@@ -1,22 +1,27 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 #include "NodalArea.h"
 
-#include <numeric>
+// libmesh includes
+#include "libmesh/quadrature.h"
 
 template<>
 InputParameters validParams<NodalArea>()
 {
   InputParameters params = validParams<SideIntegralVariableUserObject>();
 
-  params.set<MooseEnum>("execute_on") = "timestep_begin";
-  params.set<MooseEnum>("execute_on") = "residual";
+  params.set<MultiMooseEnum>("execute_on") = "linear";
   return params;
 }
 
-
-
-NodalArea::NodalArea(const std::string & name, InputParameters parameters) :
-    SideIntegralVariableUserObject(name, parameters),
-    _phi( _var.phiFace() ),
+NodalArea::NodalArea(const InputParameters & parameters) :
+    SideIntegralVariableUserObject(parameters),
+    _phi(getCoupledVars().find("variable")->second[0]->phiFace()),
     _system( _variable->sys() ),
     _aux_solution( _system.solution() )
 {}
@@ -78,7 +83,7 @@ NodalArea::finalize()
   for ( std::map<const Node *, Real>::iterator it = _node_areas.begin(); it != it_end; ++it )
   {
     const Node * const node = it->first;
-    unsigned int dof = node->dof_number(_system.number(), _variable->number(), 0);
+    dof_id_type dof = node->dof_number(_system.number(), _variable->number(), 0);
     _aux_solution.set( dof, 0 );
   }
   _aux_solution.close();
@@ -86,7 +91,7 @@ NodalArea::finalize()
   for ( std::map<const Node *, Real>::iterator it = _node_areas.begin(); it != it_end; ++it )
   {
     const Node * const node = it->first;
-    unsigned int dof = node->dof_number(_system.number(), _variable->number(), 0);
+    dof_id_type dof = node->dof_number(_system.number(), _variable->number(), 0);
     _aux_solution.add( dof, it->second );
   }
   _aux_solution.close();
@@ -104,3 +109,4 @@ NodalArea::nodalArea( const Node * node ) const
   }
   return retVal;
 }
+

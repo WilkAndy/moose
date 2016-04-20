@@ -17,7 +17,6 @@
 #include "Problem.h"
 #include "SubProblem.h"
 #include "SystemBase.h"
-#include "MaterialData.h"
 #include "ParallelUniqueId.h"
 
 // libMesh includes
@@ -26,6 +25,7 @@
 #include "libmesh/numeric_vector.h"
 #include "libmesh/dense_subvector.h"
 #include "libmesh/libmesh_common.h"
+#include "libmesh/quadrature.h"
 
 const BoundaryID InternalSideIndicator::InternalBndId = 12345;
 
@@ -41,14 +41,12 @@ InputParameters validParams<InternalSideIndicator>()
 }
 
 
-InternalSideIndicator::InternalSideIndicator(const std::string & name, InputParameters parameters) :
-    Indicator(name, parameters),
+InternalSideIndicator::InternalSideIndicator(const InputParameters & parameters) :
+    Indicator(parameters),
     NeighborCoupleable(parameters, false, false),
     ScalarCoupleable(parameters),
     NeighborMooseVariableInterface(parameters, false),
-    TwoMaterialPropertyInterface(parameters),
-
-    _field_var(_sys.getVariable(_tid, name)),
+    _field_var(_sys.getVariable(_tid, name())),
 
     _current_elem(_assembly.elem()),
     _neighbor_elem(_assembly.neighbor()),
@@ -123,6 +121,7 @@ InternalSideIndicator::finalize()
 
   {
     Threads::spin_mutex::scoped_lock lock(Threads::spin_mtx);
-    _solution.set(_field_var.nodalDofIndex(), std::sqrt(value)/(Real)n_flux_faces);
+    _solution.set(_field_var.nodalDofIndex(), std::sqrt(value)/static_cast<Real>(n_flux_faces));
   }
 }
+

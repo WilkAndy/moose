@@ -42,6 +42,11 @@ public:
       return accessor->second;
     }
 
+    inline bool contains(const Key & key)
+    {
+      typename tbb::concurrent_hash_map< Key, T, HashCompare, Allocator >::accessor accessor;
+      return this->find(accessor, key);
+    }
 };
 
 #else
@@ -59,13 +64,22 @@ class HashMap : public LIBMESH_BEST_UNORDERED_MAP< Key, T > /*, Hash, Pred, Allo
 public:
   inline T & operator[](const Key & k)
   {
-    Threads::spin_mutex::scoped_lock lock(spin_mutex);
+    libMesh::Threads::spin_mutex::scoped_lock lock(spin_mutex);
 
     return LIBMESH_BEST_UNORDERED_MAP< Key, T > /*, Hash, Pred, Allocator >*/::operator[](k);
   }
 
+  inline bool contains(const Key & key)
+  {
+    libMesh::Threads::spin_mutex::scoped_lock lock(spin_mutex);
+
+    return this->find(key) != this->end();
+  }
+
+
+
 private:
-  Threads::spin_mutex spin_mutex;
+  libMesh::Threads::spin_mutex spin_mutex;
 
 #endif
 

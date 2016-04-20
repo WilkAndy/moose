@@ -1,16 +1,10 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
+
 
 #include "BodyForceVoid.h"
 
@@ -27,8 +21,8 @@ InputParameters validParams<BodyForceVoid>()
   return params;
 }
 
-BodyForceVoid::BodyForceVoid(const std::string & name, InputParameters parameters) :
-    Kernel(name, parameters),
+BodyForceVoid::BodyForceVoid(const InputParameters & parameters) :
+    Kernel(parameters),
     _value(getParam<Real>("value")),
     _c(coupledValue("c")),
     _has_function(getParam<FunctionName>("function") != ""),
@@ -46,3 +40,4 @@ BodyForceVoid::computeQpResidual()
   }
   return _test[_i][_qp]*-factor*(1-_c[_qp]*_c[_qp]);
 }
+

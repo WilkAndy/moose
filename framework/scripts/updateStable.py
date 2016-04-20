@@ -22,6 +22,16 @@ Where repo_revision is the target merge revision.
 
 """
 
+def buildList(dir_path):
+  if os.path.exists(os.path.join(dir_path, 'run_tests')):
+    run_tests = open(os.path.join(dir_path, 'run_tests'))
+    run_tests_contents = run_tests.read()
+    run_tests.close()
+    try:
+      return re.findall(r"app_name\s+=\s+'.*?([^/]*?)'", run_tests_contents, re.M)[0]
+    except IndexError:
+      return os.path.basename(dir_path)
+
 def buildStatus():
   tmp_apps = []
   tmp_passed = []
@@ -33,11 +43,13 @@ def buildStatus():
   tmp_passed.pop()
   # Get a list of applications tested, by searching each directory presently containing a run_test application
   for app_dir in os.listdir('.'):
-    if os.path.exists(os.path.join(os.getcwd(), app_dir, 'run_tests')):
-      tmp_apps.append(app_dir)
+    tmp_apps.append(buildList(os.path.join(os.getcwd(), app_dir)))
+  # Now get any applications inside the moose directory (modules, test, unit)
+  for app_dir in os.listdir('moose'):
+    tmp_apps.append(buildList(os.path.join(os.getcwd(), 'moose', app_dir)))
   # Return boolean if all application tests passed
-  if len(((set(tmp_apps) - excluded_applications) - set(tmp_passed))) != 0:
-    print 'Failing tests:', string.join(((set(tmp_apps) - excluded_applications) - set(tmp_passed)))
+  if len(((set(tmp_apps) - excluded_applications) - set(tmp_passed) - set([None]))) != 0:
+    print 'Failing tests:', string.join(((set(tmp_apps) - excluded_applications) - set(tmp_passed) - set([None])))
     return False
   else:
     return True
@@ -52,12 +64,11 @@ def getCoverage():
                  '*/moab/*',
                  '*/tbb/*',
                  '*/petsc*/*',
-                 '*/dtk_opt/*',
-                 '*/dtk_moab/*'
+                 '*/dtk_opt/*'
                  ]
 
   # Use the same commands from the coverage_html script to generate the raw.info file
-  coverage_cmd = [ os.getenv('LCOV_BIN'),
+  coverage_cmd = [ 'lcov',
                    '--base-directory', 'moose/framework',
                    '--directory', 'moose/framework/src/',
                    '--capture',
@@ -65,7 +76,7 @@ def getCoverage():
                    '--output-file', 'raw.info'
                    ]
   # Put the lcov filtering command together
-  filter_cmd = [os.getenv('LCOV_BIN')]
+  filter_cmd = ['lcov']
   for sgl_filter in filter_out:
     filter_cmd.extend(['-r', 'raw.info', sgl_filter])
   filter_cmd.extend(['-o', 'moose.info'])
@@ -156,14 +167,14 @@ if __name__ == '__main__':
     coverage_status = getCoverage()
     if buildStatus() and coverage_status:
       # Checking out moose-stable
-      checkout_moose_stable = [os.getenv('SVN_BIN'), 'co', '--quiet', moose_stable, 'moose-stable']
+      checkout_moose_stable = ['svn', 'co', '--quiet', moose_stable, 'moose-stable']
       runCMD(checkout_moose_stable)
       # Get Merged version numbers
       print 'Get revisions merged...'
-      get_merged_revisions = [os.getenv('SVN_BIN'), 'mergeinfo', moose_devel, '--show-revs', 'eligible', 'moose-stable']
+      get_merged_revisions = ['svn', 'mergeinfo', moose_devel, '--show-revs', 'eligible', 'moose-stable']
       log_versions = runCMD(get_merged_revisions)
       # Group the revisions together and build our 'svn log -r' command
-      get_revision_logs = [os.getenv('SVN_BIN'), 'log' ]
+      get_revision_logs = ['svn', 'log' ]
       merged_revisions = string.split(log_versions, '\n')
       if merged_revisions[0] != '':
         for revision in merged_revisions:
@@ -180,11 +191,11 @@ if __name__ == '__main__':
       writeLog(parseLOG(log_data))
       # Merge our local created moose-stable with moose-trunk
       print 'Merging moose-stable from moose-devel only to the revision at which bitten was commanded to checkout'
-      merge_moose_trunk = [os.getenv('SVN_BIN'), 'merge', '-r1:' + str(arg_revision), moose_devel, 'moose-stable' ]
+      merge_moose_trunk = ['svn', 'merge', '-r1:' + str(arg_revision), moose_devel, 'moose-stable' ]
       runCMD(merge_moose_trunk)
       # Commit the changes!
       print 'Commiting merged moose-stable'
-      commit_moose_stable = [os.getenv('SVN_BIN'), 'ci', '--username', 'moosetest', '-F', 'svn_log.log', 'moose-stable']
+      commit_moose_stable = ['svn', 'ci', '--username', 'moosetest', '-F', 'svn_log.log', 'moose-stable']
       runCMD(commit_moose_stable)
     else:
       # This is the system 'head_node', but buildStatus() returned False... so exit as an error

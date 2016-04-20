@@ -1,3 +1,16 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #include "LinearInterpolationMaterial.h"
 
 template<>
@@ -18,8 +31,8 @@ LinearInterpolationMaterial::~LinearInterpolationMaterial()
 }
 
 
-LinearInterpolationMaterial::LinearInterpolationMaterial(const std::string & name, InputParameters parameters) :
-    Material(name, parameters),
+LinearInterpolationMaterial::LinearInterpolationMaterial(const InputParameters & parameters) :
+    Material(parameters),
     _use_poly_fit(getParam<bool>("use_poly_fit")),
     _linear_interp(NULL),
     _poly_fit(NULL),
@@ -37,8 +50,16 @@ LinearInterpolationMaterial::LinearInterpolationMaterial(const std::string & nam
   }
   else
   {
-    _linear_interp = new LinearInterpolation(getParam<std::vector<Real> >("independent_vals"),
-                                             getParam<std::vector<Real> >("dependent_vals"));
+    try
+    {
+
+      _linear_interp = new LinearInterpolation(getParam<std::vector<Real> >("independent_vals"),
+                                               getParam<std::vector<Real> >("dependent_vals"));
+    }
+    catch (std::domain_error & e)
+    {
+      mooseError("In LinearInterpolationMaterial " << _name << ": " << e.what());
+    }
 
     _linear_interp->dumpSampleFile(getParam<std::string>("prop_name"),
                                    "X position",

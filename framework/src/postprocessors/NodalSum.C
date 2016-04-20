@@ -15,18 +15,17 @@
 #include "NodalSum.h"
 #include "MooseMesh.h"
 #include "SubProblem.h"
-// libMesh
-#include "libmesh/boundary_info.h"
 
 template<>
 InputParameters validParams<NodalSum>()
 {
   InputParameters params = validParams<NodalVariablePostprocessor>();
+  params.set<bool>("unique_node_execute") = true;
   return params;
 }
 
-NodalSum::NodalSum(const std::string & name, InputParameters parameters) :
-    NodalVariablePostprocessor(name, parameters),
+NodalSum::NodalSum(const InputParameters & parameters) :
+    NodalVariablePostprocessor(parameters),
     _sum(0)
 {
 }

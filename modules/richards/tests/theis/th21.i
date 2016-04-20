@@ -136,7 +136,6 @@
     fluxes = '200 200'
     point_file = th01.points
     SumQuantityUO = total_outflow_mass
-    mesh_adaptivity = false
     variable = pwater
   [../]
 []
@@ -151,7 +150,7 @@
     type = PointValue
     variable = pwater
     point = '50 0 0'
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
 []
 
@@ -201,8 +200,6 @@
 
   [./TimeStepper]
     type = FunctionDT
-    #time_dt = '0.1 0.5 1 2'
-    #time_t = '0 1 10 100'
     time_dt = '0.5 1 2 10'
     time_t = '0 1 10 100'
   [../]
@@ -212,10 +209,5 @@
 
 [Outputs]
   file_base = th21
-  output_initial = true
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

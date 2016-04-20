@@ -3,5 +3,12 @@
     type = 'Exodiff'
     input = 'meta_action_test.i'
     exodiff = 'out.e'
+    group = 'requirements'
+  [../]
+
+  [./test_print_materials]
+    type = 'CSVDiff'
+    input = 'print_materials.i'
+    csvdiff = 'materials.csv'
   [../]
 []

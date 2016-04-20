@@ -1,15 +1,21 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "CHMath.h"
 
 template<>
 InputParameters validParams<CHMath>()
 {
-  InputParameters params = validParams<CHBulk>();
-
+  InputParameters params = CHBulk<Real>::validParams();
+  params.addClassDescription("Simple demonstration Cahn-Hilliard Kernel using an algebraic double-well potential");
   return params;
 }
 
-CHMath::CHMath(const std::string & name, InputParameters parameters) :
-    CHBulk(name, parameters)
+CHMath::CHMath(const InputParameters & parameters) :
+    CHBulk<Real>(parameters)
 {
 }
 

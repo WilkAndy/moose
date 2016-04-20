@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSRELPERMPRIMEPRIMEAUX_H
 #define RICHARDSRELPERMPRIMEPRIMEAUX_H
@@ -22,13 +25,13 @@ InputParameters validParams<RichardsRelPermPrimePrimeAux>();
 class RichardsRelPermPrimePrimeAux: public AuxKernel
 {
 public:
-  RichardsRelPermPrimePrimeAux(const std::string & name, InputParameters parameters);
+  RichardsRelPermPrimePrimeAux(const InputParameters & parameters);
 
 protected:
   virtual Real computeValue();
 
   /// effective saturation
-  VariableValue & _seff_var;
+  const VariableValue & _seff_var;
 
   /// userobject that defines relative permeability function
   const RichardsRelPerm & _relperm_UO;

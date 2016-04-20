@@ -1,9 +1,20 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 #include "MaterialTensorOnLine.h"
 #include "SymmTensor.h"
 #include "FEProblem.h"
+
 #include <cmath>
 #include <algorithm>
 #include <set>
+
+// libmesh includes
+#include "libmesh/quadrature.h"
 
 template<>
 InputParameters validParams<MaterialTensorOnLine>()
@@ -17,14 +28,14 @@ InputParameters validParams<MaterialTensorOnLine>()
   params.addCoupledVar("element_line_id","Element line ID: if not zero, output stress at integration points");
   params.addRequiredParam<std::string>("filename","Output file name");
   params.addParam<int>("line_id",1,"ID of the line of elements to output stresses on");
-  params.set<MooseEnum>("execute_on") = "timestep";
+  params.set<MultiMooseEnum>("execute_on") = "timestep_end";
 
   return params;
 }
 
-MaterialTensorOnLine :: MaterialTensorOnLine(const std::string & name, InputParameters parameters) :
-  ElementUserObject(name, parameters),
-  _material_tensor_calculator( name, parameters),
+MaterialTensorOnLine :: MaterialTensorOnLine(const InputParameters & parameters) :
+  ElementUserObject(parameters),
+  _material_tensor_calculator( parameters),
   _tensor( getMaterialProperty<SymmTensor>( getParam<std::string>("tensor") ) ),
   _lp1( getParam<RealVectorValue>("line_point1") ),
   _lp2( getParam<RealVectorValue>("line_point2") ),
@@ -70,7 +81,7 @@ MaterialTensorOnLine::execute()
   {
 
     const Point line_vec(_lp2-_lp1);
-    const Real length(line_vec.size());
+    const Real length(line_vec.norm());
     const Point line_unit_vec(line_vec/length);
 
     for ( qp = 0; qp < _qrule->n_points(); ++qp )
@@ -82,7 +93,7 @@ MaterialTensorOnLine::execute()
       const Point proj_vec(proj*line_unit_vec);
 
       const Point dist_vec(line1_qp_vec-proj_vec);
-      const Real distance(dist_vec.size());
+      const Real distance(dist_vec.norm());
 
       const SymmTensor & tensor( _tensor[qp] );
       RealVectorValue direction;

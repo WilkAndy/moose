@@ -25,19 +25,19 @@
 #include "ComputeElemAuxVarsThread.h"
 #include "ComputeElemAuxBcsThread.h"
 #include "Parser.h"
+#include "TimeIntegrator.h"
 
 #include "libmesh/quadrature_gauss.h"
 #include "libmesh/node_range.h"
+#include "libmesh/numeric_vector.h"
 
 // AuxiliarySystem ////////
 
 AuxiliarySystem::AuxiliarySystem(FEProblem & subproblem, const std::string & name) :
     SystemTempl<TransientExplicitSystem>(subproblem, name, Moose::VAR_AUXILIARY),
-    _mproblem(subproblem),
-    _serialized_solution(*NumericVector<Number>::build(_mproblem.comm()).release()),
-    _time_integrator(NULL),
+    _fe_problem(subproblem),
+    _serialized_solution(*NumericVector<Number>::build(_fe_problem.comm()).release()),
     _u_dot(addVector("u_dot", true, GHOSTED)),
-    _du_dot_du(addVector("du_dot_du", true, GHOSTED)),
     _need_serialized_solution(false)
 {
   _nodal_vars.resize(libMesh::n_threads());
@@ -47,51 +47,81 @@ AuxiliarySystem::AuxiliarySystem(FEProblem & subproblem, const std::string & nam
 AuxiliarySystem::~AuxiliarySystem()
 {
   delete &_serialized_solution;
-  delete _time_integrator;
 }
 
 void
 AuxiliarySystem::init()
 {
-  if (_need_serialized_solution)
-    _serialized_solution.init(_sys.n_dofs(), false, SERIAL);
 }
 
 void
 AuxiliarySystem::initialSetup()
 {
-  for (unsigned int i=0; i<libMesh::n_threads(); i++)
+  for (unsigned int tid = 0; tid < libMesh::n_threads(); tid++)
   {
-    _auxs(EXEC_RESIDUAL)[i].initialSetup();
-    _auxs(EXEC_TIMESTEP)[i].initialSetup();
-    _auxs(EXEC_TIMESTEP_BEGIN)[i].initialSetup();
+    _aux_scalar_storage.sort(tid);
+    _aux_scalar_storage.initialSetup(tid);
+
+    _nodal_aux_storage.sort(tid);
+    _nodal_aux_storage.initialSetup(tid);
+
+    _elemental_aux_storage.sort(tid);
+    _elemental_aux_storage.initialSetup(tid);
   }
 }
 
 void
 AuxiliarySystem::timestepSetup()
 {
-  for (unsigned int i=0; i<libMesh::n_threads(); i++)
+  for (unsigned int tid = 0; tid < libMesh::n_threads(); tid++)
   {
-    _auxs(EXEC_RESIDUAL)[i].timestepSetup();
-    _auxs(EXEC_TIMESTEP)[i].timestepSetup();
-    _auxs(EXEC_TIMESTEP_BEGIN)[i].timestepSetup();
+    _aux_scalar_storage.timestepSetup(tid);
+    _nodal_aux_storage.timestepSetup(tid);
+    _elemental_aux_storage.timestepSetup(tid);
+  }
+}
+
+void
+AuxiliarySystem::subdomainSetup()
+{
+  for (unsigned int tid = 0; tid < libMesh::n_threads(); tid++)
+  {
+    _aux_scalar_storage.subdomainSetup(tid);
+    _nodal_aux_storage.subdomainSetup(tid);
+    _elemental_aux_storage.subdomainSetup(tid);
+  }
+}
+
+void
+AuxiliarySystem::jacobianSetup()
+{
+  for (unsigned int tid = 0; tid < libMesh::n_threads(); tid++)
+  {
+    _aux_scalar_storage.jacobianSetup(tid);
+    _nodal_aux_storage.jacobianSetup(tid);
+    _elemental_aux_storage.jacobianSetup(tid);
   }
 }
 
 void
 AuxiliarySystem::residualSetup()
 {
-  for (unsigned int i=0; i<libMesh::n_threads(); i++)
-    _auxs(EXEC_RESIDUAL)[i].residualSetup();
+  for (unsigned int tid = 0; tid < libMesh::n_threads(); tid++)
+  {
+    _aux_scalar_storage.residualSetup(tid);
+    _nodal_aux_storage.residualSetup(tid);
+    _elemental_aux_storage.residualSetup(tid);
+  }
 }
 
 void
-AuxiliarySystem::jacobianSetup()
+AuxiliarySystem::updateActive(THREAD_ID tid)
 {
-  for (unsigned int i=0; i<libMesh::n_threads(); i++)
-    _auxs(EXEC_RESIDUAL)[i].jacobianSetup();
+  _aux_scalar_storage.updateActive(tid);
+  _nodal_aux_storage.updateActive(tid);
+  _elemental_aux_storage.updateActive(tid);
 }
+
 
 void
 AuxiliarySystem::addVariable(const std::string & var_name, const FEType & type, Real scale_factor, const std::set< SubdomainID > * const active_subdomains/* = NULL*/)
@@ -114,32 +144,21 @@ void
 AuxiliarySystem::addTimeIntegrator(const std::string & type, const std::string & name, InputParameters parameters)
 {
   parameters.set<SystemBase *>("_sys") = this;
-  TimeIntegrator * ti = static_cast<TimeIntegrator *>(_factory.create(type, name, parameters));
-  if (ti == NULL)
-    mooseError("Not an time integrator object.");
-  _time_integrator = ti;
+  _time_integrator = _factory.create<TimeIntegrator>(type, name, parameters);
 }
 
 void
 AuxiliarySystem::addKernel(const std::string & kernel_name, const std::string & name, InputParameters parameters)
 {
   parameters.set<AuxiliarySystem *>("_aux_sys") = this;
+
   for (THREAD_ID tid = 0; tid < libMesh::n_threads(); tid++)
   {
-    parameters.set<THREAD_ID>("_tid") = tid;
-
-    AuxKernel *kernel = static_cast<AuxKernel *>(_factory.create(kernel_name, name, parameters));
-    mooseAssert(kernel != NULL, "Not an AuxKernel object");
-
-    _auxs(kernel->execFlag())[tid].addAuxKernel(kernel);
-    _mproblem._objects_by_name[tid][name].push_back(kernel);
-
-    if (kernel->boundaryRestricted())
-    {
-      const std::set<BoundaryID> & boundary_ids = kernel->boundaryIDs();
-      for (std::set<BoundaryID>::const_iterator it = boundary_ids.begin(); it != boundary_ids.end(); ++it)
-        _vars[tid].addBoundaryVar(*it, &kernel->variable());
-    }
+    MooseSharedPointer<AuxKernel> kernel = _factory.create<AuxKernel>(kernel_name, name, parameters, tid);
+    if (kernel->isNodal())
+      _nodal_aux_storage.addObject(kernel, tid);
+    else
+      _elemental_aux_storage.addObject(kernel, tid);
   }
 }
 
@@ -148,14 +167,8 @@ AuxiliarySystem::addScalarKernel(const std::string & kernel_name, const std::str
 {
   for (THREAD_ID tid = 0; tid < libMesh::n_threads(); tid++)
   {
-    parameters.set<THREAD_ID>("_tid") = tid;
-
-    AuxScalarKernel *kernel = static_cast<AuxScalarKernel *>(_factory.create(kernel_name, name, parameters));
-    mooseAssert(kernel != NULL, "Not a AuxScalarKernel object");
-
-    _auxs(kernel->execFlag())[tid].addScalarKernel(kernel);
-
-    _mproblem._objects_by_name[tid][name].push_back(kernel);
+    MooseSharedPointer<AuxScalarKernel> kernel = _factory.create<AuxScalarKernel>(kernel_name, name, parameters, tid);
+    _aux_scalar_storage.addObject(kernel, tid);
   }
 }
 
@@ -201,12 +214,6 @@ AuxiliarySystem::solutionUDot()
 }
 
 NumericVector<Number> &
-AuxiliarySystem::solutionDuDotDu()
-{
-  return _du_dot_du;
-}
-
-NumericVector<Number> &
 AuxiliarySystem::serializedSolution()
 {
   _need_serialized_solution = true;
@@ -217,28 +224,56 @@ void
 AuxiliarySystem::serializeSolution()
 {
   if (_need_serialized_solution && _sys.n_dofs() > 0)            // libMesh does not like serializing of empty vectors
+  {
+    if (!_serialized_solution.initialized() || _serialized_solution.size() != _sys.n_dofs())
+    {
+      _serialized_solution.clear();
+      _serialized_solution.init(_sys.n_dofs(), false, SERIAL);
+    }
+
     solution().localize(_serialized_solution);
+  }
 }
 
 void
-AuxiliarySystem::compute(ExecFlagType type/* = EXEC_RESIDUAL*/)
+AuxiliarySystem::compute(ExecFlagType type)
 {
+  // avoid division by dt which might be zero.
+  if (_fe_problem.dt() > 0.)
+    _time_integrator->preStep();
+
+  // We need to compute time derivatives every time each kind of the variables is finished, because:
+  //
+  //  a) the user might want to use the aux variable value somewhere, thus we need to provide the up-to-date value
+  //  b) time integration system works with the whole vectors of solutions, thus we cannot update only a part of the vector
+  //
+
   if (_vars[0].scalars().size() > 0)
-    computeScalarVars(_auxs(type));
+  {
+    computeScalarVars(type);
+    // compute time derivatives of scalar aux variables _after_ the values were updated
+    if (_fe_problem.dt() > 0.)
+      _time_integrator->computeTimeDerivatives();
+  }
 
   if (_vars[0].variables().size() > 0)
   {
-    computeNodalVars(_auxs(type));
-    computeElementalVars(_auxs(type));
-
-    if (_need_serialized_solution)
-      serializeSolution();
+    computeNodalVars(type);
+    // compute time derivatives of nodal aux variables _after_ the values were updated
+    if (_fe_problem.dt() > 0.)
+      _time_integrator->computeTimeDerivatives();
   }
 
-  // can compute time derivatives _after_ the current values were updated
-  // also, at the very beginning, avoid division by dt which might be zero.
-  if (_mproblem.dt() > 0.)
-    _time_integrator->computeTimeDerivatives();
+  if (_vars[0].variables().size() > 0)
+  {
+    computeElementalVars(type);
+    // compute time derivatives of elemental aux variables _after_ the values were updated
+    if (_fe_problem.dt() > 0.)
+      _time_integrator->computeTimeDerivatives();
+  }
+
+  if (_need_serialized_solution)
+    serializeSolution();
 }
 
 std::set<std::string>
@@ -246,14 +281,57 @@ AuxiliarySystem::getDependObjects(ExecFlagType type)
 {
   std::set<std::string> depend_objects;
 
-  const std::vector<AuxKernel *> & auxs = _auxs(type)[0].all();
-  for (std::vector<AuxKernel *>::const_iterator it = auxs.begin(); it != auxs.end(); ++it)
+  // Elemental AuxKernels
   {
-    const std::set<std::string> & uo = (*it)->getDependObjects();
-    depend_objects.insert(uo.begin(), uo.end());
+    const std::vector<MooseSharedPointer<AuxKernel> > & auxs = _elemental_aux_storage[type].getActiveObjects();
+    for (std::vector<MooseSharedPointer<AuxKernel> >::const_iterator it = auxs.begin(); it != auxs.end(); ++it)
+    {
+      const std::set<std::string> & uo = (*it)->getDependObjects();
+      depend_objects.insert(uo.begin(), uo.end());
+    }
   }
+
+  // Nodal AuxKernels
+  {
+    const std::vector<MooseSharedPointer<AuxKernel> > & auxs = _nodal_aux_storage[type].getActiveObjects();
+    for (std::vector<MooseSharedPointer<AuxKernel> >::const_iterator it = auxs.begin(); it != auxs.end(); ++it)
+    {
+      const std::set<std::string> & uo = (*it)->getDependObjects();
+      depend_objects.insert(uo.begin(), uo.end());
+    }
+  }
+
   return depend_objects;
 }
+
+std::set<std::string>
+AuxiliarySystem::getDependObjects()
+{
+  std::set<std::string> depend_objects;
+
+  // Elemental AuxKernels
+  {
+    const std::vector<MooseSharedPointer<AuxKernel> > & auxs = _elemental_aux_storage.getActiveObjects();
+    for (std::vector<MooseSharedPointer<AuxKernel> >::const_iterator it = auxs.begin(); it != auxs.end(); ++it)
+    {
+      const std::set<std::string> & uo = (*it)->getDependObjects();
+      depend_objects.insert(uo.begin(), uo.end());
+    }
+  }
+
+  // Nodal AuxKernels
+  {
+    const std::vector<MooseSharedPointer<AuxKernel> > & auxs = _nodal_aux_storage.getActiveObjects();
+    for (std::vector<MooseSharedPointer<AuxKernel> >::const_iterator it = auxs.begin(); it != auxs.end(); ++it)
+    {
+      const std::set<std::string> & uo = (*it)->getDependObjects();
+      depend_objects.insert(uo.begin(), uo.end());
+    }
+  }
+
+  return depend_objects;
+}
+
 
 NumericVector<Number> &
 AuxiliarySystem::addVector(const std::string & vector_name, const bool project, const ParallelType type)
@@ -267,22 +345,24 @@ AuxiliarySystem::addVector(const std::string & vector_name, const bool project, 
 }
 
 void
-AuxiliarySystem::computeScalarVars(std::vector<AuxWarehouse> & auxs)
+AuxiliarySystem::computeScalarVars(ExecFlagType type)
 {
-  Moose::perf_log.push("update_aux_vars_scalar()","Solve");
+  Moose::perf_log.push("update_aux_vars_scalar()", "Execution");
+
+  // Reference to the current storage container
+  const MooseObjectWarehouse<AuxScalarKernel> & storage = _aux_scalar_storage[type];
+
   PARALLEL_TRY {
     // FIXME: run multi-threaded
     THREAD_ID tid = 0;
-    if (auxs[tid].scalars().size() > 0)
+    if (storage.hasActiveObjects())
     {
-      _mproblem.reinitScalars(tid);
+      _fe_problem.reinitScalars(tid);
 
-      const std::vector<AuxScalarKernel *> & scalars = auxs[tid].scalars();
-      for (std::vector<AuxScalarKernel *>::const_iterator it = scalars.begin(); it != scalars.end(); ++it)
-      {
-        AuxScalarKernel * kernel = *it;
-        kernel->compute();
-      }
+      // Call compute() method on all active AuxScalarKernel objects
+      const std::vector<MooseSharedPointer<AuxScalarKernel> > & objects = storage.getActiveObjects(tid);
+      for (std::vector<MooseSharedPointer<AuxScalarKernel> >::const_iterator it = objects.begin(); it != objects.end(); ++it)
+        (*it)->compute();
 
       const std::vector<MooseVariableScalar *> & scalar_vars = getScalarVariables(tid);
       for (std::vector<MooseVariableScalar *>::const_iterator it = scalar_vars.begin(); it != scalar_vars.end(); ++it)
@@ -293,30 +373,26 @@ AuxiliarySystem::computeScalarVars(std::vector<AuxWarehouse> & auxs)
     }
   }
   PARALLEL_CATCH;
-  Moose::perf_log.pop("update_aux_vars_scalar()","Solve");
+  Moose::perf_log.pop("update_aux_vars_scalar()", "Execution");
 
   solution().close();
   _sys.update();
 }
 
 void
-AuxiliarySystem::computeNodalVars(std::vector<AuxWarehouse> & auxs)
+AuxiliarySystem::computeNodalVars(ExecFlagType type)
 {
-  // Do we have some kernels to evaluate?
-  bool have_block_kernels = false;
-  for (std::set<SubdomainID>::const_iterator subdomain_it = _mesh.meshSubdomains().begin();
-      subdomain_it != _mesh.meshSubdomains().end();
-      ++subdomain_it)
-  {
-    have_block_kernels |= (auxs[0].activeBlockNodalKernels(*subdomain_it).size() > 0);
-  }
+  Moose::perf_log.push("update_aux_vars_nodal()", "Execution");
 
-  Moose::perf_log.push("update_aux_vars_nodal()","Solve");
+  // Reference to the Nodal AuxKernel storage
+  const MooseObjectWarehouse<AuxKernel> & nodal = _nodal_aux_storage[type];
+
+  // Block Nodal AuxKernels
   PARALLEL_TRY {
-    if (have_block_kernels)
+    if (nodal.hasActiveBlockObjects())
     {
       ConstNodeRange & range = *_mesh.getLocalNodeRange();
-      ComputeNodalAuxVarsThread navt(_mproblem, *this, auxs);
+      ComputeNodalAuxVarsThread navt(_fe_problem, *this, nodal);
       Threads::parallel_reduce(range, navt);
 
       solution().close();
@@ -324,50 +400,51 @@ AuxiliarySystem::computeNodalVars(std::vector<AuxWarehouse> & auxs)
     }
   }
   PARALLEL_CATCH;
-  Moose::perf_log.pop("update_aux_vars_nodal()","Solve");
+  Moose::perf_log.pop("update_aux_vars_nodal()", "Execution");
 
-  //Boundary AuxKernels
-  Moose::perf_log.push("update_aux_vars_nodal_bcs()","Solve");
+  // Boundary Nodal AuxKernels
+  Moose::perf_log.push("update_aux_vars_nodal_bcs()", "Execution");
   PARALLEL_TRY {
-    // after converting this into NodeRange, we can run it in parallel
-    ConstBndNodeRange & bnd_nodes = *_mesh.getBoundaryNodeRange();
-    ComputeNodalAuxBcsThread nabt(_mproblem, *this, auxs);
-    Threads::parallel_reduce(bnd_nodes, nabt);
+    if (nodal.hasActiveBoundaryObjects())
+    {
+      ConstBndNodeRange & bnd_nodes = *_mesh.getBoundaryNodeRange();
+      ComputeNodalAuxBcsThread nabt(_fe_problem, *this, nodal);
+      Threads::parallel_reduce(bnd_nodes, nabt);
 
-    solution().close();
-    _sys.update();
+      solution().close();
+      _sys.update();
+    }
   }
   PARALLEL_CATCH;
-  Moose::perf_log.pop("update_aux_vars_nodal_bcs()","Solve");
+
+  Moose::perf_log.pop("update_aux_vars_nodal_bcs()", "Execution");
 }
 
 void
-AuxiliarySystem::computeElementalVars(std::vector<AuxWarehouse> & auxs)
+AuxiliarySystem::computeElementalVars(ExecFlagType type)
 {
-  Moose::perf_log.push("update_aux_vars_elemental()","Solve");
+  Moose::perf_log.push("update_aux_vars_elemental()", "Execution");
+
+  // Reference to the Nodal AuxKernel storage
+  const MooseObjectWarehouse<AuxKernel> & elemental = _elemental_aux_storage[type];
+
+  // Block Elemental AuxKernels
   PARALLEL_TRY {
-    bool element_auxs_to_compute = false;
-
-    for (unsigned int i=0; i<auxs.size(); i++)
-      element_auxs_to_compute |= auxs[i].allElementKernels().size();
-
-    if (element_auxs_to_compute)
+    if (elemental.hasActiveBlockObjects())
     {
       ConstElemRange & range = *_mesh.getActiveLocalElementRange();
-      ComputeElemAuxVarsThread eavt(_mproblem, *this, auxs);
+      ComputeElemAuxVarsThread eavt(_fe_problem, *this, elemental, true);
       Threads::parallel_reduce(range, eavt);
 
       solution().close();
       _sys.update();
     }
 
-    bool bnd_auxs_to_compute = false;
-    for (unsigned int i=0; i<auxs.size(); i++)
-      bnd_auxs_to_compute |= auxs[i].allElementalBCs().size();
-    if (bnd_auxs_to_compute)
+    // Boundary Elemental AuxKernels
+    if (elemental.hasActiveBoundaryObjects())
     {
       ConstBndElemRange & bnd_elems = *_mesh.getBoundaryElementRange();
-      ComputeElemAuxBcsThread eabt(_mproblem, *this, auxs);
+      ComputeElemAuxBcsThread eabt(_fe_problem, *this, elemental, true);
       Threads::parallel_reduce(bnd_elems, eabt);
 
       solution().close();
@@ -376,13 +453,13 @@ AuxiliarySystem::computeElementalVars(std::vector<AuxWarehouse> & auxs)
 
   }
   PARALLEL_CATCH;
-  Moose::perf_log.pop("update_aux_vars_elemental()","Solve");
+  Moose::perf_log.pop("update_aux_vars_elemental()", "Execution");
 }
 
 void
 AuxiliarySystem::augmentSparsity(SparsityPattern::Graph & /*sparsity*/,
-                                 std::vector<unsigned int> & /*n_nz*/,
-                                 std::vector<unsigned int> & /*n_oz*/)
+                                 std::vector<dof_id_type> & /*n_nz*/,
+                                 std::vector<dof_id_type> & /*n_oz*/)
 {
 }
 
@@ -407,10 +484,5 @@ AuxiliarySystem::getMinQuadratureOrder()
 bool
 AuxiliarySystem::needMaterialOnSide(BoundaryID bnd_id)
 {
-  for (unsigned int i=0; i < Moose::exec_types.size(); ++i)
-    if (!_auxs(Moose::exec_types[i])[0].activeBCs(bnd_id).empty() ||
-        !_auxs(Moose::exec_types[i])[0].activeBCs(Moose::ANY_BOUNDARY_ID).empty())
-      return true;
-
-  return false;
+  return _elemental_aux_storage.hasActiveBoundaryObjects(bnd_id);
 }

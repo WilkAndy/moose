@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef INSCHORINPRESSUREPOISSON_H
 #define INSCHORINPRESSUREPOISSON_H
 
@@ -17,7 +23,7 @@ InputParameters validParams<INSChorinPressurePoisson>();
 class INSChorinPressurePoisson : public Kernel
 {
 public:
-  INSChorinPressurePoisson(const std::string & name, InputParameters parameters);
+  INSChorinPressurePoisson(const InputParameters & parameters);
 
   virtual ~INSChorinPressurePoisson(){}
 
@@ -27,9 +33,9 @@ protected:
   virtual Real computeQpOffDiagJacobian(unsigned jvar);
 
   // Gradients of the "star" velocity
-  VariableGradient& _grad_u_star;
-  VariableGradient& _grad_v_star;
-  VariableGradient& _grad_w_star;
+  const VariableGradient & _grad_u_star;
+  const VariableGradient & _grad_v_star;
+  const VariableGradient & _grad_w_star;
 
   // Variable numberings
   unsigned _u_vel_star_var_number;

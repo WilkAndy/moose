@@ -62,7 +62,7 @@
     direction = y
     num_layers = 3
     variable = u
-    execute_on = residual
+    execute_on = linear
     boundary = right
   [../]
 []
@@ -73,7 +73,5 @@
 
 [Outputs]
   file_base = out
-  output_initial = true
   exodus = true
-  console = true
 []

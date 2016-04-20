@@ -1,3 +1,11 @@
+###########################################################
+# This is a simple test demonstrating the use of the
+# Hierarchic variable type.
+#
+# @Requirement F3.10
+###########################################################
+
+
 [Mesh]
   type = GeneratedMesh
   dim = 1
@@ -26,8 +34,10 @@
     type = ParsedGradFunction
     value = x
     grad_x = 1
+  [../]
 []
 
+# Hierarchic Variable type
 [Variables]
   [./u]
     order = FIRST
@@ -105,11 +115,7 @@
 []
 
 [Outputs]
-  output_initial = false
+  execute_on = 'timestep_end'
   exodus = true
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

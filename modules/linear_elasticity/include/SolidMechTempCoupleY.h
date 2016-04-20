@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef SOLIDMECHTEMPCOUPLEY
 #define SOLIDMECHTEMPCOUPLEY
 
@@ -14,7 +20,7 @@ class SolidMechTempCoupleY : public SolidMechTempCouple
 {
 public:
 
-  SolidMechTempCoupleY(const std::string & name, InputParameters parameters);
+  SolidMechTempCoupleY(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();

@@ -59,16 +59,8 @@
 []
 
 [Outputs]
-  file_base = out_ps
-  output_initial = true
-  [./gnuplot]
-    type = GNUPlot
+  [./out]
+    type = Gnuplot
     extension = ps
-  [../]
-
-  [./console]
-    type = Console
-    linear_residuals = true
-    perf_log = true
   [../]
 []

@@ -17,6 +17,7 @@
     type = ParsedFunction
     value = sin(y)
     vars = y        # <- This is a bad - you can't specify x, y, z, or t
+    vals = 0
   [../]
 []
 
@@ -48,9 +49,6 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

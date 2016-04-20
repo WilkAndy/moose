@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef MACROELASTIC_H
 #define MACROELASTIC_H
 
@@ -6,8 +12,7 @@
 class MacroElastic : public Elastic
 {
 public:
-  MacroElastic( const std::string & name,
-                InputParameters parameters );
+  MacroElastic( const InputParameters & parameters);
   virtual ~MacroElastic();
 
 protected:

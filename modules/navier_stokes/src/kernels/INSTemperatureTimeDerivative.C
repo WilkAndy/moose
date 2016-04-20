@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "INSTemperatureTimeDerivative.h"
 
 template<>
@@ -10,9 +16,8 @@ InputParameters validParams<INSTemperatureTimeDerivative>()
 }
 
 
-INSTemperatureTimeDerivative::INSTemperatureTimeDerivative(const std::string & name,
-                                                           InputParameters parameters) :
-  TimeDerivative(name,parameters),
+INSTemperatureTimeDerivative::INSTemperatureTimeDerivative(const InputParameters & parameters) :
+  TimeDerivative(parameters),
   _rho(getParam<Real>("rho")),
   _cp(getParam<Real>("cp"))
 {}
@@ -39,3 +44,4 @@ Real INSTemperatureTimeDerivative::computeQpOffDiagJacobian(unsigned)
 {
   return 0.;
 }
+

@@ -57,12 +57,9 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = twoDb
   hide = dummy
   exodus = true
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

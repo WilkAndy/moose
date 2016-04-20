@@ -15,22 +15,20 @@
 #ifndef PENETRATIONINFO_H
 #define PENETRATIONINFO_H
 
+// MOOSE includes
+#include "Moose.h"
+#include "DataIO.h"
+
 // libmesh includes
-#include "libmesh/libmesh_common.h"
-#include "MooseMesh.h"
 #include "libmesh/vector_value.h"
 #include "libmesh/point.h"
-#include "libmesh/fe_type.h"
-#include "libmesh/fe.h"
 
-#include <vector>
-#include <map>
-
-class PenetrationInfo;
-
-// Used for Restart
-template<> void dataStore(std::ostream & stream, PenetrationInfo * & pinfo, void * context);
-template<> void dataLoad(std::istream & stream, PenetrationInfo * & pinfo, void * context);
+// libMesh forward declarations
+namespace libMesh
+{
+class Node;
+class Elem;
+}
 
 /**
  * Data structure used to hold penetration information
@@ -48,10 +46,16 @@ public:
 
   enum MECH_STATUS_ENUM
   {
-    MS_NO_CONTACT=0,
-    MS_STICKING,
-    MS_SLIPPING
+    MS_NO_CONTACT=0, // out of contact
+    MS_STICKING, // sticking (glued or frictional)
+    MS_SLIPPING, // slipping with zero frictional resistance
+    MS_SLIPPING_FRICTION, // slipping with nonzero frictional resistance
+    MS_CONTACT // In contact, but unknown yet whether slipping or sticking.
   };
+
+  bool isCaptured() const { return _mech_status != MS_NO_CONTACT; }
+  void capture() { if (_mech_status == MS_NO_CONTACT) _mech_status = MS_CONTACT; }
+  void release() { _mech_status = MS_NO_CONTACT; }
 
   const Node * _node;
   const Elem * _elem;
@@ -78,10 +82,18 @@ public:
   Real _frictional_energy_old;
   RealVectorValue _contact_force;
   RealVectorValue _contact_force_old;
-  bool _update;
-  bool _penetrated_at_beginning_of_step;
+  Real _lagrange_multiplier;
+  unsigned int _locked_this_step;
+  unsigned int _stick_locked_this_step;
   MECH_STATUS_ENUM _mech_status;
+  MECH_STATUS_ENUM _mech_status_old;
+  Point _incremental_slip_prev_iter;
+  bool _slip_reversed;
+  Real _slip_tol;
 };
 
+// Used for Restart
+template<> void dataStore(std::ostream & stream, PenetrationInfo * & pinfo, void * context);
+template<> void dataLoad(std::istream & stream, PenetrationInfo * & pinfo, void * context);
 
 #endif //PENETRATIONINFO_H

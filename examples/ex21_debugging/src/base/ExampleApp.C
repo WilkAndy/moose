@@ -1,22 +1,39 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #include "ExampleApp.h"
 #include "Moose.h"
 #include "Factory.h"
 #include "AppFactory.h"
+#include "MooseSyntax.h"
 
 // Example 21 Includes
 #include "ExampleDiffusion.h"
-#include "Convection.h"
+#include "ExampleConvection.h"
 #include "ExampleMaterial.h"
 
 template<>
 InputParameters validParams<ExampleApp>()
 {
   InputParameters params = validParams<MooseApp>();
+
+  params.set<bool>("use_legacy_uo_initialization") = false;
+  params.set<bool>("use_legacy_uo_aux_computation") = false;
   return params;
 }
 
-ExampleApp::ExampleApp(const std::string & name, InputParameters parameters) :
-    MooseApp(name, parameters)
+ExampleApp::ExampleApp(InputParameters parameters) :
+    MooseApp(parameters)
 {
   srand(processor_id());
 
@@ -40,7 +57,7 @@ ExampleApp::registerApps()
 void
 ExampleApp::registerObjects(Factory & factory)
 {
-  registerKernel(Convection);
+  registerKernel(ExampleConvection);
   registerKernel(ExampleDiffusion);
   registerMaterial(ExampleMaterial);
 }

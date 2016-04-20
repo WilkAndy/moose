@@ -106,10 +106,5 @@
 
 [Outputs]
   file_base = patch_out
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

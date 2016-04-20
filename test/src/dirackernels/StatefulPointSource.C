@@ -22,8 +22,8 @@ InputParameters validParams<StatefulPointSource>()
   return params;
 }
 
-StatefulPointSource::StatefulPointSource(const std::string & name, InputParameters parameters) :
-    DiracKernel(name, parameters),
+StatefulPointSource::StatefulPointSource(const InputParameters & parameters) :
+    DiracKernel(parameters),
     _p(getParam<Point>("point")),
     _value(getMaterialPropertyOld<Real>("thermal_conductivity"))
 {
@@ -38,10 +38,9 @@ StatefulPointSource::addPoints()
 Real
 StatefulPointSource::computeQpResidual()
 {
-  Moose::out << "Thermal conductivity=" << _value[_qp] << std::endl;
+  _console << "Thermal conductivity=" << _value[_qp] << std::endl;
 
   // This is negative because it's a forcing function that has been
   // brought over to the left side.
   return -_test[_i][_qp]*_value[_qp];
 }
-

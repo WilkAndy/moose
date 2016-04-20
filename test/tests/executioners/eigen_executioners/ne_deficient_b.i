@@ -65,13 +65,12 @@
   type = NonlinearEigen
 
   bx_norm = 'vnorm'
-  xdiff = 'udiff'
 
   free_power_iterations = 2
   source_abs_tol = 1e-12
   source_rel_tol = 1e-50
   k0 = 1.0
-  output_on_final = true
+  output_after_power_iterations = false
 
   #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
@@ -82,7 +81,7 @@
     type = ElementIntegralVariablePostprocessor
     variable = v
     # execute on residual is important for nonlinear eigen solver!
-    execute_on = residual
+    execute_on = linear
   [../]
 
   [./udiff]
@@ -93,12 +92,7 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = ne_deficient_b
-  interval = 1
   exodus = true
-  [./console]
-    type = Console
-    linear_residuals = true
-    perf_log = true
-  [../]
 []

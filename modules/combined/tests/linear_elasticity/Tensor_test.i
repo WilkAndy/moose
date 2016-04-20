@@ -17,6 +17,10 @@
   elem_type = QUAD4
 []
 
+[GlobalParams]
+  displacements = 'disp_x disp_y'
+[]
+
 [Variables]
   [./diffused]
     order = FIRST
@@ -176,14 +180,10 @@
   [../]
 []
 
-[TensorMechanics]
-  [./solid]
-    disp_x = disp_x
-    disp_y = disp_y
- [../]
-[]
-
 [Kernels]
+  [./TensorMechanics]
+  [../]
+
   [./diff]
     type = Diffusion
     variable = diffused
@@ -194,271 +194,277 @@
   [./matl_C1111]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 1
-    index_j = 1
-    index_k = 1
-    index_l = 1
+    index_i = 0
+    index_j = 0
+    index_k = 0
+    index_l = 0
     variable = C1111_aux
   [../]
 
    [./matl_C1122]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 1
-    index_j = 1
-    index_k = 2
-    index_l = 2
+    index_i = 0
+    index_j = 0
+    index_k = 1
+    index_l = 1
     variable = C1122_aux
   [../]
 
   [./matl_C1133]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 1
-    index_j = 1
-    index_k = 3
-    index_l = 3
+    index_i = 0
+    index_j = 0
+    index_k = 2
+    index_l = 2
     variable = C1133_aux
   [../]
 
   [./matl_C1123]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 1
-    index_j = 1
-    index_k = 2
-    index_l = 3
+    index_i = 0
+    index_j = 0
+    index_k = 1
+    index_l = 2
     variable = C1123_aux
   [../]
 
   [./matl_C1113]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 1
-    index_j = 1
-    index_k = 1
-    index_l = 3
+    index_i = 0
+    index_j = 0
+    index_k = 0
+    index_l = 2
     variable = C1113_aux
   [../]
 
   [./matl_C1112]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 1
-    index_j = 1
-    index_k = 1
-    index_l = 2
+    index_i = 0
+    index_j = 0
+    index_k = 0
+    index_l = 1
     variable = C1112_aux
   [../]
 
   [./matl_C2222]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 2
-    index_j = 2
-    index_k = 2
-    index_l = 2
+    index_i = 1
+    index_j = 1
+    index_k = 1
+    index_l = 1
     variable = C2222_aux
   [../]
 
   [./matl_C2233]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 2
-    index_j = 2
-    index_k = 3
-    index_l = 3
+    index_i = 1
+    index_j = 1
+    index_k = 2
+    index_l = 2
     variable = C2233_aux
   [../]
 
   [./matl_C2223]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 2
-    index_j = 2
-    index_k = 2
-    index_l = 3
+    index_i = 1
+    index_j = 1
+    index_k = 1
+    index_l = 2
     variable = C2223_aux
   [../]
 
   [./matl_C2213]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 2
-    index_j = 2
-    index_k = 1
-    index_l = 3
+    index_i = 1
+    index_j = 1
+    index_k = 0
+    index_l = 2
     variable = C2213_aux
   [../]
 
   [./matl_C2212]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 2
-    index_j = 2
-    index_k = 1
-    index_l = 2
+    index_i = 1
+    index_j = 1
+    index_k = 0
+    index_l = 1
     variable = C2212_aux
   [../]
 
  [./matl_C3333]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 3
-    index_j = 3
-    index_k = 3
-    index_l = 3
+    index_i = 2
+    index_j = 2
+    index_k = 2
+    index_l = 2
     variable = C3333_aux
   [../]
 
   [./matl_C3323]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 3
-    index_j = 3
-    index_k = 2
-    index_l = 3
+    index_i = 2
+    index_j = 2
+    index_k = 1
+    index_l = 2
     variable = C3323_aux
   [../]
 
   [./matl_C3313]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 3
-    index_j = 3
-    index_k = 1
-    index_l = 3
+    index_i = 2
+    index_j = 2
+    index_k = 0
+    index_l = 2
     variable = C3313_aux
   [../]
 
   [./matl_C3312]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 3
-    index_j = 3
-    index_k = 1
-    index_l = 2
+    index_i = 2
+    index_j = 2
+    index_k = 0
+    index_l = 1
     variable = C3312_aux
   [../]
 
   [./matl_C2323]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 2
-    index_j = 3
-    index_k = 2
-    index_l = 3
+    index_i = 1
+    index_j = 2
+    index_k = 1
+    index_l = 2
     variable = C2323_aux
   [../]
 
   [./matl_C2313]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 2
-    index_j = 3
-    index_k = 1
-    index_l = 3
+    index_i = 1
+    index_j = 2
+    index_k = 0
+    index_l = 2
     variable = C2313_aux
   [../]
 
   [./matl_C2312]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 2
-    index_j = 3
-    index_k = 1
-    index_l = 2
+    index_i = 1
+    index_j = 2
+    index_k = 0
+    index_l = 1
     variable = C2312_aux
   [../]
 
   [./matl_C1313]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 1
-    index_j = 3
-    index_k = 1
-    index_l = 3
+    index_i = 0
+    index_j = 2
+    index_k = 0
+    index_l = 2
     variable = C1313_aux
   [../]
 
   [./matl_C1312]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 1
-    index_j = 3
-    index_k = 1
-    index_l = 2
+    index_i = 0
+    index_j = 2
+    index_k = 0
+    index_l = 1
     variable = C1312_aux
   [../]
 
   [./matl_C1212]
     type = RankFourAux
     rank_four_tensor = elasticity_tensor
-    index_i = 1
-    index_j = 2
-    index_k = 1
-    index_l = 2
+    index_i = 0
+    index_j = 1
+    index_k = 0
+    index_l = 1
     variable = C1212_aux
   [../]
 
   [./matl_s11]
     type = RankTwoAux
     rank_two_tensor = stress
-    index_i = 1
-    index_j = 1
+    index_i = 0
+    index_j = 0
     variable = s11_aux
   [../]
 
  [./matl_s12]
     type = RankTwoAux
     rank_two_tensor = stress
-    index_i = 1
-    index_j = 2
+    index_i = 0
+    index_j = 1
     variable = s12_aux
   [../]
 
   [./matl_s13]
     type = RankTwoAux
     rank_two_tensor = stress
-    index_i = 1
-    index_j = 3
+    index_i = 0
+    index_j = 2
     variable = s13_aux
   [../]
 
   [./matl_s22]
     type = RankTwoAux
     rank_two_tensor = stress
-    index_i = 2
-    index_j = 2
+    index_i = 1
+    index_j = 1
     variable = s22_aux
   [../]
 
   [./matl_s23]
     type = RankTwoAux
     rank_two_tensor = stress
-    index_i = 2
-    index_j = 3
+    index_i = 1
+    index_j = 2
     variable = s23_aux
   [../]
 
   [./matl_s33]
     type = RankTwoAux
     rank_two_tensor = stress
-    index_i = 3
-    index_j = 3
+    index_i = 2
+    index_j = 2
     variable = s33_aux
   [../]
 []
 
 [Materials]
-  [./Anisotropic]
-    type = LinearElasticMaterial
+  [./elasticity_tensor]
+    type = ComputeElasticityTensor
     block = 0
-    disp_x = disp_x
-    disp_y = disp_y
-
-    all_21 = true
-   C_ijkl ='1111 1122 1133 1123 1113 1112 2222 2233 2223 2213 2212 3333 3323 3313 3312 2323 2313 2312 1313 1312 1212'
+    fill_method = symmetric21
+    C_ijkl ='1111 1122 1133 1123 1113 1112 2222 2233 2223 2213 2212 3333 3323 3313 3312 2323 2313 2312 1313 1312 1212'
+  [../]
+  [./strain]
+    type = ComputeSmallStrain
+    block = 0
+    displacements = 'disp_x disp_y'
+  [../]
+  [./stress]
+    type = ComputeLinearElasticStress
+    block = 0
   [../]
 []
 
@@ -512,17 +518,10 @@
   #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
 
-
   nl_rel_tol = 1e-10
 []
 
 [Outputs]
   file_base = Tensor_test
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

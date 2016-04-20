@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "GaussContForcing.h"
 
 template<>
@@ -14,8 +20,8 @@ InputParameters validParams<GaussContForcing>()
   return params;
 }
 
-GaussContForcing::GaussContForcing(const std::string & name, InputParameters parameters) :
-    Kernel(name, parameters),
+GaussContForcing::GaussContForcing(const InputParameters & parameters) :
+    Kernel(parameters),
     _amplitude(getParam<Real>("amplitude")),
     _x_center(getParam<Real>("x_center")),
     _y_center(getParam<Real>("y_center")),
@@ -51,4 +57,5 @@ GaussContForcing::computeQpResidual()
   else
     return 0;
 }
+
 

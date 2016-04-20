@@ -43,30 +43,22 @@
 
 [Executioner]
   type = Steady
-
-  #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-
 []
 
 [Outputs]
-  file_base = out_os
+  execute_on = 'timestep_end'
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
-  [./oversample_2]
+  [./refine_2]
     type = Exodus
     file_base = oversample_2
     oversample = true
     refinements = 2
   [../]
-  [./oversample_4]
-   type = Exodus
-   file_base = oversample_4
-   oversample = true
-   refinements = 4
- [../]
+  [./refine_4]
+    type = Exodus
+    file_base = oversample_4
+    oversample = true
+    refinements = 4
+  [../]
 []

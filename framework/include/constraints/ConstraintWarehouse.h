@@ -15,54 +15,71 @@
 #ifndef CONSTRAINTWAREHOUSE_H
 #define CONSTRAINTWAREHOUSE_H
 
-// system includes
-#include <map>
-#include <vector>
-
+// MOOSE includes
+#include "MooseObjectWarehouse.h"
 #include "MooseTypes.h"
 
+class Constraint;
 class NodalConstraint;
 class NodeFaceConstraint;
 class FaceFaceConstraint;
 
 /**
- * Warehouse for storing boundary conditions (for non-linear variables)
+ * Warehouse for storing constraints
  */
-class ConstraintWarehouse
+class ConstraintWarehouse : public MooseObjectWarehouse<Constraint>
 {
 public:
   ConstraintWarehouse();
-  virtual ~ConstraintWarehouse();
 
-  // Setup /////
-  void initialSetup();
-  void timestepSetup();
-  void residualSetup();
-  void jacobianSetup();
+  /**
+   * Add Constraint object to the warehouse.
+   * @param object A MooseSharedPointer of the object
+   * @param tid Not used.
+   */
+  virtual void addObject(MooseSharedPointer<Constraint> object, THREAD_ID tid = 0);
 
-  void addNodalConstraint(NodalConstraint * nfc);
+  ///@{
+  /**
+   * Access methods for active objects.
+   */
+  const std::vector<MooseSharedPointer<NodalConstraint> > & getActiveNodalConstraints() const;
+  const std::vector<MooseSharedPointer<FaceFaceConstraint> > & getActiveFaceFaceConstraints(const std::string & interface) const;
+  const std::vector<MooseSharedPointer<NodeFaceConstraint> > & getActiveNodeFaceConstraints(BoundaryID boundary_id, bool displaced);
+  ///@}
 
-  void addNodeFaceConstraint(unsigned int slave, unsigned int master, NodeFaceConstraint * nfc);
+  ///@{
+  /**
+   * Deterimine if active objects exist.
+   */
+  bool hasActiveNodalConstraints() const;
+  bool hasActiveFaceFaceConstraints(const std::string & interface) const;
+  bool hasActiveNodeFaceConstraints(BoundaryID boundary_id, bool displaced) const;
+  ///@}
 
-  void addFaceFaceConstraint(const std::string & name, FaceFaceConstraint * ffc);
+  /**
+   * Update supplied subdomain and variable coverate containters.
+   */
+  void subdomainsCovered(std::set<SubdomainID> & subdomains_covered, std::set<std::string> & unique_variables, THREAD_ID tid = 0) const;
 
-  std::vector<NodalConstraint *> & getNodalConstraints();
-
-  std::vector<NodeFaceConstraint *> & getNodeFaceConstraints(BoundaryID boundary_id);
-  std::vector<NodeFaceConstraint *> & getDisplacedNodeFaceConstraints(BoundaryID boundary_id);
-
-  std::vector<FaceFaceConstraint *> & getFaceFaceConstraints(const std::string & name);
-
-  void subdomainsCovered(std::set<SubdomainID> & subdomains_covered, std::set<std::string> & unique_variables) const;
+  /**
+   * Update the various active lists.
+   */
+  void updateActive(THREAD_ID tid = 0);
 
 protected:
-  /// nodal constraints on a boundary
-  std::vector<NodalConstraint *> _nodal_constraints;
 
-  std::map<BoundaryID, std::vector<NodeFaceConstraint *> > _node_face_constraints;
-  std::map<BoundaryID, std::vector<NodeFaceConstraint *> > _displaced_node_face_constraints;
+  /// NodalConstraint objects
+  MooseObjectWarehouse<NodalConstraint> _nodal_constraints;
 
-  std::map<std::string, std::vector<FaceFaceConstraint *> > _face_face_constraints;
+  /// NodeFaceConstraint objects (non-displaced)
+  std::map<BoundaryID, MooseObjectWarehouse<NodeFaceConstraint> > _node_face_constraints;
+
+  /// NodeFaceConstraint objects (displaced)
+  std::map<BoundaryID, MooseObjectWarehouse<NodeFaceConstraint> > _displaced_node_face_constraints;
+
+  /// FaceFaceConstraints
+  std::map<std::string, MooseObjectWarehouse<FaceFaceConstraint> > _face_face_constraints;
 };
 
 #endif // CONSTRAINTWAREHOUSE_H

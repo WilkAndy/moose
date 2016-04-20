@@ -18,7 +18,7 @@
 // MOOSE includes
 #include "AddVariableAction.h"
 
-//Forward declerations
+//Forward declarations
 class AddAuxVariableAction;
 
 template<>
@@ -34,7 +34,7 @@ public:
   /**
    * Class constructor
    */
-  AddAuxVariableAction(const std::string & name, InputParameters params);
+  AddAuxVariableAction(InputParameters params);
 
   /**
    * Creates the AuxVariable

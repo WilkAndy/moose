@@ -26,15 +26,15 @@ class LaplacianJumpIndicator :
   public JumpIndicator
 {
 public:
-  LaplacianJumpIndicator(const std::string & name, InputParameters parameters);
+  LaplacianJumpIndicator(const InputParameters & parameters);
   virtual ~LaplacianJumpIndicator(){};
 
 protected:
 
   virtual Real computeQpIntegral();
 
-  VariableSecond & _second_u;
-  VariableSecond & _second_u_neighbor;
+  const VariableSecond & _second_u;
+  const VariableSecond & _second_u_neighbor;
 };
 
 #endif /* LAPLACIANJUMPINDICATOR_H */

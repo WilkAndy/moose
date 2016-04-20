@@ -1,6 +1,13 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "ContactApp.h"
 #include "Moose.h"
 #include "AppFactory.h"
+#include "MooseSyntax.h"
 
 #include "ContactAction.h"
 #include "ContactMaster.h"
@@ -21,19 +28,20 @@
 #include "NodalArea.h"
 #include "NodalAreaAction.h"
 #include "NodalAreaVarAction.h"
+#include "ContactSlipDamper.h"
 
 template<>
 InputParameters validParams<ContactApp>()
 {
   InputParameters params = validParams<MooseApp>();
+  params.set<bool>("use_legacy_uo_initialization") = false;
+  params.set<bool>("use_legacy_uo_aux_computation") = false;
   return params;
 }
 
-ContactApp::ContactApp(const std::string & name, InputParameters parameters) :
-    MooseApp(name, parameters)
+ContactApp::ContactApp(const InputParameters & parameters) :
+    MooseApp(parameters)
 {
-  srand(processor_id());
-
   Moose::registerObjects(_factory);
   ContactApp::registerObjects(_factory);
 
@@ -45,12 +53,16 @@ ContactApp::~ContactApp()
 {
 }
 
+// External entry point for dynamic application loading
+extern "C" void ContactApp__registerApps() { ContactApp::registerApps(); }
 void
 ContactApp::registerApps()
 {
   registerApp(ContactApp);
 }
 
+// External entry point for dynamic object registration
+extern "C" void ContactApp__registerObjects(Factory & factory) { ContactApp::registerObjects(factory); }
 void
 ContactApp::registerObjects(Factory & factory)
 {
@@ -65,8 +77,11 @@ ContactApp::registerObjects(Factory & factory)
   registerProblem(ReferenceResidualProblem);
   registerUserObject(NodalArea);
   registerAux(ContactPressureAux);
+  registerDamper(ContactSlipDamper);
 }
 
+// External entry point for dynamic syntax association
+extern "C" void ContactApp__associateSyntax(Syntax & syntax, ActionFactory & action_factory) { ContactApp::associateSyntax(syntax, action_factory); }
 void
 ContactApp::associateSyntax(Syntax & syntax, ActionFactory & action_factory)
 {
@@ -81,7 +96,13 @@ ContactApp::associateSyntax(Syntax & syntax, ActionFactory & action_factory)
   syntax.registerActionSyntax("NodalAreaAction", "Contact/*");
   syntax.registerActionSyntax("NodalAreaVarAction", "Contact/*");
 
-  registerAction(ContactAction, "add_dg_kernel");
+  registerAction(ContactAction, "add_aux_kernel");
+  registerAction(ContactAction, "add_aux_variable");
+  registerAction(ContactAction, "add_dirac_kernel");
+
+  registerTask("output_penetration_info_vars", false);
+  registerAction(ContactAction, "output_penetration_info_vars");
+  syntax.addDependency("output_penetration_info_vars", "add_output");
 
   registerAction(ContactPenetrationAuxAction, "add_aux_kernel");
   registerAction(ContactPenetrationVarAction, "add_aux_variable");

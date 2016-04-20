@@ -12,7 +12,6 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 #include "EigenSystem.h"
-#include "KernelWarehouse.h"
 
 #include "MaterialData.h"
 #include "Factory.h"
@@ -25,7 +24,8 @@ EigenSystem::EigenSystem(FEProblem & fe_problem, const std::string & name) :
     _sys_sol_old(NULL),
     _sys_sol_older(NULL),
     _aux_sol_old(NULL),
-    _aux_sol_older(NULL)
+    _aux_sol_older(NULL),
+    _eigen_kernel_counter(0)
 {
 }
 
@@ -38,23 +38,16 @@ EigenSystem::addKernel(const std::string & kernel_name, const std::string & name
 {
   for (THREAD_ID tid = 0; tid < libMesh::n_threads(); tid++)
   {
-    // Set the parameters for thread ID and material data
-    parameters.set<THREAD_ID>("_tid") = tid;
-    parameters.set<MaterialData *>("_material_data") = _fe_problem._material_data[tid];
-
     // In the case of EigenKernels, we might need to add two to the system
     if (parameters.have_parameter<bool>("eigen"))
     {
       {
         // EigenKernel
         parameters.set<bool>("implicit") = true;
-        EigenKernel *ekernel = static_cast<EigenKernel *>(_factory.create(kernel_name, name, parameters));
-        mooseAssert(ekernel != NULL, "Not an EigenKernel object");
-        if (parameters.get<bool>("eigen")) markEigenVariable(parameters.get<NonlinearVariableName>("variable"));
-        // Extract the SubdomainIDs from the object (via BlockRestrictable class)
-        std::set<SubdomainID> blk_ids = ekernel->blockIDs();
-        _kernels[tid].addKernel(ekernel, blk_ids);
-        _fe_problem._objects_by_name[tid][name].push_back(ekernel);
+        MooseSharedPointer<KernelBase> ekernel = _factory.create<KernelBase>(kernel_name, name, parameters, tid);
+        if (parameters.get<bool>("eigen"))
+          markEigenVariable(parameters.get<NonlinearVariableName>("variable"));
+        _kernels.addObject(ekernel, tid);
       }
       if (parameters.get<bool>("eigen"))
       {
@@ -62,25 +55,24 @@ EigenSystem::addKernel(const std::string & kernel_name, const std::string & name
         parameters.set<bool>("implicit") = false;
         std::string old_name(name + "_old");
 
-        EigenKernel *ekernel = static_cast<EigenKernel *>(_factory.create(kernel_name, old_name, parameters));
+        MooseSharedPointer<KernelBase> ekernel = _factory.create<KernelBase>(kernel_name, old_name, parameters, tid);
         _eigen_var_names.insert(parameters.get<NonlinearVariableName>("variable"));
-        // Extract the SubdomainIDs from the object (via BlockRestrictable class)
-        std::set<SubdomainID> blk_ids = ekernel->blockIDs();
-        _kernels[tid].addKernel(ekernel, blk_ids);
-        _fe_problem._objects_by_name[tid][old_name].push_back(ekernel);
+        _kernels.addObject(ekernel, tid);
+        ++_eigen_kernel_counter;
       }
     }
     else // Standard nonlinear system kernel
     {
       // Create the kernel object via the factory
-      KernelBase *kernel = static_cast<KernelBase *>(_factory.create(kernel_name, name, parameters));
-      mooseAssert(kernel != NULL, "Not a Kernel object");
-      // Extract the SubdomainIDs from the object (via BlockRestrictable class)
-      std::set<SubdomainID> blk_ids = kernel->blockIDs();
-      _kernels[tid].addKernel(kernel, blk_ids);
-      _fe_problem._objects_by_name[tid][name].push_back(kernel);
+      MooseSharedPointer<KernelBase> kernel = _factory.create<KernelBase>(kernel_name, name, parameters, tid);
+      _kernels.addObject(kernel, tid);
     }
   }
+
+  if (parameters.get<std::vector<AuxVariableName> >("save_in").size() > 0)
+    _has_save_in = true;
+  if (parameters.get<std::vector<AuxVariableName> >("diag_save_in").size() > 0)
+    _has_diag_save_in = true;
 }
 
 void
@@ -227,12 +219,14 @@ void
 EigenSystem::eigenKernelOnOld()
 {
   _active_on_old = true;
+  _fe_problem.updateActiveObjects();   // update warehouse active objects
 }
 
 void
 EigenSystem::eigenKernelOnCurrent()
 {
   _active_on_old = false;
+  _fe_problem.updateActiveObjects();   // update warehouse active objects
 }
 
 bool
@@ -288,4 +282,10 @@ EigenSystem::restoreOldSolutions()
   solutionOlder() = *_sys_sol_older;
   _fe_problem.getAuxiliarySystem().solutionOld() = *_aux_sol_old;
   _fe_problem.getAuxiliarySystem().solutionOlder() = *_aux_sol_older;
+}
+
+bool
+EigenSystem::containsEigenKernel() const
+{
+  return _eigen_kernel_counter>0;
 }

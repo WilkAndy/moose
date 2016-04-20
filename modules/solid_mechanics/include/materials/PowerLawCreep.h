@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef POWERLAWCREEP_H
 #define POWERLAWCREEP_H
 
@@ -17,8 +23,7 @@ InputParameters validParams<PowerLawCreep>();
 class PowerLawCreep : public SolidModel
 {
 public:
-  PowerLawCreep( const std::string & name,
-                 InputParameters parameters );
+  PowerLawCreep( const InputParameters & parameters);
 
 protected:
 

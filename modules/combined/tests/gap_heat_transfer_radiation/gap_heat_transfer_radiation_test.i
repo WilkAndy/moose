@@ -149,12 +149,14 @@
     type = SideAverageValue
     boundary = 2
     variable = temp
+    execute_on = 'initial timestep_end'
   [../]
 
   [./temp_right]
     type = SideAverageValue
     boundary = 3
     variable = temp
+    execute_on = 'initial timestep_end'
   [../]
 
   [./flux_left]
@@ -173,11 +175,5 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

@@ -47,7 +47,7 @@
     type = NodalVolumeFraction
     variable = u
     threshold = 0.9
-    execute_on = timestep
+    execute_on = timestep_end
   #  bubble_volume_file = nodal_flood_particle_distribution.csv
     mesh_volume = Volume
   [../]
@@ -65,11 +65,7 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = nodal_volume_fraction
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

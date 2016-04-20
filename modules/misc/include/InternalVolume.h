@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef INTERNALVOLUME_H
 #define INTERNALVOLUME_H
 
@@ -22,21 +28,15 @@ InputParameters validParams<InternalVolume>();
 class InternalVolume : public SideIntegralPostprocessor
 {
 public:
-
-  InternalVolume( const std::string & name,
-                  InputParameters parameters );
-
-  virtual ~InternalVolume() {}
+  InternalVolume( const InputParameters & parameters);
 
 protected:
-
   virtual Real computeQpIntegral();
   virtual Real getValue();
 
   const unsigned int _component;
   const Real _scale;
   const Real _addition;
-
 };
 
-#endif
+#endif //INTERNALVOLUME_H

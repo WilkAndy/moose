@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSENERGYINVISCIDFLUX_H
 #define NSENERGYINVISCIDFLUX_H
 
@@ -12,8 +18,7 @@ InputParameters validParams<NSEnergyInviscidFlux>();
 class NSEnergyInviscidFlux : public NSKernel
 {
 public:
-
-  NSEnergyInviscidFlux(const std::string & name, InputParameters parameters);
+  NSEnergyInviscidFlux(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
@@ -21,7 +26,7 @@ protected:
   virtual Real computeQpOffDiagJacobian(unsigned int jvar);
 
   // Coupled variables
-  VariableValue & _enthalpy;
+  const VariableValue & _enthalpy;
 };
 
 #endif

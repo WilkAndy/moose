@@ -1,16 +1,10 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
+
 
 #include "DashpotBC.h"
 
@@ -28,8 +22,8 @@ InputParameters validParams<DashpotBC>()
   return params;
 }
 
-DashpotBC::DashpotBC(const std::string & name, InputParameters parameters) :
-    IntegratedBC(name, parameters),
+DashpotBC::DashpotBC(const InputParameters & parameters) :
+    IntegratedBC(parameters),
     _component(getParam<unsigned int>("component")),
     _coefficient(getParam<Real>("coefficient")),
     _disp_x_var(coupled("disp_x")),

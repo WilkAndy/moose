@@ -11,32 +11,37 @@
 /*                                                              */
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
+
 #ifndef SOLUTIONUSEROBJECT_H
 #define SOLUTIONUSEROBJECT_H
 
+// MOOSE includes
 #include "GeneralUserObject.h"
-#include "libmesh/exodusII_io.h"
-#include "MooseUtils.h"
 
-// Forward Declarations
+// Forward declarations
 namespace libMesh
 {
-  class Mesh;
-  class EquationSystems;
-  class System;
-  class MeshFunction;
-  template<class T> class NumericVector;
+class ExodusII_IO;
+class EquationSystems;
+class System;
+class MeshFunction;
+template<class T> class NumericVector;
 }
 
+// Forward declarations
 class SolutionUserObject;
 
 template<>
 InputParameters validParams<SolutionUserObject>();
 
+/**
+ * User object that reads an existing solution from an input file and
+ * uses it in the current simulation.
+ */
 class SolutionUserObject : public GeneralUserObject
 {
 public:
-  SolutionUserObject(const std::string & name, InputParameters parameters);
+  SolutionUserObject(const InputParameters & parameters);
 
   /**
    * Empty desctructor
@@ -49,13 +54,29 @@ public:
   virtual void timestepSetup();
 
   /**
+   * Returns the local index for a given variable name
+   * @param var_name The name of the variable for which the index is located
+   * @return The local index of the variable
+   */
+  unsigned int getLocalVarIndex(const std::string & var_name) const;
+
+  /**
    * Returns a value at a specific location and variable (see SolutionFunction)
    * @param t The time at which to extract (not used, it is handled automatically when reading the data)
    * @param p The location at which to return a value
-   * @param var_name The variable that is desired
+   * @param var_name The variable to be evaluated
    * @return The desired value for the given variable at a location
    */
   virtual Real pointValue(Real t, const Point & p, const std::string & var_name) const;
+
+  /**
+   * Returns a value at a specific location and variable (see SolutionFunction)
+   * @param t The time at which to extract (not used, it is handled automatically when reading the data)
+   * @param p The location at which to return a value
+   * @param local_var_index The local index of the variable to be evaluated
+   * @return The desired value for the given variable at a location
+   */
+  virtual Real pointValue(Real t, const Point & p, const unsigned int local_var_index) const;
 
   /**
    * Return a value directly from a Node
@@ -84,6 +105,11 @@ public:
 
   /// Initialize the System and Mesh objects for the solution being read
   virtual void initialSetup();
+
+
+  const std::vector<std::string> & variableNames() const;
+
+  bool isVariableNodal(const std::string & var_name) const;
 
 
 protected:
@@ -130,10 +156,10 @@ protected:
   /**
    * A wrapper method for calling the various MeshFunctions used for reading the data
    * @param p The location at which data is desired
-   * @param var_name The variable name to extract data from
+   * @param local_var_index The local index of the variable to extract data from
    * @param func_num The MeshFunction index to use (1 = _mesh_function; 2 = _mesh_function2)
    */
-  Real evalMeshFunction(const Point & p, std::string var_name, unsigned int func_num) const;
+  Real evalMeshFunction(const Point & p, const unsigned int local_var_index, unsigned int func_num) const;
 
   /// File type to read (0 = xda; 1 = ExodusII)
   MooseEnum _file_type;
@@ -147,11 +173,14 @@ protected:
   /// The system name to extract from the XDA file (xda only)
   std::string _system_name;
 
-  /// A vector of nodal variable names to read from the file
-  const std::vector<std::string> _nodal_vars;
+  /// A list of variables to extract from the read system
+  std::vector<std::string> _system_variables;
 
-  /// A vector of nodal variable names to read from the file
-  const std::vector<std::string> _elem_vars;
+  /// Stores the local index need by MeshFunction
+  std::map<std::string, unsigned int> _local_variable_index;
+
+  /// Stores flag indicating if the variable is nodal
+  std::map<std::string, bool> _local_variable_nodal;
 
   /// Current ExodusII time index
   int _exodus_time_index;
@@ -232,7 +261,10 @@ protected:
   RealTensorValue _r1;
 
   /// transformations (rotations, translation, scales) are performed in this order
-  std::vector<MooseEnum> _transformation_order;
+  MultiMooseEnum _transformation_order;
+
+  /// True if initial_setup has executed
+  bool _initialized;
 };
 
 #endif //SOLUTIONUSEROBJECT_H

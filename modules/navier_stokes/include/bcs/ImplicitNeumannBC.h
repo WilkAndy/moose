@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef IMPLICITNEUMANNBC_H
 #define IMPLICITNEUMANNBC_H
 
@@ -17,7 +23,7 @@ InputParameters validParams<ImplicitNeumannBC>();
 class ImplicitNeumannBC : public IntegratedBC
 {
 public:
-  ImplicitNeumannBC(const std::string & name, InputParameters parameters);
+  ImplicitNeumannBC(const InputParameters & parameters);
 
   virtual ~ImplicitNeumannBC(){}
 

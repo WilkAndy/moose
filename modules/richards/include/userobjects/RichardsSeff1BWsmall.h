@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSSEFF1BWSMALL_H
 #define RICHARDSSEFF1BWSMALL_H
@@ -22,8 +25,8 @@ InputParameters validParams<RichardsSeff1BWsmall>();
  */
 class RichardsSeff1BWsmall : public RichardsSeff
 {
- public:
-  RichardsSeff1BWsmall(const std::string & name, InputParameters parameters);
+public:
+  RichardsSeff1BWsmall(const InputParameters & parameters);
 
   /**
    * LambertW function, returned value satisfies W(z)*exp(W(z))=z
@@ -36,23 +39,25 @@ class RichardsSeff1BWsmall : public RichardsSeff
    * @param p porepressure in the element.  Note that (*p[0])[qp] is the porepressure at quadpoint qp
    * @param qp the quad point to evaluate effective saturation at
    */
-  Real seff(std::vector<VariableValue *> p, unsigned int qp) const;
+  Real seff(std::vector<const VariableValue *> p, unsigned int qp) const;
 
   /**
    * derivative of effective saturation as a function of porepressure
    * @param p porepressure in the element.  Note that (*p[0])[qp] is the porepressure at quadpoint qp
    * @param qp the quad point to evaluate effective saturation at
+   * @param result the derivtives will be placed in this array
    */
-  std::vector<Real> dseff(std::vector<VariableValue *> p, unsigned int qp) const;
+  void dseff(std::vector<const VariableValue *> p, unsigned int qp, std::vector<Real> &result) const;
 
   /**
    * second derivative of effective saturation as a function of porepressure
    * @param p porepressure in the element.  Note that (*p[0])[qp] is the porepressure at quadpoint qp
    * @param qp the quad point to evaluate effective saturation at
+   * @param result the derivtives will be placed in this array
    */
-  std::vector<std::vector<Real> > d2seff(std::vector<VariableValue *> p, unsigned int qp) const;
+  void d2seff(std::vector<const VariableValue *> p, unsigned int qp, std::vector<std::vector<Real> > &result) const;
 
- protected:
+protected:
 
   /// BW's initial effective saturation
   Real _sn;

@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSPOLYLINESINK_H
 #define RICHARDSPOLYLINESINK_H
@@ -25,7 +28,7 @@ InputParameters validParams<RichardsPolyLineSink>();
 class RichardsPolyLineSink : public DiracKernel
 {
 public:
-  RichardsPolyLineSink(const std::string & name, InputParameters parameters);
+  RichardsPolyLineSink(const InputParameters & parameters);
 
   virtual void addPoints();
   virtual Real computeQpResidual();
@@ -55,14 +58,6 @@ protected:
   /// contains rows of the form x y z (space separated)
   std::string _point_file;
 
-  /**
-   * if true then Dirac Points are added to the mesh at the start,
-   * and then containing elements are cached.
-   * if false then the containing elements are computed each time step
-   * which can be quite expensive
-   */
-  bool _mesh_adaptivity;
-
   /// Defines the richards variables in the simulation
   const RichardsVarNames & _richards_name_UO;
 
@@ -70,11 +65,10 @@ protected:
   unsigned int _pvar;
 
   /// fluid porepressure (or porepressures in case of multiphase)
-  MaterialProperty<std::vector<Real> > &_pp;
+  const MaterialProperty<std::vector<Real> > &_pp;
 
   /// d(porepressure_i)/d(variable_j)
-  MaterialProperty<std::vector<std::vector<Real> > > &_dpp_dv;
-
+  const MaterialProperty<std::vector<std::vector<Real> > > &_dpp_dv;
 
   /// vector of Dirac Points' x positions
   std::vector<Real> _xs;
@@ -85,19 +79,12 @@ protected:
   /// vector of Dirac Points' z positions
   std::vector<Real> _zs;
 
-  /// the elements that contain the Dirac Points
-  std::vector<const Elem *> _elemental_info;
-
-  /// whether have constructed _elemental_info
-  bool _have_constructed_elemental_info;
-
-
   /**
    * reads a space-separated line of floats from ifs and puts in myvec
    * @param ifs the file stream
    * @param myvec upon return will contain the space-separated flows encountered in ifs
    */
-  bool parseNextLineReals(std::ifstream & ifs, std::vector<Real> &myvec);
+  bool parseNextLineReals(std::ifstream & ifs, std::vector<Real> & myvec);
 };
 
 #endif //RICHARDSPOLYLINESINK_H

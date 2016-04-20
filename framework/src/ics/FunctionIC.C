@@ -23,8 +23,8 @@ InputParameters validParams<FunctionIC>()
   return params;
 }
 
-FunctionIC::FunctionIC(const std::string & name, InputParameters parameters) :
-    InitialCondition(name, parameters),
+FunctionIC::FunctionIC(const InputParameters & parameters) :
+    InitialCondition(parameters),
     _func(getFunction("function"))
 {
 }
@@ -34,3 +34,10 @@ FunctionIC::value(const Point & p)
 {
   return _func.value(_t, p);
 }
+
+RealGradient
+FunctionIC::gradient(const Point & p)
+{
+  return _func.gradient(_t, p);
+}
+

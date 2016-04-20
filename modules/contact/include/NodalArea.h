@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NODALAREA_H
 #define NODALAREA_H
 
@@ -6,7 +12,7 @@
 class NodalArea : public SideIntegralVariableUserObject
 {
 public:
-  NodalArea(const std::string & name, InputParameters parameters);
+  NodalArea(const InputParameters & parameters);
   virtual ~NodalArea();
 
   virtual void threadJoin(const UserObject & uo);

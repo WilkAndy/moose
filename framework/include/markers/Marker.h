@@ -16,19 +16,17 @@
 #define MARKER_H
 
 #include "MooseObject.h"
-#include "MooseVariableInterface.h"
-#include "InputParameters.h"
+#include "BlockRestrictable.h"
 #include "SetupInterface.h"
 #include "DependencyResolverInterface.h"
 #include "MooseVariableDependencyInterface.h"
 #include "UserObjectInterface.h"
-#include "BlockRestrictable.h"
 #include "Restartable.h"
+#include "PostprocessorInterface.h"
+#include "MeshChangedInterface.h"
+#include "OutputInterface.h"
 
-// libmesh Includes
-#include "libmesh/threads.h"
-#include "libmesh/error_vector.h"
-
+// Forward declarations
 class MooseMesh;
 class SubProblem;
 class FEProblem;
@@ -48,10 +46,13 @@ class Marker :
   public DependencyResolverInterface,
   public MooseVariableDependencyInterface,
   public UserObjectInterface,
-  public Restartable
+  public Restartable,
+  public PostprocessorInterface,
+  public MeshChangedInterface,
+  public OutputInterface
 {
 public:
-  Marker(const std::string & name, InputParameters parameters);
+  Marker(const InputParameters & parameters);
   virtual ~Marker() {}
 
   /// This mirrors the main refinement flag values in libMesh in Elem::RefinementState but adds "dont_mark"
@@ -102,7 +103,7 @@ protected:
    * @param name The name of the _other_ Marker that you want to have access to.
    * @return A _reference_ that will hold the value of the marker in it's 0 (zeroth) position.
    */
-  VariableValue & getMarkerValue(std::string name);
+  const VariableValue & getMarkerValue(std::string name);
 
   SubProblem & _subproblem;
   FEProblem & _fe_problem;

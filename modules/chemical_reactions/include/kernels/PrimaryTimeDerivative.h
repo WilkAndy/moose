@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef PRIMARYTIMEDERIVATIVE
 #define PRIMARYTIMEDERIVATIVE
 
@@ -24,7 +30,7 @@ class PrimaryTimeDerivative : public TimeDerivative
 {
 public:
 
-  PrimaryTimeDerivative(const std::string & name, InputParameters parameters);
+  PrimaryTimeDerivative(const InputParameters & parameters);
 
 protected:
   /**
@@ -50,7 +56,7 @@ protected:
   virtual Real computeQpOffDiagJacobian(unsigned int jvar);
 
   /// Material property of porosity
-  MaterialProperty<Real> & _porosity;
+  const MaterialProperty<Real> & _porosity;
 };
 
 #endif // PRIMARYTIMEDERIVATIVE

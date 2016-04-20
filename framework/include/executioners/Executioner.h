@@ -19,12 +19,10 @@
 #include "UserObjectInterface.h"
 #include "PostprocessorInterface.h"
 #include "Restartable.h"
-#include "OutputWarehouse.h"
 
 // System includes
 #include <string>
 
-class MooseMesh;
 class Problem;
 class Executioner;
 
@@ -50,11 +48,9 @@ public:
   /**
    * Constructor
    *
-   * @param name The name given to the Executioner in the input file.
    * @param parameters The parameters object holding data for the class to use.
-   * @return Whether or not the solve was successful.
    */
-  Executioner(const std::string & name, InputParameters parameters);
+  Executioner(const InputParameters & parameters);
 
   virtual ~Executioner();
 
@@ -89,7 +85,16 @@ public:
    */
   virtual void postSolve();
 
-  virtual Problem & problem() = 0;
+  /**
+   * Deprecated:
+   * Return a reference to this Executioner's Problem instance
+   */
+  virtual Problem & problem();
+
+  /**
+   * Return a reference to this Executioner's FEProblem instance
+   */
+  FEProblem & feProblem();
 
   /** The name of the TimeStepper
    * This is an empty string for non-Transient executioners
@@ -97,15 +102,28 @@ public:
    */
   virtual std::string getTimeStepperName();
 
-  void outputInitial(bool out_init);
-
   /**
    * Can be used by subsclasses to call parentOutputPositionChanged()
    * on the underlying FEProblem.
    */
   virtual void parentOutputPositionChanged() {}
 
+  /**
+   * Whether or not the last solve converged.
+   */
+  virtual bool lastSolveConverged();
+
 protected:
+
+  /**
+   * Adds a postprocessor to report a Real class attribute
+   * @param name The name of the postprocessor to create
+   * @param attribute The Real class attribute to report
+   * @param execute_on When to execute the postprocessor that is created
+   */
+  virtual void addAttributeReporter(const std::string & name, Real & attribute, const std::string execute_on = "");
+
+  FEProblem & _fe_problem;
 
   /// Initial Residual Variables
   Real _initial_residual_norm;
@@ -116,9 +134,6 @@ protected:
 
   // Splitting
   std::vector<std::string> _splitting;
-
-  /// Reference to the OutputWarehouse object
-  OutputWarehouse & _output_warehouse;
 };
 
 #endif //EXECUTIONER_H

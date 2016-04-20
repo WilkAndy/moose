@@ -25,8 +25,8 @@ InputParameters validParams<AdaptAndModify>()
   return params;
 }
 
-AdaptAndModify::AdaptAndModify(const std::string & name, InputParameters parameters) :
-    Transient(name, parameters),
+AdaptAndModify::AdaptAndModify(const InputParameters & parameters) :
+    Transient(parameters),
     _adapt_cycles(parameters.get<unsigned int>("adapt_cycles"))
 {}
 
@@ -38,7 +38,7 @@ AdaptAndModify::incrementStepOrReject()
     _time_old = _time;
     _t_step++;
 
-    _problem.copyOldSolutions();
+    _problem.advanceState();
   }
   else
   {
@@ -64,7 +64,8 @@ AdaptAndModify::endStep(Real input_time)
     for (unsigned int i=0; i<_adapt_cycles; i++)
     {
       // Compute the Error Indicators and Markers
-      _problem.computeIndicatorsAndMarkers();
+      _problem.computeIndicators();
+      _problem.computeMarkers();
 
 #ifdef LIBMESH_ENABLE_AMR
       if (_problem.adaptivity().isOn())
@@ -72,19 +73,13 @@ AdaptAndModify::endStep(Real input_time)
 
 #endif
     }
-    _problem.computeUserObjects(EXEC_CUSTOM);
+    _problem.computeUserObjects(EXEC_CUSTOM, Moose::ALL);
 
-    //output
-    if (_time_interval)
-    {
-      //Set the time for the next output interval if we're at or beyond an output interval
-      if (_time + _timestep_tolerance >= _next_interval_output_time)
-      {
-        _next_interval_output_time += _time_interval_output_interval;
-      }
-    }
+    // Set the time for the next output interval if we're at or beyond an output interval
+    if (_time_interval && (_time + _timestep_tolerance >= _next_interval_output_time))
+      _next_interval_output_time += _time_interval_output_interval;
   }
 
-  _output_warehouse.outputStep();
+  _problem.outputStep(EXEC_TIMESTEP_END);
 
 }

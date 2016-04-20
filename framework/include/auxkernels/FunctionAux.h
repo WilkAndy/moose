@@ -16,10 +16,10 @@
 #define FUNCTIONAUX_H
 
 #include "AuxKernel.h"
-#include "Function.h"
 
 //Forward Declarations
 class FunctionAux;
+class Function;
 
 template<>
 InputParameters validParams<FunctionAux>();
@@ -34,7 +34,7 @@ public:
    * Factory constructor, takes parameters so that all derived classes can be built using the same
    * constructor.
    */
-  FunctionAux(const std::string & name, InputParameters parameters);
+  FunctionAux(const InputParameters & parameters);
 
   virtual ~FunctionAux() {}
 

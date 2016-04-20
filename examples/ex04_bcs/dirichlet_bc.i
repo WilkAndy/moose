@@ -26,7 +26,7 @@
   [../]
 
   [./conv]
-    type = Convection
+    type = ExampleConvection
     variable = convected
     some_variable = diffused
   [../]
@@ -84,21 +84,13 @@
 
 [Executioner]
   type = Steady
-
-  #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-
 
   petsc_options_iname = '-pc_type -pc_hypre_type'
   petsc_options_value = 'hypre    boomeramg'
 []
 
 [Outputs]
-  file_base = out_coupled_dirichlet
+  execute_on = 'timestep_end'
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

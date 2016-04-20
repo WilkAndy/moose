@@ -16,21 +16,27 @@
 #define DISPLACEDPROBLEM_H
 
 #include "SubProblem.h"
-#include "MooseMesh.h"
 #include "DisplacedSystem.h"
-#include "Assembly.h"
 #include "GeometricSearchData.h"
-#include "FEProblem.h"
 
 // libMesh
 #include "libmesh/equation_systems.h"
-#include "libmesh/explicit_system.h"
-#include "libmesh/numeric_vector.h"
+#include "libmesh/enum_quadrature_type.h"
 
-class SubProblem;
+// Forward declarations
 class MooseVariable;
 class AssemblyData;
 class DisplacedProblem;
+class MooseMesh;
+class Assembly;
+class FEProblem;
+
+// libMesh forward declarations
+namespace libMesh
+{
+template <typename T> class NumericVector;
+}
+
 
 template<>
 InputParameters validParams<DisplacedProblem>();
@@ -39,7 +45,7 @@ InputParameters validParams<DisplacedProblem>();
 class DisplacedProblem : public SubProblem
 {
 public:
-  DisplacedProblem(FEProblem & mproblem, MooseMesh & displaced_mesh, InputParameters params);
+  DisplacedProblem(const InputParameters & parameters);
   virtual ~DisplacedProblem();
 
   virtual EquationSystems & es() { return _eq; }
@@ -49,7 +55,10 @@ public:
   DisplacedSystem & nlSys() { return _displaced_nl; }
   DisplacedSystem & auxSys() { return _displaced_aux; }
 
-  virtual void createQRules(QuadratureType type, Order order);
+  // Return a constant reference to the vector of variable names.
+  const std::vector<std::string> & getDisplacementVarNames() const { return _displacements; }
+
+  virtual void createQRules(QuadratureType type, Order order, Order volume_order, Order face_order);
 
   /**
    * Whether or not this problem should utilize FE shape function caching.
@@ -65,8 +74,8 @@ public:
   virtual void syncSolutions(const NumericVector<Number> & soln, const NumericVector<Number> & aux_soln);
   virtual void updateMesh(const NumericVector<Number> & soln, const NumericVector<Number> & aux_soln);
 
-  virtual bool isTransient() const { return _mproblem.isTransient(); }
-  virtual Moose::CoordinateSystemType getCoordSystem(SubdomainID sid) { return _mproblem.getCoordSystem(sid); }
+  virtual bool isTransient() const;
+  virtual Moose::CoordinateSystemType getCoordSystem(SubdomainID sid);
 
   // Variables /////
   virtual bool hasVariable(const std::string & var_name);
@@ -75,8 +84,8 @@ public:
   virtual MooseVariableScalar & getScalarVariable(THREAD_ID tid, const std::string & var_name);
   virtual void addVariable(const std::string & var_name, const FEType & type, Real scale_factor, const std::set< SubdomainID > * const active_subdomains = NULL);
   virtual void addAuxVariable(const std::string & var_name, const FEType & type, const std::set< SubdomainID > * const active_subdomains = NULL);
-  virtual void addScalarVariable(const std::string & var_name, Order order, Real scale_factor = 1.);
-  virtual void addAuxScalarVariable(const std::string & var_name, Order order, Real scale_factor = 1.);
+  virtual void addScalarVariable(const std::string & var_name, Order order, Real scale_factor = 1., const std::set< SubdomainID > * const active_subdomains = NULL);
+  virtual void addAuxScalarVariable(const std::string & var_name, Order order, Real scale_factor = 1., const std::set< SubdomainID > * const active_subdomains = NULL);
 
   // Adaptivity /////
   virtual void initAdaptivity();
@@ -96,7 +105,8 @@ public:
   virtual void reinitElemFace(const Elem * elem, unsigned int side, BoundaryID bnd_id, THREAD_ID tid);
   virtual void reinitNode(const Node * node, THREAD_ID tid);
   virtual void reinitNodeFace(const Node * node, BoundaryID bnd_id, THREAD_ID tid);
-  virtual void reinitNodes(const std::vector<unsigned int> & nodes, THREAD_ID tid);
+  virtual void reinitNodes(const std::vector<dof_id_type> & nodes, THREAD_ID tid);
+  virtual void reinitNodesNeighbor(const std::vector<dof_id_type> & nodes, THREAD_ID tid);
   virtual void reinitNeighbor(const Elem * elem, unsigned int side, THREAD_ID tid);
   virtual void reinitNeighborPhys(const Elem * neighbor, unsigned int neighbor_side, const std::vector<Point> & physical_points, THREAD_ID tid);
   virtual void reinitNodeNeighbor(const Node * node, THREAD_ID tid);
@@ -146,14 +156,12 @@ public:
    * Return the list of elements that should have their DoFs ghosted to this processor.
    * @return The list
    */
-  virtual std::set<dof_id_type> & ghostedElems() { return _mproblem.ghostedElems(); }
-
-  virtual Order getQuadratureOrder();
+  virtual std::set<dof_id_type> & ghostedElems();
 
   /**
    * Will make sure that all dofs connected to elem_id are ghosted to this processor
    */
-  virtual void addGhostedElem(unsigned int elem_id);
+  virtual void addGhostedElem(dof_id_type elem_id);
 
   /**
    * Will make sure that all necessary elements from boundary_id are ghosted to this processor
@@ -167,14 +175,10 @@ public:
   virtual void ghostGhostedBoundaries();
 
   /**
-   * Register a piece of restartable data.  This is data that will get
-   * written / read to / from a restart file.
-   *
-   * @param name The full (unique) name.
-   * @param data The actual data object.
-   * @param tid The thread id of the object.  Use 0 if the object is not threaded.
+   * Resets the displaced mesh to the reference mesh.  Required when
+   * refining the DisplacedMesh.
    */
-  virtual void registerRestartableData(std::string name, RestartableDataValue * data, THREAD_ID tid);
+  void undisplaceMesh();
 
 protected:
   FEProblem & _mproblem;
@@ -195,18 +199,6 @@ protected:
   GeometricSearchData _geometric_search_data;
 
 private:
-  /**
-   * NOTE: This is an internal function meant for MOOSE use only!
-   *
-   * Register a piece of recoverable data.  This is data that will get
-   * written / read to / from a restart file.
-   *
-   * However, this data will ONLY get read from the restart file during a RECOVERY operation!
-   *
-   * @param name The full (unique) name.
-   */
-  virtual void registerRecoverableData(std::string name);
-
   friend class UpdateDisplacedMeshThread;
   friend class Restartable;
 };

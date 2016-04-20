@@ -16,6 +16,7 @@
 #define XDA_H
 
 // MOOSE includes
+#include "BasicOutput.h"
 #include "OversampleOutput.h"
 
 // Forward declearations
@@ -27,15 +28,14 @@ InputParameters validParams<XDA>();
 /**
  * Class for output data to the XDAII format
  */
-class XDA :
-  public OversampleOutput
+class XDA : public BasicOutput<OversampleOutput>
 {
 public:
 
   /**
    * Class consturctor
    */
-  XDA(const std::string & name, InputParameters);
+  XDA(const InputParameters & parameters);
 
 protected:
 
@@ -43,24 +43,13 @@ protected:
    * Overload the Output::output method, this is required for XDA
    * output due to the method utlized for outputing single/global parameters
    */
-  virtual void output();
+  virtual void output(const ExecFlagType & type);
 
   /**
    * Returns the current filename, this method handles adding the timestep suffix
    * @return A string containg the current filename to be written
    */
   std::string filename();
-
-  //@{
-  /**
-   * Individual component output is not supported for XDA/XDR
-   */
-  virtual void outputNodalVariables();
-  virtual void outputElementalVariables();
-  virtual void outputPostprocessors();
-  virtual void outputVectorPostprocessors();
-  virtual void outputScalarVariables();
-  //@}
 
 private:
 

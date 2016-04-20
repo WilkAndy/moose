@@ -15,39 +15,63 @@
 #ifndef FEPROBLEM_H
 #define FEPROBLEM_H
 
-#include "Moose.h"
+// MOOSE includes
 #include "SubProblem.h"
 #include "AuxiliarySystem.h"
-#include "Assembly.h"
 #include "GeometricSearchData.h"
-#include "MaterialWarehouse.h"
-#include "MaterialPropertyStorage.h"
-#include "PostprocessorWarehouse.h"
 #include "PostprocessorData.h"
-#include "VectorPostprocessorWarehouse.h"
 #include "VectorPostprocessorData.h"
 #include "Adaptivity.h"
-#include "Resurrector.h"
-#include "IndicatorWarehouse.h"
-#include "MarkerWarehouse.h"
-#include "MultiAppWarehouse.h"
-#include "TransferWarehouse.h"
-#include "MooseEnum.h"
-#include "RestartableData.h"
-#include "Resurrector.h"
-#include "UserObjectWarehouse.h"
-#include "NonlinearSystem.h"
+#include "InitialConditionWarehouse.h"
 #include "Restartable.h"
 #include "SolverParams.h"
-#include "OutputWarehouse.h"
+#include "PetscSupport.h"
+#include "MooseApp.h"
+#include "ExecuteMooseObjectWarehouse.h"
+#include "AuxGroupExecuteMooseObjectWarehouse.h"
+#include "MaterialWarehouse.h"
 
+// libMesh includes
+#include "libmesh/enum_quadrature_type.h"
+
+// Forward declarations
 class DisplacedProblem;
-
 class FEProblem;
 class MooseMesh;
 class NonlinearSystem;
 class RandomInterface;
 class RandomData;
+class MeshChangedInterface;
+class MultiMooseEnum;
+class MaterialPropertyStorage;
+class MaterialData;
+class VectorPostprocessorData;
+class MooseEnum;
+class Resurrector;
+class Assembly;
+class JacobianBlock;
+class Control;
+class MultiApp;
+class TransientMultiApp;
+class ScalarInitialCondition;
+class Indicator;
+class InternalSideIndicator;
+class Marker;
+class Material;
+class Transfer;
+class XFEMInterface;
+class SideUserObject;
+class NodalUserObject;
+class ElementUserObject;
+class InternalSideUserObject;
+class GeneralUserObject;
+class Function;
+
+// libMesh forward declarations
+namespace libMesh
+{
+class CouplingMatrix;
+}
 
 template<>
 InputParameters validParams<FEProblem>();
@@ -76,19 +100,19 @@ enum MooseLinearConvergenceReason
   // MOOSE_CONVERGED_ATOL_NORMAL        =  9,
   MOOSE_CONVERGED_RTOL                  =  2,
   MOOSE_CONVERGED_ATOL                  =  3,
-  MOOSE_CONVERGED_ITS                   =  4
+  MOOSE_CONVERGED_ITS                   =  4,
   // MOOSE_CONVERGED_CG_NEG_CURVE       =  5,
   // MOOSE_CONVERGED_CG_CONSTRAINED     =  6,
   // MOOSE_CONVERGED_STEP_LENGTH        =  7,
   // MOOSE_CONVERGED_HAPPY_BREAKDOWN    =  8,
-  // MOOSE_DIVERGED_NULL                = -2,
+  MOOSE_DIVERGED_NULL                   = -2,
   // MOOSE_DIVERGED_ITS                 = -3,
   // MOOSE_DIVERGED_DTOL                = -4,
   // MOOSE_DIVERGED_BREAKDOWN           = -5,
   // MOOSE_DIVERGED_BREAKDOWN_BICG      = -6,
   // MOOSE_DIVERGED_NONSYMMETRIC        = -7,
   // MOOSE_DIVERGED_INDEFINITE_PC       = -8,
-  // MOOSE_DIVERGED_NANORINF            = -9,
+  MOOSE_DIVERGED_NANORINF               = -9
   // MOOSE_DIVERGED_INDEFINITE_MAT      = -10
 };
 
@@ -101,14 +125,15 @@ class FEProblem :
   public Restartable
 {
 public:
-  FEProblem(const std::string & name, InputParameters parameters);
+  FEProblem(const InputParameters & parameters);
   virtual ~FEProblem();
 
   virtual EquationSystems & es() { return _eq; }
   virtual MooseMesh & mesh() { return _mesh; }
 
   virtual Moose::CoordinateSystemType getCoordSystem(SubdomainID sid);
-  virtual void setCoordSystem(const std::vector<SubdomainName> & blocks, const std::vector<MooseEnum> & coord_sys);
+  virtual void setCoordSystem(const std::vector<SubdomainName> & blocks, const MultiMooseEnum & coord_sys);
+  void setAxisymmetricCoordAxis(const MooseEnum & rz_coord_axis);
 
   /**
    * Set the coupling between variables
@@ -126,9 +151,9 @@ public:
   void setCouplingMatrix(CouplingMatrix * cm);
   CouplingMatrix * & couplingMatrix() { return _cm; }
 
-  bool areCoupled(unsigned int ivar, unsigned int jvar) { return (*_cm)(ivar, jvar); }
+  bool areCoupled(unsigned int ivar, unsigned int jvar);
 
-  std::vector<std::pair<MooseVariable *, MooseVariable *> > & couplingEntries(THREAD_ID tid) { return _assembly[tid]->couplingEntries(); }
+  std::vector<std::pair<MooseVariable *, MooseVariable *> > & couplingEntries(THREAD_ID tid);
 
   /**
    * Check for converence of the nonlinear solution
@@ -142,24 +167,24 @@ public:
    * @param abstol         Absolute residual convergence tolerance
    * @param nfuncs         Number of function evaluations
    * @param max_funcs      Maximum Number of function evaluations
-   * @param ref_resid      Reference residual to be used in relative convergence check
+   * @param initial_residual_before_preset_bcs      Residual norm prior to imposition of PresetBC values on solution vector
    * @param div_threshold  Maximum value of residual before triggering divergence check
    */
   virtual MooseNonlinearConvergenceReason checkNonlinearConvergence(std::string &msg,
-                                                                    const int it,
+                                                                    const PetscInt it,
                                                                     const Real xnorm,
                                                                     const Real snorm,
                                                                     const Real fnorm,
                                                                     const Real rtol,
                                                                     const Real stol,
                                                                     const Real abstol,
-                                                                    const int nfuncs,
-                                                                    const int max_funcs,
-                                                                    const Real ref_resid,
+                                                                    const PetscInt nfuncs,
+                                                                    const PetscInt max_funcs,
+                                                                    const Real initial_residual_before_preset_bcs,
                                                                     const Real div_threshold);
 
   /**
-   * Check for converence of the linear solution
+   * Check for convergence of the linear solution
    * @param msg            Error message that gets sent back to the solver
    * @param n              Iteration counter
    * @param rnorm          Norm of the residual vector
@@ -169,18 +194,13 @@ public:
    * @param maxits         Maximum number of linear iterations allowed
    */
   virtual MooseLinearConvergenceReason checkLinearConvergence(std::string &msg,
-                                                              const int n,
+                                                              const PetscInt n,
                                                               const Real rnorm,
                                                               const Real rtol,
                                                               const Real atol,
                                                               const Real dtol,
-                                                              const int maxits);
+                                                              const PetscInt maxits);
 
-#ifdef LIBMESH_HAVE_PETSC
-  void storePetscOptions(const std::vector<MooseEnum> & petsc_options,
-                         const std::vector<std::string> & petsc_options_inames,
-                         const std::vector<std::string> & petsc_options_values);
-#endif
 
   virtual bool hasVariable(const std::string & var_name);
   virtual MooseVariable & getVariable(THREAD_ID tid, const std::string & var_name);
@@ -217,20 +237,29 @@ public:
    */
   virtual void clearActiveElementalMooseVariables(THREAD_ID tid);
 
-  virtual void createQRules(QuadratureType type, Order order);
-  virtual Order getQuadratureOrder() { return _quadrature_order; }
+  virtual void createQRules(QuadratureType type, Order order, Order volume_order=INVALID_ORDER, Order face_order=INVALID_ORDER);
 
   /**
    * @return The maximum number of quadrature points in use on any element in this problem.
    */
   unsigned int getMaxQps() const;
 
+  /**
+   * @return The maximum number of quadrature points in use on any element in this problem.
+   */
+  unsigned int getMaxShapeFunctions() const;
+
+  /**
+   * @return The maximum order for all scalar variables in this problem's systems.
+   */
+  Order getMaxScalarOrder() const;
+
   virtual Assembly & assembly(THREAD_ID tid) { return *_assembly[tid]; }
 
   /**
    * Returns a list of all the variables in the problem (both from the NL and Aux systems.
    */
-  std::vector<VariableName> getVariableNames();
+  virtual std::vector<VariableName> getVariableNames();
 
 
   virtual void initialSetup();
@@ -242,7 +271,7 @@ public:
 
   virtual void prepareAssembly(THREAD_ID tid);
 
-  virtual void addGhostedElem(unsigned int elem_id);
+  virtual void addGhostedElem(dof_id_type elem_id);
   virtual void addGhostedBoundary(BoundaryID boundary_id);
   virtual void ghostGhostedBoundaries();
 
@@ -253,7 +282,8 @@ public:
   virtual void reinitElemFace(const Elem * elem, unsigned int side, BoundaryID bnd_id, THREAD_ID tid);
   virtual void reinitNode(const Node * node, THREAD_ID tid);
   virtual void reinitNodeFace(const Node * node, BoundaryID bnd_id, THREAD_ID tid);
-  virtual void reinitNodes(const std::vector<unsigned int> & nodes, THREAD_ID tid);
+  virtual void reinitNodes(const std::vector<dof_id_type> & nodes, THREAD_ID tid);
+  virtual void reinitNodesNeighbor(const std::vector<dof_id_type> & nodes, THREAD_ID tid);
   virtual void reinitNeighbor(const Elem * elem, unsigned int side, THREAD_ID tid);
   virtual void reinitNeighborPhys(const Elem * neighbor, unsigned int neighbor_side, const std::vector<Point> & physical_points, THREAD_ID tid);
   virtual void reinitNodeNeighbor(const Node * node, THREAD_ID tid);
@@ -265,7 +295,6 @@ public:
   virtual void clearDiracInfo();
 
   virtual void subdomainSetup(SubdomainID subdomain, THREAD_ID tid);
-  virtual void subdomainSetupSide(SubdomainID subdomain, THREAD_ID tid);
 
   /**
    * Whether or not this problem should utilize FE shape function caching.
@@ -275,14 +304,41 @@ public:
   virtual void useFECache(bool fe_cache);
 
   virtual void init();
-  virtual void init2();
   virtual void solve();
-  virtual bool converged();
-  virtual unsigned int nNonlinearIterations() { return _nl.nNonlinearIterations(); }
-  virtual unsigned int nLinearIterations() { return _nl.nLinearIterations(); }
-  virtual Real finalNonlinearResidual() { return _nl.finalNonlinearResidual(); }
 
-  virtual bool computingInitialResidual() { return _nl.computingInitialResidual(); }
+  /**
+   * Set an exception.  Usually this should not be directly called - but should be called through the mooseException() macro.
+   *
+   * @param message The error message about the exception.
+   */
+  virtual void setException(const std::string & message);
+
+  /**
+   * Whether or not an exception has occurred.
+   */
+  virtual bool hasException() { return _has_exception; }
+
+  /**
+   * Check to see if an exception has occurred on any processor and stop the solve.
+   *
+   * Note: Collective on MPI!  Must be called simultaneously by all processors!
+   *
+   * Also: This will throw a MooseException!
+   *
+   * Note: DO NOT CALL THIS IN A THREADED REGION!  This is meant to be called just after a threaded section.
+   */
+  virtual void checkExceptionAndStopSolve();
+
+  virtual bool converged();
+  virtual unsigned int nNonlinearIterations();
+  virtual unsigned int nLinearIterations();
+  virtual Real finalNonlinearResidual();
+  virtual bool computingInitialResidual();
+
+  /**
+   * Returns true if we are currently computing Jacobian
+   */
+  virtual bool currentlyComputingJacobian() { return _currently_computing_jacobian; }
 
   /**
    * The relative (both to solution size and dt) change in the L2 norm of the solution vector.
@@ -306,11 +362,54 @@ public:
   virtual void addPredictor(const std::string & type, const std::string & name, InputParameters parameters);
 
   virtual void copySolutionsBackwards();
-  // Update backward time solution vectors
-  virtual void copyOldSolutions();
+
+  /**
+   * Advance all of the state holding vectors / datastructures so that we can move to the next timestep.
+   */
+  virtual void advanceState();
+
   virtual void restoreSolutions();
 
-  virtual const std::vector<MooseObject *> & getObjectsByName(const std::string & name, THREAD_ID tid);
+  /**
+   * Output the current step.
+   * Will ensure that everything is in the proper state to be outputted.
+   * Then tell the OutputWarehouse to do its thing
+   * @param type The type execution flag (see Moose.h)
+   */
+  void outputStep(ExecFlagType type);
+
+  ///@{
+  /**
+   * Ability to enable/disable all output calls
+   *
+   * This is needed by Multiapps and applications to disable output for cases when
+   * executioners call other executions and when Multiapps are sub cycling.
+   */
+  void allowOutput(bool state);
+  template<typename T> void allowOutput(bool state);
+  ///@}
+
+  /**
+   * Indicates that the next call to outputStep should be forced
+   *
+   * This is needed by the MultiApp system, if forceOutput is called the next call to outputStep,
+   * regardless of the type supplied to the call, will be executed with EXEC_FORCED.
+   *
+   * Forced output will NOT override the allowOutput flag.
+   */
+  void forceOutput();
+
+  /**
+   * Reinitialize petsc output for proper linear/nonlinear iteration display
+   */
+  void initPetscOutput();
+
+#ifdef LIBMESH_HAVE_PETSC
+  /**
+   * Retrieve a writable reference the PETSc options (used by PetscSupport)
+   */
+  Moose::PetscSupport::PetscOptions & getPetscOptions(){ return _petsc_options; }
+#endif //LIBMESH_HAVE_PETSC
 
   // Function /////
   virtual void addFunction(std::string type, const std::string & name, InputParameters parameters);
@@ -320,8 +419,9 @@ public:
   // NL /////
   NonlinearSystem & getNonlinearSystem() { return _nl; }
   void addVariable(const std::string & var_name, const FEType & type, Real scale_factor, const std::set< SubdomainID > * const active_subdomains = NULL);
-  void addScalarVariable(const std::string & var_name, Order order, Real scale_factor = 1.);
+  void addScalarVariable(const std::string & var_name, Order order, Real scale_factor = 1., const std::set< SubdomainID > * const active_subdomains = NULL);
   void addKernel(const std::string & kernel_name, const std::string & name, InputParameters parameters);
+  void addNodalKernel(const std::string & kernel_name, const std::string & name, InputParameters parameters);
   void addScalarKernel(const std::string & kernel_name, const std::string & name, InputParameters parameters);
   void addBoundaryCondition(const std::string & bc_name, const std::string & name, InputParameters parameters);
   void addConstraint(const std::string & c_name, const std::string & name, InputParameters parameters);
@@ -329,7 +429,7 @@ public:
 
   // Aux /////
   void addAuxVariable(const std::string & var_name, const FEType & type, const std::set< SubdomainID > * const active_subdomains = NULL);
-  void addAuxScalarVariable(const std::string & var_name, Order order, Real scale_factor = 1.);
+  void addAuxScalarVariable(const std::string & var_name, Order order, Real scale_factor = 1., const std::set< SubdomainID > * const active_subdomains = NULL);
   void addAuxKernel(const std::string & kernel_name, const std::string & name, InputParameters parameters);
   void addAuxScalarKernel(const std::string & kernel_name, const std::string & name, InputParameters parameters);
 
@@ -341,6 +441,9 @@ public:
   // DG /////
   void addDGKernel(const std::string & kernel_name, const std::string & name, InputParameters parameters);
 
+  // Interface /////
+  void addInterfaceKernel(const std::string & kernel_name, const std::string & name, InputParameters parameters);
+
   // IC /////
   void addInitialCondition(const std::string & ic_name, const std::string & name, InputParameters parameters);
 
@@ -348,19 +451,6 @@ public:
 
   // Materials /////
   void addMaterial(const std::string & kernel_name, const std::string & name, InputParameters parameters);
-
-  /**
-   * Get list of materials with specified name
-   * @param name The name of the material
-   * @param tid Thread ID
-   * @return The list of materials with the name 'name'
-   */
-  virtual const std::vector<Material*> & getMaterialsByName(const std::string & name, THREAD_ID tid);
-  virtual const std::vector<Material*> & getMaterials(SubdomainID block_id, THREAD_ID tid);
-  virtual const std::vector<Material*> & getFaceMaterials(SubdomainID block_id, THREAD_ID tid);
-  virtual const std::vector<Material*> & getBndMaterials(BoundaryID block_id, THREAD_ID tid);
-  virtual const std::vector<Material*> & getNeighborMaterials(SubdomainID block_id, THREAD_ID tid);
-  virtual void updateMaterials();
 
   /**
    * Add the MooseVariables that the current materials depend on to the dependency list.
@@ -396,19 +486,23 @@ public:
   virtual void addUserObject(std::string user_object_name, const std::string & name, InputParameters parameters);
 
   /**
+   * Return the storage of all UserObjects.
+   *
+   * @see AdvancedOutput::initPostprocessorOrVectorPostprocessorLists
+   */
+  const ExecuteMooseObjectWarehouse<UserObject> & getUserObjects() { return _all_user_objects; }
+
+  /**
    * Get the user object by its name
    * @param name The name of the user object being retrieved
    * @return Const reference to the user object
    */
   template <class T>
-  const T & getUserObject(const std::string & name)
+  const T & getUserObject(const std::string & name, unsigned int tid = 0)
   {
-    for (unsigned int i = 0; i < Moose::exec_types.size(); ++i)
-      if (_user_objects(Moose::exec_types[i])[0].hasUserObject(name))
-      {
-        UserObject * user_object = _user_objects(Moose::exec_types[i])[0].getUserObjectByName(name);
-        return dynamic_cast<const T &>(*user_object);
-      }
+    if (_all_user_objects.hasActiveObject(name, tid))
+      return *(MooseSharedNamespace::dynamic_pointer_cast<T>(_all_user_objects.getActiveObject(name, tid)));
+
 
     mooseError("Unable to find user object with name '" + name + "'");
   }
@@ -429,28 +523,34 @@ public:
   /**
    * Check existence of the postprocessor.
    * @param name The name of the post-processor
-   * @param tid Thread ID
    * @return true if it exists, otherwise false
    */
-  bool hasPostprocessor(const std::string & name, THREAD_ID tid = 0);
+  bool hasPostprocessor(const std::string & name);
 
   /**
    * Get a reference to the value associated with the postprocessor.
    */
-  PostprocessorValue & getPostprocessorValue(const PostprocessorName & name, THREAD_ID tid = 0);
+  PostprocessorValue & getPostprocessorValue(const PostprocessorName & name);
 
   /**
    * Get the reference to the old value of a post-processor
    * @param name The name of the post-processor
-   * @param tid Thread ID
    * @return The reference to the old value
    */
-  PostprocessorValue & getPostprocessorValueOld(const std::string & name, THREAD_ID tid = 0);
+  PostprocessorValue & getPostprocessorValueOld(const std::string & name);
 
   /**
-   * Get a reference to the PostprocessorWarehouse ExecStore object
+   * Get the reference to the older value of a post-processor
+   * @param name The name of the post-processor
+   * @return The reference to the old value
    */
-  ExecStore<PostprocessorWarehouse> & getPostprocessorWarehouse();
+  PostprocessorValue & getPostprocessorValueOlder(const std::string & name);
+
+  /**
+   * Returns whether or not the current simulation has any multiapps
+   */
+  bool hasMultiApps() const { return _multi_apps.hasActiveObjects(); }
+  bool hasMultiApp(const std::string & name);
 
   /**
    * Check existence of the VectorPostprocessor.
@@ -461,31 +561,33 @@ public:
 
   /**
    * Get a reference to the value associated with the VectorPostprocessor.
+   * @param name The name of the post-processor
+   * @param vector_name The name of the post-processor
+   * @return The reference to the current value
    */
   VectorPostprocessorValue & getVectorPostprocessorValue(const VectorPostprocessorName & name, const std::string & vector_name);
 
   /**
    * Get the reference to the old value of a post-processor
    * @param name The name of the post-processor
-   * @param tid Thread ID
+   * @param vector_name The name of the post-processor
    * @return The reference to the old value
    */
   VectorPostprocessorValue & getVectorPostprocessorValueOld(const std::string & name, const std::string & vector_name);
+
+  /**
+   * Declare a new VectorPostprocessor vector
+   * @param name The name of the post-processor
+   * @param vector_name The name of the post-processor
+   * @return The reference to the vector declared
+   */
+  VectorPostprocessorValue & declareVectorPostprocessorVector(const VectorPostprocessorName & name, const std::string & vector_name);
 
   /**
    * Get the vectors for a specific VectorPostprocessor.
    * @param vpp_name The name of the VectorPostprocessor
    */
   const std::map<std::string, VectorPostprocessorValue*> & getVectorPostprocessorVectors(const std::string & vpp_name);
-
-  /**
-   * Get a reference to the VectorPostprocessorWarehouse ExecStore object
-   */
-  ExecStore<VectorPostprocessorWarehouse> & getVectorPostprocessorWarehouse();
-
-
-  virtual void computeUserObjects(ExecFlagType type = EXEC_TIMESTEP, UserObjectWarehouse::GROUP group = UserObjectWarehouse::ALL);
-  virtual void computeAuxiliaryKernels(ExecFlagType type = EXEC_RESIDUAL);
 
   // Dampers /////
   void addDamper(std::string damper_name, const std::string & name, InputParameters parameters);
@@ -510,17 +612,28 @@ public:
   /**
    * Get a MultiApp object by name.
    */
-  MultiApp * getMultiApp(const std::string & multi_app_name);
+  MooseSharedPointer<MultiApp> getMultiApp(const std::string & multi_app_name);
 
   /**
    * Execute the MultiApps associated with the ExecFlagType
    */
-  void execMultiApps(ExecFlagType type, bool auto_advance = true);
+  bool execMultiApps(ExecFlagType type, bool auto_advance = true);
 
   /**
    * Advance the MultiApps associated with the ExecFlagType
    */
   void advanceMultiApps(ExecFlagType type);
+
+  /**
+   * Backup the MultiApps associated with the ExecFlagType
+   */
+  void backupMultiApps(ExecFlagType type);
+
+  /**
+   * Restore the MultiApps associated with the ExecFlagType
+   * @param force Force restoration because something went wrong with the solve
+   */
+  void restoreMultiApps(ExecFlagType type, bool force=false);
 
   /**
    * Find the smallest timestep over all MultiApps
@@ -558,7 +671,30 @@ public:
   virtual void computeResidual(NonlinearImplicitSystem & sys, const NumericVector<Number> & soln, NumericVector<Number> & residual );
   virtual void computeResidualType(const NumericVector<Number> & soln, NumericVector<Number> & residual, Moose::KernelType type = Moose::KT_ALL);
   virtual void computeJacobian(NonlinearImplicitSystem & sys, const NumericVector<Number> & soln, SparseMatrix<Number> &  jacobian);
-  virtual void computeJacobianBlock(SparseMatrix<Number> &  jacobian, libMesh::System & precond_system, unsigned int ivar, unsigned int jvar);
+
+  /**
+   * Computes several Jacobian blocks simultaneously, summing their contributions into smaller preconditioning matrices.
+   *
+   * Used by Physics-based preconditioning
+   *
+   * @param blocks The blocks to fill in (JacobianBlock is defined in ComputeJacobianBlocksThread)
+   */
+  virtual void computeJacobianBlocks(std::vector<JacobianBlock *> & blocks);
+
+  /**
+   * Really not a good idea to use this.
+   *
+   * It computes just one block of the Jacobian into a smaller matrix.  Calling this in a loop is EXTREMELY ineffecient!
+   * Try to use computeJacobianBlocks() instead!
+   *
+   * @param jacobian The matrix you want to fill
+   * @param precond_system The libMesh::system of the preconditioning system
+   * @param ivar the block-row of the Jacobian
+   * @param jvar the block-column of the Jacobian
+   *
+   */
+  virtual void computeJacobianBlock(SparseMatrix<Number> & jacobian, libMesh::System & precond_system, unsigned int ivar, unsigned int jvar);
+
   virtual Real computeDamping(const NumericVector<Number>& soln, const NumericVector<Number>& update);
 
   /**
@@ -584,8 +720,16 @@ public:
   virtual void computeBounds(NonlinearImplicitSystem & sys, NumericVector<Number> & lower, NumericVector<Number> & upper);
   virtual void computeNearNullSpace(NonlinearImplicitSystem & sys, std::vector<NumericVector<Number>*> &sp);
   virtual void computeNullSpace(NonlinearImplicitSystem & sys, std::vector<NumericVector<Number>*> &sp);
+  virtual void computePostCheck(NonlinearImplicitSystem & sys,
+                                const NumericVector<Number> & old_soln,
+                                NumericVector<Number> & search_direction,
+                                NumericVector<Number> & new_soln,
+                                bool & changed_search_direction,
+                                bool & changed_new_soln);
 
   virtual void computeIndicatorsAndMarkers();
+  virtual void computeIndicators();
+  virtual void computeMarkers();
 
   virtual NumericVector<Number> & residualVector(Moose::KernelType type);
 
@@ -624,10 +768,12 @@ public:
   virtual void prepareNeighborShapes(unsigned int var, THREAD_ID tid);
 
   // Displaced problem /////
-  virtual void initDisplacedProblem(MooseMesh * displaced_mesh, InputParameters params);
-  virtual DisplacedProblem * & getDisplacedProblem() { return _displaced_problem; }
+  virtual void addDisplacedProblem(MooseSharedPointer<DisplacedProblem> displaced_problem);
+  virtual MooseSharedPointer<DisplacedProblem> getDisplacedProblem() { return _displaced_problem; }
 
   virtual void updateGeomSearch(GeometricSearchData::GeometricSearchType type = GeometricSearchData::ALL);
+
+  virtual void possiblyRebuildGeomSearchPatches();
 
   virtual GeometricSearchData & geomSearchData() { return _geometric_search_data; }
 
@@ -637,44 +783,28 @@ public:
    */
   void setRestartFile(const std::string & file_name);
 
+  ///@{
   /**
-   * Was this subproblem initialized from a restart file
-   * @return true if we restarted form a file, otherwise false
-   */
-  virtual bool isRestarting();
-
-  /**
-   * Are we recovering a previous simulation??
-   * @return true if recovering form a file, otherwise false
-   */
-  virtual bool isRecovering();
-
-  /**
-   * Register a piece of restartable data.  This is data that will get
-   * written / read to / from a restart file.
-   *
-   * @param name The full (unique) name.
-   * @param data The actual data object.
-   * @param tid The thread id of the object.  Use 0 if the object is not threaded.
-   */
-  virtual void registerRestartableData(std::string name, RestartableDataValue * data, THREAD_ID tid);
-
-  /**
-   * Return reference to the restatable data object
-   * @return A const reference to the restatable data object
-   */
-  const RestartableDatas & getRestartableData() { return _restartable_data; }
-
-  /**
-   * Return a reference to the recoverable data object
-   * @return A const reference to the recoverable data
-   */
-  std::set<std::string> & getRecoverableData() { return _recoverable_data; }
-
-  /** Return a reference to the material property storage
+   * Return a reference to the material property storage
    * @return A const reference to the material property storage
    */
   const MaterialPropertyStorage & getMaterialPropertyStorage() { return _material_props; }
+  const MaterialPropertyStorage & getBndMaterialPropertyStorage() { return _bnd_material_props; }
+  ///@}
+
+  ///@{
+  /**
+   * Return indicator/marker storage.
+   */
+  const MooseObjectWarehouse<Indicator> & getIndicatorWarehouse() { return _indicators; }
+  const MooseObjectWarehouse<InternalSideIndicator> & getInternalSideIndicatorWarehouse() { return _internal_side_indicators; }
+  const MooseObjectWarehouse<Marker> & getMarkerWarehouse() { return _markers; }
+  ///@}
+
+  /**
+   * Return InitialCondition storage
+   */
+  const InitialConditionWarehouse & getInitialConditionWarehouse() const { return _ics; }
 
   /**
    * Get the solver parameters
@@ -686,9 +816,27 @@ public:
   Adaptivity & adaptivity() { return _adaptivity; }
   virtual void adaptMesh();
 #endif //LIBMESH_ENABLE_AMR
+
+  /// Create XFEM controller object
+  void initXFEM(MooseSharedPointer<XFEMInterface> xfem);
+
+  /// Get a pointer to the XFEM controller object
+  MooseSharedPointer<XFEMInterface> getXFEM(){return _xfem;}
+
+  /// Find out whether the current analysis is using XFEM
+  bool haveXFEM() { return _xfem != NULL; }
+
+  /// Update the mesh due to changing XFEM cuts
+  virtual bool updateMeshXFEM();
+
   virtual void meshChanged();
 
-  void printMaterialMap();
+  /**
+   * Register an object that derives from MeshChangedInterface
+   * to be notified when the mesh changes.
+   */
+  void notifyWhenMeshChanges(MeshChangedInterface * mci);
+
   void checkProblemIntegrity();
 
   void serializeSolution();
@@ -706,6 +854,12 @@ public:
   void registerRandomInterface(RandomInterface & random_interface, const std::string & name);
 
   void setKernelCoverageCheck(bool flag) { _kernel_coverage_check = flag; }
+
+  void setMaterialCoverageCheck(bool flag) { _material_coverage_check = flag; }
+
+  bool & legacyUoAuxComputation() { return _use_legacy_uo_aux_computation; }
+
+  bool & legacyUoInitialization() { return _use_legacy_uo_initialization; }
 
   /**
    * Updates the active boundary id
@@ -731,11 +885,6 @@ public:
    * Calls parentOutputPositionChanged() on all sub apps.
    */
   void parentOutputPositionChanged();
-
-  /**
-   * Enable printing of top residuals
-   */
-  void setDebugTopResiduals(unsigned int n) { _dbg_top_residuals = n; }
 
   ///@{
   /**
@@ -764,22 +913,98 @@ public:
   unsigned int subspaceDim(const std::string& prefix) const {if (_subspace_dim.count(prefix)) return _subspace_dim.find(prefix)->second; else return 0;}
 
   /*
-   * Return a reference to the MaterialWarehouse
+   * Return a reference to the material warehouse of Material objects.
    */
-  MaterialWarehouse & getMaterialWarehouse(THREAD_ID tid) { return _materials[tid]; }
+  const MaterialWarehouse<Material> & getMaterialWarehouse() { return _all_materials; }
+
+  /**
+   * Return a pointer to a Material object.
+   *
+   * This will return enabled or disabled objects, the main purpose is for iterative materials.
+   */
+  MooseSharedPointer<Material> getMaterial(std::string name, Moose::MaterialDataType type, THREAD_ID tid = 0);
 
   /*
    * Return a pointer to the MaterialData
    */
-  MaterialData * getMaterialData(THREAD_ID tid) { return _material_data[tid]; }
+  MooseSharedPointer<MaterialData> getMaterialData(Moose::MaterialDataType type, THREAD_ID tid = 0);
 
-  /*
-   * Return a pointer to the MaterialData for boundary properties
+  /**
+   * Will return True if the user wants to get an error when
+   * a nonzero is reallocated in the Jacobian by PETSc
    */
-  MaterialData * getBoundaryMaterialData(THREAD_ID tid) { return _bnd_material_data[tid]; }
+  bool errorOnJacobianNonzeroReallocation() { return _error_on_jacobian_nonzero_reallocation; }
 
+  void setErrorOnJacobianNonzeroReallocation(bool state) { _error_on_jacobian_nonzero_reallocation = state; }
+
+  /// Returns whether or not this Problem has a TimeIntegrator
+  bool hasTimeIntegrator() const { return _has_time_integrator; }
+
+  /**
+   * Return the current execution flag.
+   *
+   * Returns EXEC_NONE when not being executed.
+   * @see FEProblem::execute
+   */
+  const ExecFlagType & getCurrentExecuteOnFlag() const;
+
+
+  /**
+   * Convenience function for performing execution of MOOSE systems.
+   */
+  void execute(const ExecFlagType & exec_type);
+
+  /**
+   * Call compute methods on UserObjects.
+   */
+  virtual void computeUserObjects(const ExecFlagType & type, const Moose::AuxGroup & group);
+  template<typename T> void initializeUserObjects(const MooseObjectWarehouse<T> & warehouse);
+  template<typename T> void finalizeUserObjects(const MooseObjectWarehouse<T> & warehouse);
+
+  /**
+   * Call compute methods on AuxKernels
+   */
+  virtual void computeAuxiliaryKernels(const ExecFlagType & type);
+
+public:
+
+  ///@{
+  /**
+   * Convenience zeros
+   * @see ZeroInterface
+   */
+  std::vector<Real> _real_zero;
+  std::vector<VariableValue> _zero;
+  std::vector<VariableGradient> _grad_zero;
+  std::vector<VariableSecond> _second_zero;
+  std::vector<VariablePhiSecond> _second_phi_zero;
+  ///@}
+
+  /**
+   * Reference to the control logic warehouse.
+   */
+  ExecuteMooseObjectWarehouse<Control> & getControlWarehouse() { return _control_warehouse; }
+
+  /**
+   * Performs setup and execute calls for Control objects.
+   */
+  void executeControls(const ExecFlagType & exec_type);
+
+  /**
+   * Update the active objects in the warehouses
+   */
+  void updateActiveObjects();
 
 protected:
+
+  ///@{
+  /**
+   *
+   */
+  VectorPostprocessorData & getVectorPostprocessorData();
+  ///@}
+
+
   MooseMesh & _mesh;
   EquationSystems _eq;
   bool _initialized;
@@ -801,9 +1026,6 @@ protected:
   Real & _dt;
   Real & _dt_old;
 
-  /// Objects by names, indexing: [thread][name]->array of moose objects with name 'name'
-  std::vector<std::map<std::string, std::vector<MooseObject *> > > _objects_by_name;
-
   NonlinearSystem & _nl;
   AuxiliarySystem _aux;
 
@@ -813,68 +1035,95 @@ protected:
   // Dimension of the subspace spanned by the vectors with a given prefix
   std::map<std::string,unsigned int> _subspace_dim;
 
-  // quadrature
-  Order _quadrature_order;                              ///< Quadrature order required by all variables to integrated over them.
   std::vector<Assembly *> _assembly;
 
   /// functions
-  std::vector<std::map<std::string, Function *> > _functions;
+  MooseObjectWarehouse<Function> _functions;
 
-  /// Initial condition warehouses (one for each thread)
-  std::vector<InitialConditionWarehouse> _ics;
+  ///@{
+  /// Initial condition storage
+  InitialConditionWarehouse _ics;
+  MooseObjectWarehouseBase<ScalarInitialCondition> _scalar_ics; // use base b/c of setup methods
+  ///@}
 
   // material properties
-  MaterialPropertyStorage _material_props;
-  MaterialPropertyStorage _bnd_material_props;
+  MaterialPropertyStorage & _material_props;
+  MaterialPropertyStorage & _bnd_material_props;
 
-  std::vector<MaterialData *> _material_data;
-  std::vector<MaterialData *> _bnd_material_data;
-  std::vector<MaterialData *> _neighbor_material_data;
+  std::vector<MooseSharedPointer<MaterialData> > _material_data;
+  std::vector<MooseSharedPointer<MaterialData> > _bnd_material_data;
+  std::vector<MooseSharedPointer<MaterialData> > _neighbor_material_data;
 
-  // materials
-  std::vector<MaterialWarehouse> _materials;
+  ///@{
+  // Material Warehouses
+  MaterialWarehouse<Material> _materials; // Traditional materials that MOOSE computes
+  MaterialWarehouse<Material> _discrete_materials; // Materials that the user must compute
+  MaterialWarehouse<Material> _all_materials; // All materials for error checking and MaterialData storage
+  ///@}
 
-  // indicators
-  std::vector<IndicatorWarehouse> _indicators;
+  ///@{
+  // Indicator Warehouses
+  MooseObjectWarehouse<Indicator> _indicators;
+  MooseObjectWarehouse<InternalSideIndicator> _internal_side_indicators;
+  ///@}
 
-  // markers
-  std::vector<MarkerWarehouse> _markers;
+  // Marker Warehouse
+  MooseObjectWarehouse<Marker> _markers;
 
   // postprocessors
-  std::vector<PostprocessorData*> _pps_data;
-  ExecStore<PostprocessorWarehouse> _pps;
+  PostprocessorData _pps_data;
 
   // VectorPostprocessors
-  std::vector<VectorPostprocessorData *> _vpps_data;
-  ExecStore<VectorPostprocessorWarehouse> _vpps;
+  VectorPostprocessorData _vpps_data;
 
-  // user objects
-  ExecStore<UserObjectWarehouse> _user_objects;
+  ///@{
+  /// Storage for UserObjects
+  ExecuteMooseObjectWarehouse<UserObject> _all_user_objects;
+  AuxGroupExecuteMooseObjectWarehouse<GeneralUserObject> _general_user_objects;
+  AuxGroupExecuteMooseObjectWarehouse<NodalUserObject> _nodal_user_objects;
+  AuxGroupExecuteMooseObjectWarehouse<ElementUserObject> _elemental_user_objects;
+  AuxGroupExecuteMooseObjectWarehouse<SideUserObject> _side_user_objects;
+  AuxGroupExecuteMooseObjectWarehouse<InternalSideUserObject> _internal_side_user_objects;
+  ///@}
 
-  ExecStore<MultiAppWarehouse> _multi_apps;
+  /// MultiApp Warehouse
+  ExecuteMooseObjectWarehouse<MultiApp> _multi_apps;
+
+  /// Storage for TransientMultiApps (only needed for calling 'computeDT')
+  ExecuteMooseObjectWarehouse<TransientMultiApp> _transient_multi_apps;
 
   /// Normal Transfers
-  ExecStore<TransferWarehouse> _transfers;
+  ExecuteMooseObjectWarehouse<Transfer> _transfers;
 
   /// Transfers executed just before MultiApps to transfer data to them
-  ExecStore<TransferWarehouse> _to_multi_app_transfers;
+  ExecuteMooseObjectWarehouse<Transfer> _to_multi_app_transfers;
 
   /// Transfers executed just after MultiApps to transfer data from them
-  ExecStore<TransferWarehouse> _from_multi_app_transfers;
+  ExecuteMooseObjectWarehouse<Transfer> _from_multi_app_transfers;
 
   /// A map of objects that consume random numbers
   std::map<std::string, RandomData *> _random_data_objects;
 
-  // Cache for calculating materials on side
+  /// Cache for calculating materials on side
   std::vector<LIBMESH_BEST_UNORDERED_MAP<SubdomainID, bool> > _block_mat_side_cache;
 
-  // Cache for calculating materials on side
+  /// Cache for calculating materials on side
   std::vector<LIBMESH_BEST_UNORDERED_MAP<BoundaryID, bool> > _bnd_mat_side_cache;
 
-  void computeUserObjectsInternal(std::vector<UserObjectWarehouse> & user_objects, UserObjectWarehouse::GROUP group);
+  /// Objects to be notified when the mesh changes
+  std::vector<MeshChangedInterface *> _notify_when_mesh_changes;
 
-protected:
+  /// Verify that SECOND order mesh uses SECOND order displacements.
+  void checkDisplacementOrders();
+
   void checkUserObjects();
+
+  /**
+   * Helper method for checking Material object dependency.
+   *
+   * @see checkProblemIntegrity
+   */
+  void checkDependMaterialsHelper(const std::map<SubdomainID, std::vector<MooseSharedPointer<Material> > > & materials_map);
 
   /// Verify that there are no element type/coordinate type conflicts
   void checkCoordinateSystems();
@@ -882,15 +1131,18 @@ protected:
   /**
    * Call when it is possible that the needs for ghosted elements has changed.
    */
-  void reinitBecauseOfGhosting();
+  void reinitBecauseOfGhostingOrNewGeomObjects();
 
 #ifdef LIBMESH_ENABLE_AMR
   Adaptivity _adaptivity;
 #endif
 
+  /// Pointer to XFEM controller
+  MooseSharedPointer<XFEMInterface> _xfem;
+
   // Displaced mesh /////
   MooseMesh * _displaced_mesh;
-  DisplacedProblem * _displaced_problem;
+  MooseSharedPointer<DisplacedProblem> _displaced_problem;
   GeometricSearchData _geometric_search_data;
 
   bool _reinit_displaced_elem;
@@ -908,58 +1160,116 @@ protected:
   /// Whether nor not stateful materials have been initialized
   bool _has_initialized_stateful;
 
-  /// Flag for print top residuals
-  bool _dbg_top_residuals;
-
   /// Object responsible for restart (read/write)
   Resurrector * _resurrector;
 
   /// true if the Jacobian is constant
   bool _const_jacobian;
+
   /// Indicates if the Jacobian was computed
   bool _has_jacobian;
 
   SolverParams _solver_params;
 
-  /// True if we're doing a _restart_ (note: this is _not_ true when recovering!)
-  bool _restarting;
-
   /// Determines whether a check to verify an active kernel on every subdomain
   bool _kernel_coverage_check;
+
+  /// Determines whether a check to verify an active material on every subdomain
+  bool _material_coverage_check;
 
   /// Maximum number of quadrature points used in the problem
   unsigned int _max_qps;
 
-public:
-  /// number of instances of FEProblem (to distinguish Systems when coupling problems together)
-  static unsigned int _n;
+  /// Maximum number of shape functions on any element in the problem
+  unsigned int _max_shape_funcs;
+
+  /// Maximum scalar variable order
+  Order _max_scalar_order;
+
+  /// Indicates whether or not this executioner has a time integrator (during setup)
+  bool _has_time_integrator;
+
+  /// Whether or not an exception has occurred
+  bool _has_exception;
+
+  /// The error message to go with an exception
+  std::string _exception_message;
+
+  /// Current execute_on flag
+  ExecFlagType _current_execute_on_flag;
+
+  /// The control logic warehouse
+  ExecuteMooseObjectWarehouse<Control> _control_warehouse;
+
+#ifdef LIBMESH_HAVE_PETSC
+  /// PETSc option storage
+  Moose::PetscSupport::PetscOptions _petsc_options;
+#endif //LIBMESH_HAVE_PETSC
 
 private:
-  /**
-   * NOTE: This is an internal function meant for MOOSE use only!
-   *
-   * Register a piece of recoverable data.  This is data that will get
-   * written / read to / from a restart file.
-   *
-   * However, this data will ONLY get read from the restart file during a RECOVERY operation!
-   *
-   * @param name The full (unique) name.
-   */
-  virtual void registerRecoverableData(std::string name);
+  bool _use_legacy_uo_aux_computation;
+  bool _use_legacy_uo_initialization;
 
-  /// Data names that will only be read from the restart file during RECOVERY
-  std::set<std::string> _recoverable_data;
+  bool _error_on_jacobian_nonzero_reallocation;
+  bool _force_restart;
+  bool _fail_next_linear_convergence_check;
+
+  /// Whether or not the system is currently computing the Jacobian matrix
+  bool _currently_computing_jacobian;
 
   friend class AuxiliarySystem;
   friend class NonlinearSystem;
   friend class EigenSystem;
   friend class Resurrector;
-  friend class MaterialPropertyIO;
   friend class RestartableDataIO;
-  friend class ComputeInitialConditionThread;
-  friend class ComputeBoundaryInitialConditionThread;
   friend class Restartable;
   friend class DisplacedProblem;
 };
+
+template<typename T>
+void
+FEProblem::allowOutput(bool state)
+{
+  _app.getOutputWarehouse().allowOutput<T>(state);
+}
+
+
+template<typename T>
+void
+FEProblem::initializeUserObjects(const MooseObjectWarehouse<T> & warehouse)
+{
+  if (warehouse.hasActiveObjects())
+  {
+    for (THREAD_ID tid = 0; tid < libMesh::n_threads(); ++tid)
+    {
+      const std::vector<MooseSharedPointer<T> > & objects = warehouse.getActiveObjects(tid);
+      for (typename std::vector<MooseSharedPointer<T> >::const_iterator it = objects.begin(); it != objects.end(); ++it)
+        (*it)->initialize();
+    }
+  }
+}
+
+
+template<typename T>
+void
+FEProblem::finalizeUserObjects(const MooseObjectWarehouse<T> & warehouse)
+{
+  if (warehouse.hasActiveObjects())
+  {
+    const std::vector<MooseSharedPointer<T> > & objects = warehouse.getActiveObjects(0);
+    for (unsigned int i = 0; i < objects.size(); ++i)
+    {
+      for (THREAD_ID tid = 1; tid < libMesh::n_threads(); ++tid)
+        objects[i]->threadJoin(*(warehouse.getActiveObjects(tid)[i]));
+
+      objects[i]->finalize();
+
+      MooseSharedPointer<Postprocessor> pp = MooseSharedNamespace::dynamic_pointer_cast<Postprocessor>(objects[i]);
+      if (pp)
+        _pps_data.storeValue(pp->PPName(), pp->getValue());
+    }
+  }
+}
+
 
 #endif /* FEPROBLEM_H */

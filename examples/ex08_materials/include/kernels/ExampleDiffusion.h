@@ -31,8 +31,7 @@ class ExampleDiffusion : public Diffusion
 {
 public:
 
-  ExampleDiffusion(const std::string & name,
-                   InputParameters parameters);
+  ExampleDiffusion(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
@@ -42,6 +41,6 @@ protected:
    * This MooseArray will hold the reference we need to our
    * material property from the Material class
    */
-  MaterialProperty<Real> & _diffusivity;
+  const MaterialProperty<Real> & _diffusivity;
 };
 #endif //EXAMPLEDIFFUSION_H

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef GAUSSCONTFORCING_H
 #define GAUSSCONTFORCING_H
 
@@ -16,7 +22,7 @@ class GaussContForcing : public Kernel
 {
 public:
 
-  GaussContForcing(const std::string & name, InputParameters parameters);
+  GaussContForcing(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();

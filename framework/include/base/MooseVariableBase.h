@@ -18,10 +18,17 @@
 #include "MooseTypes.h"
 #include "MooseArray.h"
 
-#include "libmesh/variable.h"
-#include "libmesh/dof_map.h"
+// libMesh includes
 #include "libmesh/tensor_value.h"
 #include "libmesh/vector_value.h"
+#include "libmesh/fe_type.h"
+
+// libMesh forward declarations
+namespace libMesh
+{
+class DofMap;
+class Variable;
+}
 
 typedef MooseArray<Real>               VariableValue;
 typedef MooseArray<RealGradient>       VariableGradient;
@@ -43,14 +50,19 @@ class SystemBase;
 class MooseVariableBase
 {
 public:
-  MooseVariableBase(unsigned int var_num, SystemBase & sys, Assembly & assembly, Moose::VarKindType var_kind);
+  MooseVariableBase(unsigned int var_num, const FEType & fe_type, SystemBase & sys, Assembly & assembly, Moose::VarKindType var_kind);
   virtual ~MooseVariableBase();
 
   /**
    * Get variable number coming from libMesh
    * @return the libmesh variable number
    */
-  unsigned int number() const;
+  unsigned int number() const { return _var_num; }
+
+  /**
+   * Get the type of finite element object
+   */
+  const FEType & feType() const { return _fe_type; }
 
   /**
    * Get the system this variable is part of.
@@ -65,22 +77,23 @@ public:
   /**
    * Kind of the variable (Nonlinear, Auxiliary, ...)
    */
-  Moose::VarKindType kind() const;
+  Moose::VarKindType kind() const { return _var_kind; }
 
   /**
    * Set the scaling factor for this variable
    */
-  void scalingFactor(Real factor);
+  void scalingFactor(Real factor) { _scaling_factor = factor; }
 
   /**
    * Get the scaling factor for this variable
    */
-  Real scalingFactor() const;
+  Real scalingFactor() const { return _scaling_factor; }
 
   /**
    * Get the order of this variable
+   * Note: Order enum can be implicitly converted to unsigned int.
    */
-  unsigned int order() const;
+  Order order() const;
 
   /**
    * The DofMap associated with the system this variable is in.
@@ -100,6 +113,8 @@ public:
 protected:
   /// variable number (from libMesh)
   unsigned int _var_num;
+  /// The FEType associated with this variable
+  FEType _fe_type;
   /// variable number within MOOSE
   unsigned int _index;
   Moose::VarKindType _var_kind;

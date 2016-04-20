@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef TENSOR_MECHANICSAPP_H
 #define TENSOR_MECHANICSAPP_H
 
@@ -11,7 +17,7 @@ InputParameters validParams<TensorMechanicsApp>();
 class TensorMechanicsApp : public MooseApp
 {
 public:
-  TensorMechanicsApp(const std::string & name, InputParameters parameters);
+  TensorMechanicsApp(const InputParameters & parameters);
   virtual ~TensorMechanicsApp();
 
   static void registerApps();

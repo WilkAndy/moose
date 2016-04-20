@@ -15,22 +15,25 @@
 #ifndef SCALARL2ERROR_H
 #define SCALARL2ERROR_H
 
+// MOOSE includes
 #include "GeneralPostprocessor.h"
-#include "FunctionInterface.h"
 
+// Forward Declarations
 class Function;
-
-//Forward Declarations
 class ScalarL2Error;
+class MooseVariableScalar;
 
 template<>
 InputParameters validParams<ScalarL2Error>();
 
-class ScalarL2Error :
-  public GeneralPostprocessor
+/**
+ * Postprocessor for computing the error in a scalar value relative to
+ * a known Function's value.
+ */
+class ScalarL2Error : public GeneralPostprocessor
 {
 public:
-  ScalarL2Error(const std::string & name, InputParameters parameters);
+  ScalarL2Error(const InputParameters & parameters);
 
   virtual void initialize();
   virtual void execute();

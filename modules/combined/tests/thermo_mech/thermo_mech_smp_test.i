@@ -132,15 +132,9 @@
 
 [Outputs]
   file_base = out_smp
-  output_initial = true
   [./exodus]
     type = Exodus
-    nonlinear_residuals = true
+    execute_on = 'initial timestep_end nonlinear'
     nonlinear_residual_dt_divisor = 100
-  [../]
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
   [../]
 []

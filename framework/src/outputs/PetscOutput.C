@@ -15,6 +15,7 @@
 // MOOSE includes
 #include "PetscOutput.h"
 #include "FEProblem.h"
+#include "NonlinearSystem.h"
 
 // libMesh includes
 #include "libmesh/libmesh_common.h"
@@ -23,13 +24,18 @@
 template<>
 InputParameters validParams<PetscOutput>()
 {
-  InputParameters params = validParams<FileOutput>();
+  InputParameters params = validParams<Output>();
 
   // Toggled for outputting nonlinear and linear residuals, only if we have PETSc
 #ifdef LIBMESH_HAVE_PETSC
-  params.addParam<bool>("linear_residuals", false, "Specifies whether output occurs on each linear residual evaluation");
-  params.addParam<bool>("nonlinear_residuals", false, "Specifies whether output occurs on each nonlinear residual evaluation");
+  params.addParam<bool>("output_linear", false, "Specifies whether output occurs on each linear residual evaluation");
+  params.addParam<bool>("output_nonlinear", false, "Specifies whether output occurs on each nonlinear residual evaluation");
 
+  // **** DEPRECATED PARAMETERS ****
+  params.addDeprecatedParam<bool>("linear_residuals", false, "Specifies whether output occurs on each linear residual evaluation",
+                                  "Please use 'output_linear' to get this behavior.");
+  params.addDeprecatedParam<bool>("nonlinear_residuals", false, "Specifies whether output occurs on each nonlinear residual evaluation",
+                                  "Please use 'output_nonlinear' to get this behavior.");
   // Psuedo time step divisors
   params.addParam<Real>("nonlinear_residual_dt_divisor", 1000, "Number of divisions applied to time step when outputting non-linear residuals");
   params.addParam<Real>("linear_residual_dt_divisor", 1000, "Number of divisions applied to time step when outputting linear residuals");
@@ -49,27 +55,36 @@ InputParameters validParams<PetscOutput>()
   return params;
 }
 
-PetscOutput::PetscOutput(const std::string & name, InputParameters & parameters) :
-    FileOutput(name, parameters),
+PetscOutput::PetscOutput(const InputParameters & parameters) :
+    Output(parameters),
     _nonlinear_iter(0),
     _linear_iter(0),
-    _output_nonlinear(getParam<bool>("nonlinear_residuals")),
-    _output_linear(getParam<bool>("linear_residuals")),
     _on_linear_residual(false),
     _on_nonlinear_residual(false),
     _nonlinear_dt_divisor(getParam<Real>("nonlinear_residual_dt_divisor")),
     _linear_dt_divisor(getParam<Real>("linear_residual_dt_divisor")),
     _nonlinear_start_time(-std::numeric_limits<Real>::max()),
     _linear_start_time(-std::numeric_limits<Real>::max()),
-    _nonlinear_end_time(-std::numeric_limits<Real>::max()),
-    _linear_end_time(-std::numeric_limits<Real>::max())
+    _nonlinear_end_time(std::numeric_limits<Real>::max()),
+    _linear_end_time(std::numeric_limits<Real>::max())
 {
+  // Output toggle support
+  if (getParam<bool>("output_linear"))
+    _execute_on.push_back("linear");
+  if (getParam<bool>("output_nonlinear"))
+    _execute_on.push_back("nonlinear");
+
+  // **** DEPRECATED PARAMETER SUPPORT ****
+  if (getParam<bool>("linear_residuals"))
+    _execute_on.push_back("linear");
+  if (getParam<bool>("nonlinear_residuals"))
+    _execute_on.push_back("nonlinear");
 
   // Nonlinear residual start-time supplied by user
   if (isParamValid("nonlinear_residual_start_time"))
   {
     _nonlinear_start_time = getParam<Real>("nonlinear_residual_start_time");
-    _nonlinear_end_time = std::numeric_limits<Real>::max(); // max end time
+    _execute_on.push_back("nonlinear");
   }
 
   // Nonlinear residual end-time supplied by user
@@ -80,7 +95,7 @@ PetscOutput::PetscOutput(const std::string & name, InputParameters & parameters)
   if (isParamValid("linear_residual_start_time"))
   {
     _linear_start_time = getParam<Real>("linear_residual_start_time");
-    _linear_end_time = std::numeric_limits<Real>::max(); // max end time
+    _execute_on.push_back("linear");
   }
 
   // Linear residual end-time supplied by user
@@ -93,7 +108,7 @@ PetscOutput::~PetscOutput()
 }
 
 void
-PetscOutput::timestepSetupInternal()
+PetscOutput::solveSetup()
 {
 // Only execute if PETSc exists
 #ifdef LIBMESH_HAVE_PETSC
@@ -107,17 +122,21 @@ PetscOutput::timestepSetupInternal()
 
   // Update the pseudo times
   _nonlinear_time = _time_old;                   // non-linear time starts with the previous time step
-  _nonlinear_dt = _dt/_nonlinear_dt_divisor;     // set the pseudo non-linear timestep
+  if (_dt != 0)
+    _nonlinear_dt = _dt/_nonlinear_dt_divisor;     // set the pseudo non-linear timestep as fraction of real timestep for transient executioners
+  else
+    _nonlinear_dt = 1./_nonlinear_dt_divisor;     // set the pseudo non-linear timestep for steady executioners (here _dt==0)
+
   _linear_dt = _nonlinear_dt/_linear_dt_divisor; // set the pseudo linear timestep
 
   // Set the PETSc monitor functions
-  if (_output_nonlinear || (_time >= _nonlinear_start_time - _t_tol && _time <= _nonlinear_end_time + _t_tol) )
+  if (_execute_on.contains(EXEC_NONLINEAR) && (_time >= _nonlinear_start_time - _t_tol && _time <= _nonlinear_end_time + _t_tol) )
   {
     PetscErrorCode ierr = SNESMonitorSet(snes, petscNonlinearOutput, this, PETSC_NULL);
     CHKERRABORT(_communicator.get(),ierr);
   }
 
-  if (_output_linear || (_time >= _linear_start_time - _t_tol && _time <= _linear_end_time + _t_tol) )
+  if (_execute_on.contains(EXEC_LINEAR) && (_time >= _linear_start_time - _t_tol && _time <= _linear_end_time + _t_tol) )
   {
     PetscErrorCode ierr = KSPMonitorSet(ksp, petscLinearOutput, this, PETSC_NULL);
     CHKERRABORT(_communicator.get(),ierr);
@@ -145,7 +164,19 @@ PetscOutput::petscNonlinearOutput(SNES, PetscInt its, PetscReal norm, void * voi
   ptr->_on_nonlinear_residual = true;
 
   // Perform the output
-  ptr->outputStep();
+  ptr->outputStep(EXEC_NONLINEAR);
+
+  /**
+   * This is one of three locations where we explicitly flush the output buffers during a simulation:
+   * PetscOutput::petscNonlinearOutput()
+   * PetscOutput::petscLinearOutput()
+   * OutputWarehouse::outputStep()
+   *
+   * All other Console output _should_ be using newlines to avoid covering buffer errors
+   * and to avoid excessive I/O. This call is necessary. In the PETSc callback the
+   * context bypasses the OutputWarehouse.
+   */
+  ptr->_app.getOutputWarehouse().flushConsoleBuffer();
 
   // Reset the non-linear output flag and the simulation time
   ptr->_on_nonlinear_residual = false;
@@ -171,7 +202,19 @@ PetscOutput::petscLinearOutput(KSP, PetscInt its, PetscReal norm, void * void_pt
   ptr->_on_linear_residual = true;
 
   // Perform the output
-  ptr->outputStep();
+  ptr->outputStep(EXEC_LINEAR);
+
+  /**
+   * This is one of three locations where we explicitly flush the output buffers during a simulation:
+   * PetscOutput::petscNonlinearOutput()
+   * PetscOutput::petscLinearOutput()
+   * OutputWarehouse::outputStep()
+   *
+   * All other Console output _should_ be using newlines to avoid covering buffer errors
+   * and to avoid excessive I/O. This call is necessary. In the PETSc callback the
+   * context bypasses the OutputWarehouse.
+   */
+  ptr->_app.getOutputWarehouse().flushConsoleBuffer();
 
   // Reset the linear output flag and the simulation time
   ptr->_on_linear_residual = false;
@@ -189,5 +232,5 @@ PetscOutput::time()
   else if (_on_linear_residual)
     return _linear_time;
   else
-    return _time;
+    return Output::time();
 }

@@ -108,7 +108,6 @@
     disp_x = displ_x
     disp_y = displ_y
     disp_z = displ_z
-#    model = experimental
     penalty = 1e8
     order = SECOND
     tangential_tolerance = 1e-4
@@ -180,11 +179,5 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

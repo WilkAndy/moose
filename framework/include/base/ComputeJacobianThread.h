@@ -16,11 +16,17 @@
 #define COMPUTEJACOBIANTHREAD_H
 
 #include "ThreadedElementLoop.h"
+
 // libMesh includes
 #include "libmesh/elem_range.h"
 
+// Forward declarations
 class FEProblem;
 class NonlinearSystem;
+class IntegratedBC;
+class DGKernel;
+class InterfaceKernel;
+class KernelWarehouse;
 
 class ComputeJacobianThread : public ThreadedElementLoop<ConstElemRange>
 {
@@ -36,6 +42,7 @@ public:
   virtual void onElement(const Elem *elem);
   virtual void onBoundary(const Elem *elem, unsigned int side, BoundaryID bnd_id);
   virtual void onInternalSide(const Elem *elem, unsigned int side);
+  virtual void onInterface(const Elem *elem, unsigned int side, BoundaryID bnd_id);
   virtual void postElement(const Elem * /*elem*/);
   virtual void post();
 
@@ -47,9 +54,22 @@ protected:
 
   unsigned int _num_cached;
 
+  // Reference to BC storage structures
+  const MooseObjectWarehouse<IntegratedBC> & _integrated_bcs;
+
+  // Reference to DGKernel storage structure
+  const MooseObjectWarehouse<DGKernel> & _dg_kernels;
+
+  // Reference to interface kernel storage structure
+  const MooseObjectWarehouse<InterfaceKernel> & _interface_kernels;
+
+  // Reference to Kernel storage structure
+  const KernelWarehouse & _kernels;
+
   virtual void computeJacobian();
   virtual void computeFaceJacobian(BoundaryID bnd_id);
-  virtual void computeInternalFaceJacobian();
+  virtual void computeInternalFaceJacobian(const Elem * neighbor);
+  virtual void computeInternalInterFaceJacobian(BoundaryID bnd_id);
 };
 
 #endif //COMPUTEJACOBIANTHREAD_H

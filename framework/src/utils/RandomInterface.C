@@ -28,15 +28,14 @@ InputParameters validParams<RandomInterface>()
   return params;
 }
 
-RandomInterface::RandomInterface(const std::string & name, InputParameters & parameters,
-                                 FEProblem & problem, THREAD_ID tid, bool is_nodal) :
+RandomInterface::RandomInterface(const InputParameters & parameters, FEProblem & problem, THREAD_ID tid, bool is_nodal) :
     _random_data(NULL),
     _generator(NULL),
     _ri_problem(problem),
-    _ri_name(name),
+    _ri_name(parameters.get<std::string>("_object_name")),
     _master_seed(parameters.get<unsigned int>("seed")),
     _is_nodal(is_nodal),
-    _reset_on(EXEC_RESIDUAL),
+    _reset_on(EXEC_LINEAR),
     _curr_node(problem.assembly(tid).node()),
     _curr_element(problem.assembly(tid).elem())
 {
@@ -69,7 +68,7 @@ RandomInterface::getSeed(unsigned int id)
 }
 
 unsigned long
-RandomInterface::getRandomLong()
+RandomInterface::getRandomLong() const
 {
   mooseAssert(_generator, "Random Generator is NULL, did you call setRandomResetFrequency()?");
 
@@ -79,11 +78,11 @@ RandomInterface::getRandomLong()
   else
     id = _curr_element->id();
 
-  return _generator->randl(id);
+  return _generator->randl(static_cast<unsigned int>(id));
 }
 
 Real
-RandomInterface::getRandomReal()
+RandomInterface::getRandomReal() const
 {
   mooseAssert(_generator, "Random Generator is NULL, did you call setRandomResetFrequency()?");
 
@@ -93,5 +92,5 @@ RandomInterface::getRandomReal()
   else
     id = _curr_element->id();
 
-  return _generator->rand(id);
+  return _generator->rand(static_cast<unsigned int>(id));
 }

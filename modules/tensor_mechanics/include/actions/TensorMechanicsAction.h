@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef TENSORMECHANICSACTION_H
 #define TENSORMECHANICSACTION_H
 
@@ -11,17 +17,10 @@ InputParameters validParams<TensorMechanicsAction>();
 class TensorMechanicsAction : public Action
 {
 public:
-  TensorMechanicsAction(const std::string & name, InputParameters params);
+  TensorMechanicsAction(const InputParameters & params);
 
   virtual void act();
-
-private:
-  const std::string _disp_x;
-  const std::string _disp_y;
-  const std::string _disp_z;
-  const std::string _disp_r;
-  const std::string _temp;
+  virtual void addkernel(const std::string & name, InputParameters & params);
 };
-
 
 #endif //TENSORMECHANICSACTION_H

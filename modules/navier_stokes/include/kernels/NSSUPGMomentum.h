@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSSUPGMOMENTUM_H
 #define NSSUPGMOMENTUM_H
 
@@ -16,7 +22,7 @@ InputParameters validParams<NSSUPGMomentum>();
 class NSSUPGMomentum : public NSSUPGBase
 {
 public:
-  NSSUPGMomentum(const std::string & name, InputParameters parameters);
+  NSSUPGMomentum(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
@@ -26,13 +32,13 @@ protected:
   // This kernel is to be used for the x, y, and z momentum equations.
   // The _component parameter tells you which equation you are currently
   // solving.
-  unsigned _component;
+  unsigned int _component;
 
 private:
   // Single function for computing on and off-diagonal Jacobian
   // entries in a single function.  The input index is in Moose
   // variable numbering.
-  Real compute_jacobian(unsigned var);
+  Real computeJacobianHelper(unsigned int var);
 };
 
-#endif // NSSUPGMOMENTUM_H
+#endif //NSSUPGMOMENTUM_H

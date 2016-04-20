@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "PowerLawCreep.h"
 
 template<>
@@ -24,11 +30,10 @@ InputParameters validParams<PowerLawCreep>()
 }
 
 
-PowerLawCreep::PowerLawCreep( const std::string & name,
-                              InputParameters parameters )
-  :SolidModel( name, parameters )
+PowerLawCreep::PowerLawCreep( const InputParameters & parameters)
+  :SolidModel(parameters)
 {
 
-  createConstitutiveModel( "PowerLawCreepModel", parameters );
+  createConstitutiveModel("PowerLawCreepModel");
 
 }

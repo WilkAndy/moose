@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef SOLIDMECHX
 #define SOLIDMECHX
 
@@ -14,7 +20,7 @@ class SolidMechX : public SolidMech
 {
 public:
 
-  SolidMechX(const std::string & name, InputParameters parameters);
+  SolidMechX(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
@@ -27,11 +33,11 @@ private:
   const unsigned int _mesh_dimension;
 
   unsigned int _y_var;
-  VariableValue  & _y;
-  VariableGradient & _grad_y;
+  const VariableValue & _y;
+  const VariableGradient & _grad_y;
 
   unsigned int _z_var;
-  VariableValue  & _z;
-  VariableGradient & _grad_z;
+  const VariableValue & _z;
+  const VariableGradient & _grad_z;
 };
 #endif //SOLIDMECHX

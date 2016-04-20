@@ -30,20 +30,20 @@ class NodalConstraint :
   public NeighborCoupleableMooseVariableDependencyIntermediateInterface
 {
 public:
-  NodalConstraint(const std::string & name, InputParameters parameters);
+  NodalConstraint(const InputParameters & parameters);
   virtual ~NodalConstraint();
 
   /**
-   * Get the node ID of the master
-   * @return node ID
+   * Get the list of master nodes
+   * @return list of master nodes IDs
    */
-  unsigned int getMasterNodeId() const;
+  std::vector<dof_id_type> &  getMasterNodeId() { return _master_node_vector; }
 
   /**
    * Get the list of connected slave nodes
    * @return list of slave node IDs
    */
-  std::vector<unsigned int> & getSlaveNodeId() { return _connected_nodes; }
+  std::vector<dof_id_type> & getSlaveNodeId() { return _connected_nodes; }
 
   /**
    * Built the connectivity for this constraint
@@ -71,20 +71,24 @@ protected:
    */
   virtual Real computeQpJacobian(Moose::ConstraintJacobianType type) = 0;
 
-  /// master node id
-  unsigned int _master_node_id;
-
-  /// Holds the reference to the master node
-  const Node * & _master_node;
-  /// Holds the reference to the current slave node
-  const Node * & _slave_node;
   /// Value of the unknown variable this BC is action on
-  VariableValue & _u_slave;
+  const VariableValue & _u_slave;
   /// node IDs connected to the master node (slave nodes)
-  std::vector<unsigned int> _connected_nodes;
-
+  std::vector<dof_id_type> _connected_nodes;
+  /// node IDs of the master node
+  std::vector<dof_id_type> _master_node_vector;
   /// Holds the current solution at the current quadrature point
-  VariableValue & _u_master;
+  const VariableValue & _u_master;
+  /// Specifies formulation type used to apply constraints
+  Moose::ConstraintFormulationType _formulation;
+  /**
+   * When the slave node is constrained to move as a linear combination of the master nodes,
+   * the coefficients associated with each master node is stored in _weights.
+   */
+  std::vector<Real> _weights;
+  /// Counter for master and slave nodes
+  unsigned int _i;
+  unsigned int _j;
 };
 
 #endif

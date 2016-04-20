@@ -1,3 +1,16 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #include "CoupledKernelValueTest.h"
 
 
@@ -10,8 +23,8 @@ InputParameters validParams<CoupledKernelValueTest>()
 }
 
 
-CoupledKernelValueTest::CoupledKernelValueTest(const std::string & name, InputParameters parameters) :
-    KernelValue(name, parameters),
+CoupledKernelValueTest::CoupledKernelValueTest(const InputParameters & parameters) :
+    KernelValue(parameters),
     _var2(coupledValue("var2")),
     _var2_num(coupled("var2"))
 {

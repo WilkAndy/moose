@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef CONTACTMASTER_H
 #define CONTACTMASTER_H
 
@@ -5,15 +11,13 @@
 #include "DiracKernel.h"
 #include "PenetrationLocator.h"
 
-//Forward Declarations
 enum ContactModel
 {
   CM_INVALID,
   CM_FRICTIONLESS,
   CM_GLUED,
   CM_COULOMB,
-  CM_TIED,
-  CM_EXPERIMENTAL
+  CM_COULOMB_MP // Coulomb contact enforced with a "model problem" strategy where slip is computed after the nonlinear solve is converged
 };
 
 enum ContactFormulation
@@ -28,7 +32,7 @@ enum ContactFormulation
 class ContactMaster : public DiracKernel
 {
 public:
-  ContactMaster(const std::string & name, InputParameters parameters);
+  ContactMaster(const InputParameters & parameters);
 
   virtual void jacobianSetup();
   virtual void timestepSetup();
@@ -41,16 +45,21 @@ public:
   virtual void updateContactSet(bool beginning_of_step = false);
 
 protected:
+
+  Real nodalArea(PenetrationInfo & pinfo);
+  Real getPenalty(PenetrationInfo & pinfo);
+
   const unsigned int _component;
   const ContactModel _model;
   const ContactFormulation _formulation;
+  const bool _normalize_penalty;
   PenetrationLocator & _penetration_locator;
 
   const Real _penalty;
   const Real _friction_coefficient;
   const Real _tension_release;
+  const Real _capture_tolerance;
   bool _updateContactSet;
-  Real _time_last_called;
 
   NumericVector<Number> & _residual_copy;
 
@@ -62,7 +71,7 @@ protected:
 
   const unsigned int _mesh_dimension;
 
-  RealVectorValue _vars;
+  VectorValue<unsigned> _vars;
 
   MooseVariable * _nodal_area_var;
   SystemBase & _aux_system;

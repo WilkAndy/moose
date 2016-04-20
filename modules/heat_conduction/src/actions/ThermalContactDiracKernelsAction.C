@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "ThermalContactDiracKernelsAction.h"
 #include "Factory.h"
 #include "FEProblem.h"
@@ -16,8 +22,8 @@ InputParameters validParams<ThermalContactDiracKernelsAction>()
   return params;
 }
 
-ThermalContactDiracKernelsAction::ThermalContactDiracKernelsAction(const std::string & name, InputParameters params) :
-  Action(name, params)
+ThermalContactDiracKernelsAction::ThermalContactDiracKernelsAction(const InputParameters & params) :
+  Action(params)
 {
 }
 
@@ -48,3 +54,4 @@ ThermalContactDiracKernelsAction::act()
                              params);
   }
 }
+

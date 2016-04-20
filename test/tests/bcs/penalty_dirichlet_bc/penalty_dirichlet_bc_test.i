@@ -55,8 +55,8 @@
     type = PenaltyDirichletBC
     variable = u
     value = 0
-    function = solution
     boundary = 'top left right bottom'
+    penalty = 1e5
   [../]
 []
 
@@ -89,19 +89,12 @@
 
 [Executioner]
   type = Steady
-
-  # Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-  nl_rel_tol = 1e-15
+  nl_rel_tol = 1e-14
 []
 
 [Outputs]
-  output_initial = false
-  interval = 1
+  execute_on = 'timestep_end'
   exodus = true
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

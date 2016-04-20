@@ -18,23 +18,16 @@
 // MOOSE
 #include "MooseObject.h"
 #include "SetupInterface.h"
-#include "MooseVariable.h"
 #include "ParallelUniqueId.h"
-#include "MooseArray.h"
 #include "FunctionInterface.h"
 #include "UserObjectInterface.h"
 #include "TransientInterface.h"
 #include "PostprocessorInterface.h"
 #include "GeometricSearchInterface.h"
 #include "BoundaryRestrictableRequired.h"
-#include "Assembly.h"
 #include "Restartable.h"
 #include "ZeroInterface.h"
-// libMesh
-#include "libmesh/elem.h"
-#include "libmesh/vector_value.h"
-#include "libmesh/tensor_value.h"
-#include "libmesh/numeric_vector.h"
+#include "MeshChangedInterface.h"
 
 // Forward declerations
 class MooseVariable;
@@ -43,13 +36,13 @@ class Problem;
 class SubProblem;
 class SystemBase;
 class BoundaryCondition;
+class Assembly;
 
 template<>
 InputParameters validParams<BoundaryCondition>();
 
 /**
- * Base class for creating new types of boundary conditions
- *
+ * Base class for creating new types of boundary conditions.
  */
 class BoundaryCondition :
   public MooseObject,
@@ -61,16 +54,16 @@ class BoundaryCondition :
   public PostprocessorInterface,
   public GeometricSearchInterface,
   public Restartable,
-  public ZeroInterface
+  public ZeroInterface,
+  public MeshChangedInterface
 {
 public:
 
   /**
    * Class constructor.
-   * @param name The name of the boundary condition object
    * @param parameters The InputParameters for the object
    */
-  BoundaryCondition(const std::string & name, InputParameters parameters);
+  BoundaryCondition(const InputParameters & parameters);
 
   /**
    * Gets the variable this BC is active on
@@ -86,6 +79,11 @@ public:
 
   /**
    * Hook for turning the boundary condition on and off.
+   *
+   * It is not safe to use variable values in this function, since (a) this is not called inside a quadrature loop,
+   * (b) reinit() is not called, thus the variables values are not computed.
+   * NOTE: In NodalBC-derived classes, we can use the variable values, since renitNodeFace() was called before calling
+   * this method. However, one has to index into the values manually, i.e. not using _qp.
    * @return true if the boundary condition should be applied, otherwise false
    */
   virtual bool shouldApply();
@@ -112,9 +110,6 @@ protected:
 
   /// Mesh this BC is defined on
   MooseMesh & _mesh;
-
-//  /// dimension of the mesh
-//  unsigned int _dim;
 };
 
 #endif /* BOUNDARYCONDITION_H */

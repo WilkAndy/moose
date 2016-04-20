@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  This post processor returns the 2nd derivative of density wrt pressure
 //
@@ -17,10 +20,10 @@ InputParameters validParams<RichardsDensityPrimePrimeAux>()
   return params;
 }
 
-RichardsDensityPrimePrimeAux::RichardsDensityPrimePrimeAux(const std::string & name, InputParameters parameters) :
-  AuxKernel(name, parameters),
-  _pressure_var(coupledValue("pressure_var")),
-  _density_UO(getUserObject<RichardsDensity>("density_UO"))
+RichardsDensityPrimePrimeAux::RichardsDensityPrimePrimeAux(const InputParameters & parameters) :
+    AuxKernel(parameters),
+    _pressure_var(coupledValue("pressure_var")),
+    _density_UO(getUserObject<RichardsDensity>("density_UO"))
 {}
 
 Real
@@ -28,3 +31,4 @@ RichardsDensityPrimePrimeAux::computeValue()
 {
   return _density_UO.d2density(_pressure_var[_qp]);
 }
+

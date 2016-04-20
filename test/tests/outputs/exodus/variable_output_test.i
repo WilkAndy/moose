@@ -87,13 +87,13 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   [./exodus]
     type = Exodus
-    output_initial = false
     file_base = new_out
     hide_variables = 'u box aux_pp'
     scalar_as_nodal = true
-    output_scalar_variables = false
+    execute_scalars_on = none
   [../]
   [./console]
     Type = Console

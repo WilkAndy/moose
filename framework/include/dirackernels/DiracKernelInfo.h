@@ -19,11 +19,19 @@
 #include "MooseArray.h"
 
 // libMesh
-#include "libmesh/elem.h"
 #include "libmesh/point.h"
 
 #include <set>
 #include <map>
+
+// Forward declarations
+class MooseMesh;
+
+namespace libMesh
+{
+class Elem;
+class PointLocatorBase;
+}
 
 /**
  * The DiracKernelInfo object is a place where all the Dirac points
@@ -65,12 +73,30 @@ public:
    */
   std::map<const Elem *, std::vector<Point> > & getPoints() { return _points; }
 
+  /**
+   * Called during FEProblem::meshChanged() to update the PointLocator
+   * object used by the DiracKernels.
+   */
+  void updatePointLocator(const MooseMesh& mesh);
+
+  /**
+   * Used by client DiracKernel classes to determine the Elem in which
+   * the Point p resides.  Uses the PointLocator owned by this object.
+   */
+  const Elem * findPoint(Point p, const MooseMesh& mesh);
+
 protected:
   /// The list of elements that need distributions.
   std::set<const Elem *> _elements;
 
   /// The list of physical xyz Points that need to be evaluated in each element.
   std::map<const Elem *, std::vector<Point> > _points;
+
+  /// The DiracKernelInfo object manages a PointLocator object which is used
+  /// by all DiracKernels to find Points.  It needs to be centrally managed and it
+  /// also needs to be rebuilt in FEProblem::meshChanged() to work with Mesh
+  /// adaptivity.
+  UniquePtr<PointLocatorBase> _point_locator;
 };
 
 #endif //DIRACKERNELINFO_H

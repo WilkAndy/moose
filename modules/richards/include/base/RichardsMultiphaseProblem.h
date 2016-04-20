@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSMULTIPHASEPROBLEM_H
 #define RICHARDSMULTIPHASEPROBLEM_H
@@ -21,7 +24,7 @@ InputParameters validParams<RichardsMultiphaseProblem>();
 class RichardsMultiphaseProblem : public FEProblem
 {
 public:
-  RichardsMultiphaseProblem(const std::string & name, InputParameters params);
+  RichardsMultiphaseProblem(const InputParameters & params);
   virtual ~RichardsMultiphaseProblem();
 
   /**

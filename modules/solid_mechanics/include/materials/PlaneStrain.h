@@ -1,15 +1,24 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef PLANESTRAIN_H
 #define PLANESTRAIN_H
 
 #include "Element.h"
+#include "ScalarCoupleable.h"
 
 namespace SolidMechanics
 {
 
-class PlaneStrain : public Element
+class PlaneStrain :
+  public Element,
+  public ScalarCoupleable
 {
 public:
-  PlaneStrain(SolidModel & solid_model, const std::string & name, InputParameters parameters);
+  PlaneStrain(SolidModel & solid_model, const std::string & name, const InputParameters & parameters);
   virtual ~PlaneStrain();
 
 protected:
@@ -29,9 +38,12 @@ protected:
 
   const bool _large_strain;
 
-  VariableGradient & _grad_disp_x;
-  VariableGradient & _grad_disp_y;
-
+  const VariableGradient & _grad_disp_x;
+  const VariableGradient & _grad_disp_y;
+  bool _have_strain_zz;
+  const VariableValue & _strain_zz;
+  bool _have_scalar_strain_zz;
+  const VariableValue & _scalar_strain_zz;
 };
 
 }

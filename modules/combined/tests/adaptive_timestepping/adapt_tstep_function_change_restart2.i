@@ -86,7 +86,7 @@
     tensor = stress
     variable = vonmises
     quantity = vonmises
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
 []
 
@@ -160,33 +160,33 @@
     max_function_change = 3e7
     dt = 1e6
   [../]
-
-  restart_file_base = adapt_tstep_function_change_restart1_checkpoint_cp/0065
 []
 
 [Postprocessors]
   [./Temperatrue_of_Block]
     type = ElementAverageValue
     variable = temp
+    execute_on = 'timestep_end'
   [../]
 
   [./vonMises]
     type = ElementAverageValue
     variable = vonmises
+    execute_on = 'timestep_end'
   [../]
 []
 
 [Outputs]
-  file_base = adapt_tstep_function_change_out
-  output_initial = true
-  [./exodus]
+  [./out]
     type = Exodus
     elemental_as_nodal = true
   [../]
   [./console]
     type = Console
-    perf_log = true
-    linear_residuals = true
     max_rows = 10
   [../]
+[]
+
+[Problem]
+  restart_file_base = adapt_tstep_function_change_restart1_checkpoint_cp/0065
 []

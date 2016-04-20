@@ -58,13 +58,13 @@
     type = AccumulateAux
     variable = accum_slip_x
     accumulate_from_variable = inc_slip_x
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
   [./accum_slip_y]
     type = AccumulateAux
     variable = accum_slip_y
     accumulate_from_variable = inc_slip_y
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
   [./penetration]
     type = PenetrationAux
@@ -149,15 +149,12 @@
 
 [Outputs]
   file_base = frictionless_penalty_out
-  output_initial = true
   [./exodus]
     type = Exodus
     elemental_as_nodal = true
   [../]
   [./console]
     type = Console
-    perf_log = true
-    linear_residuals = true
     max_rows = 5
   [../]
 []

@@ -14,6 +14,7 @@
 
 #include "ODEKernel.h"
 #include "SystemBase.h"
+#include "Assembly.h"
 
 template<>
 InputParameters validParams<ODEKernel>()
@@ -22,8 +23,8 @@ InputParameters validParams<ODEKernel>()
   return params;
 }
 
-ODEKernel::ODEKernel(const std::string & name, InputParameters parameters) :
-    ScalarKernel(name, parameters)
+ODEKernel::ODEKernel(const InputParameters & parameters) :
+    ScalarKernel(parameters)
 {
 }
 
@@ -51,32 +52,28 @@ ODEKernel::computeJacobian()
 
   for (_i = 0; _i < _var.order(); _i++)
     for (_j = 0; _j < _var.order(); _j++)
-    {
-      if (_i == _j)
-        ke(_i, _j) += computeQpJacobian();
-      else
-        ke(_i, _j) += computeQpOffDiagJacobian(_var.number());
-    }
+      ke(_i, _j) += computeQpJacobian();
+
+  // compute off-diagonal jacobians wrt scalar variables
+  const std::vector<MooseVariableScalar *> & scalar_vars = _sys.getScalarVariables(_tid);
+  for (std::vector<MooseVariableScalar *>::const_iterator it = scalar_vars.begin(); it != scalar_vars.end(); ++it)
+  {
+    MooseVariableScalar * jvar = *it;
+    computeOffDiagJacobian(jvar->number());
+  }
 }
 
 void
 ODEKernel::computeOffDiagJacobian(unsigned int jvar)
 {
-  DenseMatrix<Number> & ke = _assembly.jacobianBlock(_var.number(), jvar);
   if (_sys.isScalarVariable(jvar))
   {
+    DenseMatrix<Number> & ke = _assembly.jacobianBlock(_var.number(), jvar);
     MooseVariableScalar & var_j = _sys.getScalarVariable(_tid, jvar);
     for (_i = 0; _i < _var.order(); _i++)
       for (_j = 0; _j < var_j.order(); _j++)
       {
-        if (jvar == _var.number())
-        {
-          if (_i == _j)
-            ke(_i, _j) += computeQpJacobian();
-          else
-            ke(_i, _j) += computeQpOffDiagJacobian(_var.number());
-        }
-        else
+        if (jvar != _var.number())
           ke(_i, _j) += computeQpOffDiagJacobian(jvar);
       }
   }
@@ -93,3 +90,4 @@ ODEKernel::computeQpOffDiagJacobian(unsigned int /*jvar*/)
 {
   return 0.;
 }
+

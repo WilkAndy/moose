@@ -59,16 +59,8 @@
 []
 
 [Outputs]
-  file_base = out_gif
-  output_initial = true
-  [./gnuplot]
-    type = GNUPlot
+  [./out]
+    type = Gnuplot
     extension = gif
-  [../]
-
-  [./console]
-    type = Console
-    linear_residuals = true
-    perf_log = true
   [../]
 []

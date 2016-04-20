@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "PLC_LSH.h"
 
 #include "SymmIsotropicElasticityTensor.h"
@@ -32,9 +38,8 @@ InputParameters validParams<PLC_LSH>()
 }
 
 
-PLC_LSH::PLC_LSH( const std::string & name,
-                  InputParameters parameters )
-  :SolidModel( name, parameters ),
+PLC_LSH::PLC_LSH( const InputParameters & parameters)
+  :SolidModel(parameters),
    _coefficient(parameters.get<Real>("coefficient")),
    _n_exponent(parameters.get<Real>("n_exponent")),
    _m_exponent(parameters.get<Real>("m_exponent")),
@@ -87,7 +92,7 @@ PLC_LSH::computeStress()
 
   if (_output_iteration_info == true)
   {
-    Moose::out
+    _console
       << std::endl
       << "iteration output for combined creep-plasticity solve:"
       << " time=" <<_t
@@ -140,7 +145,7 @@ PLC_LSH::computeStress()
 
     if (_output_iteration_info == true)
     {
-      Moose::out
+      _console
         << "stress_it=" << counter
         << " rel_delS=" << delS/first_delS
         << " rel_tol="  << _relative_tolerance
@@ -213,7 +218,7 @@ PLC_LSH::computeCreep( const SymmTensor & strain_increment,
 
     if (_output_iteration_info == true)
     {
-      Moose::out
+      _console
       << "crp_it="    << it
       << " trl_strs=" << effective_trial_stress
       << " phi="      << phi
@@ -306,7 +311,7 @@ PLC_LSH::computeLSH( const SymmTensor & strain_increment,
 
       if (_output_iteration_info == true)
       {
-        Moose::out
+        _console
           << "pls_it="    << it
           << " trl_strs=" << effective_trial_stress
           << " del_p="    << scalar_plastic_strain_increment
@@ -349,3 +354,4 @@ PLC_LSH::computeLSH( const SymmTensor & strain_increment,
   } // end of if statement
 
 }
+

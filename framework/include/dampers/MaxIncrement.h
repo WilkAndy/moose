@@ -16,7 +16,7 @@
 #define MAXINCREMENT_H
 
 // Moose Includes
-#include "Damper.h"
+#include "ElementDamper.h"
 
 //Forward Declarations
 class MaxIncrement;
@@ -27,10 +27,10 @@ InputParameters validParams<MaxIncrement>();
 /**
  * TODO
  */
-class MaxIncrement : public Damper
+class MaxIncrement : public ElementDamper
 {
 public:
-  MaxIncrement(std::string name, InputParameters parameters);
+  MaxIncrement(const InputParameters & parameters);
 
   virtual ~MaxIncrement();
 

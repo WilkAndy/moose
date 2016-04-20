@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef CAVITYPRESSUREUOACTION_H
 #define CAVITYPRESSUREUOACTION_H
 
@@ -7,7 +13,7 @@
 class CavityPressureUOAction: public Action
 {
 public:
-  CavityPressureUOAction(const std::string & name, InputParameters params);
+  CavityPressureUOAction(const InputParameters & params);
 
   virtual void act();
 

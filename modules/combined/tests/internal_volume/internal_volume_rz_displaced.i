@@ -146,6 +146,7 @@
   [./internalVolume]
     type = InternalVolume
     boundary = 2
+    execute_on = 'initial timestep_end'
   [../]
   [./volStrain0]
     type = ElementalVariableValue
@@ -160,12 +161,6 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

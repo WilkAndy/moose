@@ -47,22 +47,12 @@
 
 [Executioner]
   type = Transient   # Here we use the Transient Executioner
-
-  #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-
-
-
   num_steps = 75
   dt = 1
 []
 
 [Outputs]
-  file_base = out
+  execute_on = 'timestep_end'
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

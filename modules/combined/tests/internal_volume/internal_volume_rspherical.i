@@ -98,36 +98,35 @@
     type = InternalVolume
     boundary = 10
     component = 0
+    execute_on = 'initial timestep_end'
   [../]
   [./intVol1]
     type = InternalVolume
     boundary = 2
     component = 0
+    execute_on = 'initial timestep_end'
   [../]
   [./intVol1Again]
     type = InternalVolume
     boundary = 9
     component = 0
+    execute_on = 'initial timestep_end'
   [../]
   [./intVol2]
     type = InternalVolume
     boundary = 11
     component = 0
+    execute_on = 'initial timestep_end'
   [../]
   [./intVolTotal]
     type = InternalVolume
     boundary = 4
     component = 0
+    execute_on = 'initial timestep_end'
   [../]
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

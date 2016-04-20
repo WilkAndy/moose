@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSPPENALTY
 #define RICHARDSPPENALTY
@@ -22,8 +25,7 @@ class RichardsPPenalty : public Kernel
 {
 public:
 
-  RichardsPPenalty(const std::string & name,
-                        InputParameters parameters);
+  RichardsPPenalty(const InputParameters & parameters);
 
 
 protected:
@@ -37,11 +39,10 @@ private:
   Real _a;
 
   /// Kernel = a*(_lower - variable) for variable<lower and zero otherwise
-  VariableValue & _lower;
+  const VariableValue & _lower;
 
   /// moose variable number of the _lower variable (needed for OffDiagJacobian)
   unsigned int _lower_var_num;
-
 };
 
 #endif //RICHARDSPPENALTY

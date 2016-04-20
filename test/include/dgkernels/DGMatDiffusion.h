@@ -36,7 +36,7 @@ InputParameters validParams<DGMatDiffusion>();
 class DGMatDiffusion : public DGKernel
 {
 public:
-  DGMatDiffusion(const std::string & name, InputParameters parameters);
+  DGMatDiffusion(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual(Moose::DGResidualType type);
@@ -45,9 +45,9 @@ protected:
   Real _epsilon;
   Real _sigma;
 
-  std::string _prop_name;                       // name of the material property
-  MaterialProperty<Real> & _diff;               // diffusivity
-  MaterialProperty<Real> & _diff_neighbor;      // diffusivity
+  const MaterialPropertyName _prop_name;
+  const MaterialProperty<Real> & _diff;               // diffusivity
+  const MaterialProperty<Real> & _diff_neighbor;      // diffusivity
 };
 
 #endif

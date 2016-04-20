@@ -21,7 +21,7 @@ template<>
 InputParameters validParams<NodalExtremeValue>()
 {
   // Define the min/max enumeration
-  MooseEnum type_options("max=0, min=1", "max");
+  MooseEnum type_options("max=0 min=1", "max");
 
   // Define the parameters
   InputParameters params = validParams<NodalVariablePostprocessor>();
@@ -29,8 +29,8 @@ InputParameters validParams<NodalExtremeValue>()
   return params;
 }
 
-NodalExtremeValue::NodalExtremeValue(const std::string & name, InputParameters parameters) :
-  NodalVariablePostprocessor(name, parameters),
+NodalExtremeValue::NodalExtremeValue(const InputParameters & parameters) :
+  NodalVariablePostprocessor(parameters),
   _type((ExtremeType)(int)parameters.get<MooseEnum>("value_type")),
   _value(_type == 0 ? -std::numeric_limits<Real>::max() : std::numeric_limits<Real>::max())
 {}
@@ -96,3 +96,4 @@ NodalExtremeValue::threadJoin(const UserObject & y)
       break;
   }
 }
+

@@ -76,16 +76,6 @@
 
 [Outputs]
   file_base = out_part1
-  output_initial = true
   exodus = true
-
-  [./checkpoint]
-    type = Checkpoint
-    num_files = 1
-  [../]
-
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
+  checkpoint = true
 []

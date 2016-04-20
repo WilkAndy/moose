@@ -12,8 +12,10 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 
+// MOOSE includes
 #include "AddMortarInterfaceAction.h"
 #include "FEProblem.h"
+#include "MooseMesh.h"
 
 template<>
 InputParameters validParams<AddMortarInterfaceAction>()
@@ -26,8 +28,8 @@ InputParameters validParams<AddMortarInterfaceAction>()
   return params;
 }
 
-AddMortarInterfaceAction::AddMortarInterfaceAction(const std::string & name, InputParameters parameters) :
-    Action(name, parameters)
+AddMortarInterfaceAction::AddMortarInterfaceAction(InputParameters parameters) :
+    Action(parameters)
 {
 }
 
@@ -38,10 +40,9 @@ AddMortarInterfaceAction::~AddMortarInterfaceAction()
 void
 AddMortarInterfaceAction::act()
 {
-  std::string iface_name = getShortName();
+  std::string iface_name = name();
 
   _mesh->addMortarInterface(iface_name, getParam<BoundaryName>("master"), getParam<BoundaryName>("slave"), getParam<SubdomainName>("subdomain"));
   if (_displaced_mesh)
     _displaced_mesh->addMortarInterface(iface_name, getParam<BoundaryName>("master"), getParam<BoundaryName>("slave"), getParam<SubdomainName>("subdomain"));
 }
-

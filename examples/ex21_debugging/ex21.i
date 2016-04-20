@@ -1,6 +1,6 @@
 [Mesh]
   file = reactor.e
-  # Let's assign human friendly names to the blocks on the fly
+  #Let's assign human friendly names to the blocks on the fly
   block_id = '1 2'
   block_name = 'fuel deflector'
 
@@ -23,9 +23,9 @@
 []
 
 [Kernels]
-  # This Kernel consumes a real-gradient material property from the active material
+  #This Kernel consumes a real-gradient material property from the active material
   [./convection]
-    type = Convection
+    type = ExampleConvection
     variable = convected
   [../]
 
@@ -35,9 +35,9 @@
   [../]
 
   [./example_diff]
-    # This Kernel uses "diffusivity" from the active material
     type = ExampleDiffusion
     variable = diffused
+    coupled_coef = convected
   [../]
 
   [./time_deriv_diffused]
@@ -87,7 +87,7 @@
     block = 'fuel'
     diffusion_gradient = 'diffused'
 
-    # Approximate Parabolic Diffusivity
+    #Approximate Parabolic Diffusivity
     independent_vals = '0 0.25 0.5 0.75 1.0'
     dependent_vals = '1e-2 5e-3 1e-3 5e-3 1e-2'
   [../]
@@ -105,24 +105,14 @@
 
 [Executioner]
   type = Transient
-
-  #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-
-
   petsc_options_iname = '-pc_type -pc_hypre_type'
   petsc_options_value = 'hypre boomeramg'
-
   dt = 0.1
   num_steps = 10
 []
 
 [Outputs]
-  file_base = out
+  execute_on = 'timestep_end'
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

@@ -59,12 +59,5 @@
 []
 
 [Outputs]
-  file_base = out
-  output_initial = true
   gnuplot = true
-  [./console]
-    type = Console
-    linear_residuals = true
-    perf_log = true
-  [../]
 []

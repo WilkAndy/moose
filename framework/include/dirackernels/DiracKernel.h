@@ -27,14 +27,15 @@
 #include "PostprocessorInterface.h"
 #include "GeometricSearchInterface.h"
 #include "MooseVariable.h"
-#include "SubProblem.h"
-#include "MooseMesh.h"
 #include "Restartable.h"
 #include "ZeroInterface.h"
+#include "MeshChangedInterface.h"
 
 //Forward Declarations
 class Assembly;
 class DiracKernel;
+class SubProblem;
+class MooseMesh;
 
 template<>
 InputParameters validParams<DiracKernel>();
@@ -57,10 +58,11 @@ class DiracKernel :
   public PostprocessorInterface,
   protected GeometricSearchInterface,
   public Restartable,
-  public ZeroInterface
+  public ZeroInterface,
+  public MeshChangedInterface
 {
 public:
-  DiracKernel(const std::string & name, InputParameters parameters);
+  DiracKernel(const InputParameters & parameters);
   virtual ~DiracKernel(){}
 
   /**
@@ -72,6 +74,11 @@ public:
    * Computes the jacobian for the current element.
    */
   virtual void computeJacobian();
+
+  /**
+   * Computes the off-diagonal Jacobian for variable jvar.
+   */
+  virtual void computeOffDiagJacobian(unsigned int jvar);
 
   /**
    * The variable number that this kernel operates on.
@@ -100,6 +107,11 @@ public:
   virtual Real computeQpJacobian();
 
   /**
+   * This gets called by computeOffDiagJacobian() at each quadrature point.
+   */
+  virtual Real computeQpOffDiagJacobian(unsigned int jvar);
+
+  /**
    * Whether or not this DiracKernel has something to distribute on this element.
    */
   bool hasPointsOnElem(const Elem * elem);
@@ -119,7 +131,7 @@ protected:
    * Add the physical x,y,z point located in the element "elem" to the list of points
    * this DiracKernel will be asked to evaluate a value at.
    */
-  void addPoint(const Elem * elem, Point p);
+  void addPoint(const Elem * elem, Point p, unsigned id=libMesh::invalid_uint);
 
   /**
    * This is a highly inefficient way to add a point where this DiracKernel needs to be
@@ -127,7 +139,15 @@ protected:
    *
    * This spawns a search for the element containing that point!
    */
-  const Elem * addPoint(Point p);
+  const Elem * addPoint(Point p, unsigned id=libMesh::invalid_uint);
+
+  /**
+   * Returns the user-assigned ID of the current Dirac point if it
+   * exits, and libMesh::invalid_uint otherwise.  Can be used e.g. in
+   * the computeQpResidual() function to determine the cached ID of
+   * the current point, in case this information is relevant.
+   */
+  unsigned currentPointCachedID();
 
   SubProblem & _subproblem;
   SystemBase & _sys;
@@ -187,14 +207,36 @@ protected:
   const VariableTestGradient & _grad_test;
 
   /// Holds the solution at current quadrature points
-  VariableValue & _u;
+  const VariableValue & _u;
   /// Holds the solution gradient at the current quadrature points
-  VariableGradient & _grad_u;
+  const VariableGradient & _grad_u;
 
   /// Time derivative of the solution
-  VariableValue & _u_dot;
+  const VariableValue & _u_dot;
   /// Derivative of u_dot wrt u
-  VariableValue & _du_dot_du;
+  const VariableValue & _du_dot_du;
+
+private:
+  /// Data structure for caching user-defined IDs which can be mapped to
+  /// specific std::pair<const Elem*, Point> and avoid the PointLocator Elem lookup.
+  typedef std::map<unsigned, std::pair<const Elem*, Point> > point_cache_t;
+  point_cache_t _point_cache;
+
+  /// Map from Elem* to a list of (Dirac point, id) pairs which can be used
+  /// in a user's computeQpResidual() routine to determine the user-defined ID for
+  /// the current Dirac point, if one exists.
+  typedef std::map<const Elem*, std::vector<std::pair<Point, unsigned> > > reverse_cache_t;
+  reverse_cache_t _reverse_point_cache;
+
+  /// This function is used internally when the Elem for a
+  /// locally-cached point needs to be updated.  You must pass in a
+  /// pointer to the old_elem whose data is to be updated, the
+  /// new_elem to which the Point belongs, and the Point and id
+  /// information.
+  void updateCaches(const Elem* old_elem,
+                    const Elem* new_elem,
+                    Point p,
+                    unsigned id);
 };
 
 #endif

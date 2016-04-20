@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "StressDivergenceRSpherical.h"
 
 #include "Material.h"
@@ -18,8 +24,8 @@ InputParameters validParams<StressDivergenceRSpherical>()
 }
 
 
-StressDivergenceRSpherical::StressDivergenceRSpherical(const std::string & name, InputParameters parameters)
-  :Kernel(name, parameters),
+StressDivergenceRSpherical::StressDivergenceRSpherical(const InputParameters & parameters)
+  :Kernel(parameters),
    _stress(getMaterialProperty<SymmTensor>("stress")),
    _Jacobian_mult(getMaterialProperty<SymmElasticityTensor>("Jacobian_mult")),
    _d_stress_dT(getMaterialProperty<SymmTensor>("d_stress_dT")),

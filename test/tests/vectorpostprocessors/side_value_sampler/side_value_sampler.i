@@ -68,12 +68,8 @@
 []
 
 [Outputs]
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
+  execute_on = 'timestep_end'
   [./vpp_csv]
-    output_vector_postprocessors = true
     type = CSV
   [../]
 []

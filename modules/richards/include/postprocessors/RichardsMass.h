@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSMASS_H
 #define RICHARDSMASS_H
@@ -22,7 +25,7 @@ InputParameters validParams<RichardsMass>();
 class RichardsMass: public ElementIntegralVariablePostprocessor
 {
 public:
-  RichardsMass(const std::string & name, InputParameters parameters);
+  RichardsMass(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpIntegral();
@@ -34,7 +37,7 @@ protected:
   unsigned int _pvar;
 
   /// Mass, or vector of masses in multicomponent situation
-  MaterialProperty<std::vector<Real> > &_mass;
+  const MaterialProperty<std::vector<Real> > & _mass;
 };
 
 #endif

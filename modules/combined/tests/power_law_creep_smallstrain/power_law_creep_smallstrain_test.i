@@ -241,15 +241,9 @@
 
 [Outputs]
   file_base = out
-  output_initial = true
   csv = true
   [./exodus]
     type = Exodus
     elemental_as_nodal = true
-  [../]
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
   [../]
 []

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef BICRYSTALCIRCLEGRAINICACTION_H
 #define BICRYSTALCIRCLEGRAINICACTION_H
 
@@ -5,12 +11,12 @@
 #include "Action.h"
 
 /**
- * Automatically generates all variables to model a polycrystal with crys_num orderparameters
+ * Automatically generates all variables to model a polycrystal with op_num orderparameters
  */
 class BicrystalCircleGrainICAction: public Action
 {
 public:
-  BicrystalCircleGrainICAction(const std::string & name, InputParameters params);
+  BicrystalCircleGrainICAction(const InputParameters & params);
 
   virtual void act();
 
@@ -18,7 +24,7 @@ private:
   static const Real _abs_zero_tol;
 
   std::string _var_name_base;
-  unsigned int _crys_num;
+  unsigned int _op_num;
 
   Real _radius;
   Real _x, _y, _z;

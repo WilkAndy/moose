@@ -1,7 +1,14 @@
-#include "StressDivergenceTruss.h"
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 
+#include "StressDivergenceTruss.h"
 #include "Material.h"
 #include "SymmElasticityTensor.h"
+#include "Assembly.h"
 
 template<>
 InputParameters validParams<StressDivergenceTruss>()
@@ -21,8 +28,8 @@ InputParameters validParams<StressDivergenceTruss>()
 }
 
 
-StressDivergenceTruss::StressDivergenceTruss(const std::string & name, InputParameters parameters)
-  :Kernel(name, parameters),
+StressDivergenceTruss::StressDivergenceTruss(const InputParameters & parameters)
+  :Kernel(parameters),
    _axial_stress(getMaterialProperty<Real>("axial_stress" + getParam<std::string>("appended_property_name"))),
    _E_over_L(getMaterialProperty<Real>("e_over_l" + getParam<std::string>("appended_property_name"))),
    _component(getParam<unsigned int>("component")),
@@ -41,7 +48,8 @@ StressDivergenceTruss::StressDivergenceTruss(const std::string & name, InputPara
 void
 StressDivergenceTruss::initialSetup()
 {
-  _orientation = &_subproblem.assembly(_tid).getFE(FEType(), _current_elem->dim())->get_dxyzdxi();
+  // Assume that all trusses are one dimensional in the call below
+  _orientation = &_subproblem.assembly(_tid).getFE(FEType(), 1)->get_dxyzdxi();
 }
 
 
@@ -54,7 +62,7 @@ StressDivergenceTruss::computeResidual()
   _local_re.zero();
 
   RealGradient orientation( (*_orientation)[0] );
-  orientation /= orientation.size();
+  orientation /= orientation.norm();
   VectorValue<Real> force_local = _axial_stress[0] * _area[0] * orientation;
 
   int sign(-_test[0][0]/std::abs(_test[0][0]));
@@ -75,37 +83,18 @@ void
 StressDivergenceTruss::computeStiffness(ColumnMajorMatrix & stiff_global)
 {
   RealGradient orientation( (*_orientation)[0] );
-  orientation /= orientation.size();
-
-  // Now get a rotation matrix
-  // The orientation is the first row of the matrix.
-  // Need two other directions.
-  VectorValue<Real> & row1( orientation );
-  VectorValue<Real> row3( row1 );
-  unsigned zero_index(0);
-  if (row3(1) != 0)
-  {
-    zero_index = 1;
-  }
-  if (row3(2) != 0)
-  {
-    zero_index = 2;
-  }
-  row3(zero_index) += 1;
-  VectorValue<Real> row2 = orientation.cross( row3 );
-  row3 = orientation.cross( row2 );
+  orientation /= orientation.norm();
 
   Real k = _E_over_L[0] * _area[0];
-
-  stiff_global(0,0) = row1(0)*row1(0)*k;
-  stiff_global(0,1) = row1(0)*row2(0)*k;
-  stiff_global(0,2) = row1(0)*row3(0)*k;
-  stiff_global(1,0) = row2(0)*row1(0)*k;
-  stiff_global(1,1) = row2(0)*row2(0)*k;
-  stiff_global(1,2) = row2(0)*row3(0)*k;
-  stiff_global(2,0) = row3(0)*row1(0)*k;
-  stiff_global(2,1) = row3(0)*row2(0)*k;
-  stiff_global(2,2) = row3(0)*row3(0)*k;
+  stiff_global(0,0) = orientation(0)*orientation(0)*k;
+  stiff_global(0,1) = orientation(0)*orientation(1)*k;
+  stiff_global(0,2) = orientation(0)*orientation(2)*k;
+  stiff_global(1,0) = orientation(1)*orientation(0)*k;
+  stiff_global(1,1) = orientation(1)*orientation(1)*k;
+  stiff_global(1,2) = orientation(1)*orientation(2)*k;
+  stiff_global(2,0) = orientation(2)*orientation(0)*k;
+  stiff_global(2,1) = orientation(2)*orientation(1)*k;
+  stiff_global(2,2) = orientation(2)*orientation(2)*k;
 }
 
 void

@@ -19,6 +19,7 @@
 #include "Action.h"
 
 class SetupDebugAction;
+class MooseObjectAction;
 
 template<>
 InputParameters validParams<SetupDebugAction>();
@@ -29,14 +30,20 @@ InputParameters validParams<SetupDebugAction>();
 class SetupDebugAction : public Action
 {
 public:
-  SetupDebugAction(const std::string & name, InputParameters parameters);
+  SetupDebugAction(InputParameters parameters);
   virtual ~SetupDebugAction();
 
   virtual void act();
 
 protected:
-  unsigned int _top_residuals;
 
+  /**
+   * Helper method for creating Output actions
+   * @param type The type of object to create (e.g., TopResidualDebugOutput)
+   * @param name The name to give the object being created
+   * @return A pointer to the OutputAction that was generated
+   */
+  MooseObjectAction * createOutputAction(const std::string & type, const std::string & name);
 
   /// Parameters from the action being created (AddOutputAction)
   InputParameters _action_params;

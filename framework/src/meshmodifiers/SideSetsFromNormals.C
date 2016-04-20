@@ -15,6 +15,7 @@
 #include "SideSetsFromNormals.h"
 #include "Parser.h"
 #include "InputParameters.h"
+#include "MooseMesh.h"
 
 // libMesh includes
 #include "libmesh/mesh_generation.h"
@@ -27,25 +28,28 @@ template<>
 InputParameters validParams<SideSetsFromNormals>()
 {
   InputParameters params = validParams<AddSideSetsBase>();
-  params += validParams<BoundaryRestrictableRequired>();
+  params.addRequiredParam<std::vector<BoundaryName> >("new_boundary", "The name of the boundary to create");
   params.addRequiredParam<std::vector<Point> >("normals", "A list of normals for which to start painting sidesets");
   return params;
 }
 
-SideSetsFromNormals::SideSetsFromNormals(const std::string & name, InputParameters parameters):
-    AddSideSetsBase(name, parameters),
-    BoundaryRestrictableRequired(name, parameters),
-    _boundary_ids(boundaryIDs().begin(), boundaryIDs().end()),
+SideSetsFromNormals::SideSetsFromNormals(const InputParameters & parameters) :
+    AddSideSetsBase(parameters),
     _normals(getParam<std::vector<Point> >("normals"))
 {
-  if (_normals.size() != boundaryNames().size())
+
+  // Get the BoundaryIDs from the mesh
+  _boundary_names = getParam<std::vector<BoundaryName> >("new_boundary");
+
+
+  if (_normals.size() != _boundary_names.size())
     mooseError("normal list and boundary list are not the same length");
 
   // Make sure that the normals are normalized
   for (std::vector<Point>::iterator normal_it = _normals.begin(); normal_it != _normals.end(); ++normal_it)
   {
-    mooseAssert(normal_it->size() >= 1e-5, "Normal is zero");
-    *normal_it /= normal_it->size();
+    mooseAssert(normal_it->norm() >= 1e-5, "Normal is zero");
+    *normal_it /= normal_it->norm();
   }
 }
 
@@ -62,8 +66,7 @@ SideSetsFromNormals::modify()
   // We can't call this in the constructor, it appears that _mesh_ptr is always NULL there.
   _mesh_ptr->errorIfParallelDistribution("SideSetsFromNormals");
 
-  // Get the BoundaryIDs from the mesh
-  _boundary_ids = _mesh_ptr->getBoundaryIDs(boundaryNames(), true);
+  std::vector<BoundaryID> boundary_ids = _mesh_ptr->getBoundaryIDs(_boundary_names, true);
 
   setup();
 
@@ -73,11 +76,11 @@ SideSetsFromNormals::modify()
   // We can't rely on flood catching them all here...
   MeshBase::const_element_iterator       el     = _mesh_ptr->getMesh().elements_begin();
   const MeshBase::const_element_iterator end_el = _mesh_ptr->getMesh().elements_end();
-  for ( ; el != end_el ; ++el)
+  for (; el != end_el ; ++el)
   {
     const Elem *elem = *el;
 
-    for (unsigned int side=0; side < elem->n_sides(); ++side)
+    for (unsigned int side = 0; side < elem->n_sides(); ++side)
     {
       if (elem->neighbor(side))
         continue;
@@ -85,17 +88,17 @@ SideSetsFromNormals::modify()
       _fe_face->reinit(elem, side);
       const std::vector<Point> & normals = _fe_face->get_normals();
 
-      for (unsigned int i=0; i<_boundary_ids.size(); ++i)
+      for (unsigned int i = 0; i < boundary_ids.size(); ++i)
       {
         if (std::abs(1.0 - _normals[i]*normals[0]) < 1e-5)
-          flood(*el, _normals[i], _boundary_ids[i]);
+          flood(*el, _normals[i], boundary_ids[i]);
       }
     }
   }
 
   finalize();
 
-  for (unsigned int i = 0; i < _boundary_ids.size(); ++i)
-    _mesh_ptr->getMesh().boundary_info->sideset_name(_boundary_ids[i]) = boundaryNames()[i];
-
+  BoundaryInfo & boundary_info = _mesh_ptr->getMesh().get_boundary_info();
+  for (unsigned int i = 0; i < boundary_ids.size(); ++i)
+    boundary_info.sideset_name(boundary_ids[i]) = _boundary_names[i];
 }

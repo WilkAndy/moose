@@ -33,7 +33,7 @@ class NodalScalarKernel :
   public MooseVariableDependencyInterface
 {
 public:
-  NodalScalarKernel(const std::string & name, InputParameters parameters);
+  NodalScalarKernel(const InputParameters & parameters);
   virtual ~NodalScalarKernel();
 
   virtual void reinit();
@@ -41,7 +41,7 @@ public:
 
 protected:
   /// List of node IDs
-  std::vector<unsigned int> _node_ids;
+  std::vector<dof_id_type> _node_ids;
 };
 
 #endif /* NODALSCALARKERNEL_H */

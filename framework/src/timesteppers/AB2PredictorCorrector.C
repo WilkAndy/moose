@@ -19,8 +19,11 @@
 #include "MooseApp.h"
 #include "NonlinearSystem.h"
 #include "AuxiliarySystem.h"
+#include "TimeIntegrator.h"
+
 //libMesh includes
 #include "libmesh/nonlinear_solver.h"
+#include "libmesh/numeric_vector.h"
 
 // C++ Includes
 #include <iomanip>
@@ -41,8 +44,8 @@ InputParameters validParams<AB2PredictorCorrector>()
   return params;
 }
 
-AB2PredictorCorrector::AB2PredictorCorrector(const std::string & name, InputParameters parameters) :
-    TimeStepper(name, parameters),
+AB2PredictorCorrector::AB2PredictorCorrector(const InputParameters & parameters) :
+    TimeStepper(parameters),
     _u1(_fe_problem.getNonlinearSystem().addVector("u1", true, GHOSTED)),
     _aux1(_fe_problem.getAuxiliarySystem().addVector("aux1", true, GHOSTED)),
     _dt_full(declareRestartableData<Real>("dt_full", 0)),
@@ -103,7 +106,7 @@ AB2PredictorCorrector::step()
 
       _infnorm = _u1.linfty_norm();
       _e_max = 1.1 * _e_tol * _infnorm;
-      Moose::out << "Time Error Estimate: " << _error << std::endl;
+      _console << "Time Error Estimate: " << _error << std::endl;
     }
     else
     {
@@ -127,7 +130,7 @@ AB2PredictorCorrector::converged()
   }
   else
   {
-    Moose::out << "Marking last solve not converged " << _error << " " << _e_max << std::endl;
+    _console << "Marking last solve not converged " << _error << " " << _e_max << std::endl;
     _dt_steps_taken = 0;
     return false;
   }

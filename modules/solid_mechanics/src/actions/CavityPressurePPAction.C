@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "CavityPressurePPAction.h"
 
 #include "Factory.h"
@@ -15,24 +21,21 @@ InputParameters validParams<CavityPressurePPAction>()
   return params;
 }
 
-CavityPressurePPAction::CavityPressurePPAction(const std::string & name, InputParameters params) :
-  Action(name, params)
+CavityPressurePPAction::CavityPressurePPAction(InputParameters params) :
+  Action(params)
 {
 }
 
 void
 CavityPressurePPAction::act()
 {
-  std::string short_name(_name);
-  // Chop off "BCs/CavityPressure/"
-  short_name.erase(0, 19);
-  std::string uo_name = short_name + "UserObject";
+  std::string uo_name = _name + "UserObject";
 
   const std::string pp_name = "CavityPressurePostprocessor";
 
   InputParameters params = _factory.getValidParams(pp_name);
 
-  params.set<MooseEnum>("execute_on") = "residual";
+  params.set<MultiMooseEnum>("execute_on") = "linear";
 
   params.set<UserObjectName>("cavity_pressure_uo") = uo_name;
 
@@ -43,7 +46,7 @@ CavityPressurePPAction::act()
   }
   else
   {
-    _problem->addPostprocessor(pp_name, short_name, params);
+    _problem->addPostprocessor(pp_name, _name, params);
   }
 
   if (isParamValid("output_initial_moles"))

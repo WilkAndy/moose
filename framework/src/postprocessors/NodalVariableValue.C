@@ -17,7 +17,7 @@
 #include "SubProblem.h"
 
 // libMesh
-#include "libmesh/boundary_info.h"
+#include "libmesh/node.h"
 
 template<>
 InputParameters validParams<NodalVariableValue>()
@@ -25,21 +25,23 @@ InputParameters validParams<NodalVariableValue>()
   InputParameters params = validParams<GeneralPostprocessor>();
   params.addRequiredParam<VariableName>("variable", "The variable to be monitored");
   params.addRequiredParam<unsigned int>("nodeid", "The ID of the node where we monitor");
+  params.addParam<Real>("scale_factor", 1, "A scale factor to be applied to the variable");
   return params;
 }
 
-NodalVariableValue::NodalVariableValue(const std::string & name, InputParameters parameters) :
-    GeneralPostprocessor(name, parameters),
+NodalVariableValue::NodalVariableValue(const InputParameters & parameters) :
+    GeneralPostprocessor(parameters),
     _mesh(_subproblem.mesh()),
     _var_name(parameters.get<VariableName>("variable")),
-    _node_ptr(_mesh.getMesh().query_node_ptr(getParam<unsigned int>("nodeid")))
+    _node_ptr(_mesh.getMesh().query_node_ptr(getParam<unsigned int>("nodeid"))),
+    _scale_factor(getParam<Real>("scale_factor"))
 {
   // This class only works with SerialMesh, since it relies on a
   // specific node numbering that we can't guarantee with ParallelMesh
   _mesh.errorIfParallelDistribution("NodalVariableValue");
 
   if (_node_ptr == NULL)
-    mooseError("Node #" << getParam<unsigned int>("nodeid") << " specified in '" << name << "' not found in the mesh!");
+    mooseError("Node #" << getParam<unsigned int>("nodeid") << " specified in '" << name() << "' not found in the mesh!");
 }
 
 Real
@@ -52,5 +54,6 @@ NodalVariableValue::getValue()
 
   gatherSum(value);
 
-  return value;
+  return _scale_factor * value;
 }
+

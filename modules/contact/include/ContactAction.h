@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef CONTACTACTION_H
 #define CONTACTACTION_H
 
@@ -10,10 +16,10 @@ class ContactAction;
 template<>
 InputParameters validParams<ContactAction>();
 
-class ContactAction: public Action
+class ContactAction : public Action
 {
 public:
-  ContactAction(const std::string & name, InputParameters params);
+  ContactAction(const InputParameters & params);
 
   virtual void act();
 

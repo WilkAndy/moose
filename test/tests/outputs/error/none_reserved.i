@@ -40,8 +40,9 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   exodus = true
   [./none]
-    type = 'Exodus'
+    type = Exodus
   [../]
 []

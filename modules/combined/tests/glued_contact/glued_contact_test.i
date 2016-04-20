@@ -133,7 +133,7 @@
 
 
   nl_abs_tol = 1e-8
-  nl_rel_tol = 1e-4
+  nl_rel_tol = 1e-8
   l_tol = 1e-4
 
   l_max_its = 100
@@ -159,11 +159,5 @@
 
 [Outputs]
   file_base = out
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 [] # Outputs

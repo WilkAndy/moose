@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSMOMENTUMVISCOUSBC_H
 #define NSMOMENTUMVISCOUSBC_H
 
@@ -25,13 +31,9 @@ InputParameters validParams<NSMomentumViscousBC>();
 class NSMomentumViscousBC : public NSIntegratedBC
 {
 public:
-
-  NSMomentumViscousBC(const std::string & name, InputParameters parameters);
-
-  virtual ~NSMomentumViscousBC(){}
+  NSMomentumViscousBC(const InputParameters & parameters);
 
 protected:
-
   /**
    * Just like other kernels, we must overload the Residual and Jacobian contributions...
    */
@@ -41,7 +43,7 @@ protected:
 
   // Which spatial component of the momentum equations (0,1, or 2) is this
   // kernel applied in?
-  unsigned _component;
+  const unsigned _component;
 
   // An object for computing viscous stress tensor derivatives.
   // Constructed via a reference to ourself so we can access all of our data.

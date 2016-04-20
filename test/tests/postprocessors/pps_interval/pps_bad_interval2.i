@@ -130,12 +130,9 @@
 
 [Outputs]
   file_base = ignore_bad
-  output_initial = true
   exodus = true
   [./console]
     type = Console
-    perf_log = true
-    linear_residuals = true
     interval = 2
   [../]
 []

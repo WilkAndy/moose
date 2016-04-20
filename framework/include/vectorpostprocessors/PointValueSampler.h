@@ -15,10 +15,10 @@
 #ifndef POINTVALUESAMPLER_H
 #define POINTVALUESAMPLER_H
 
-#include "GeneralVectorPostprocessor.h"
+// MOOSE includes
 #include "PointSamplerBase.h"
 
-//Forward Declarations
+// Forward Declarations
 class PointValueSampler;
 
 template<>
@@ -27,7 +27,7 @@ InputParameters validParams<PointValueSampler>();
 class PointValueSampler : public PointSamplerBase
 {
 public:
-  PointValueSampler(const std::string & name, InputParameters parameters);
+  PointValueSampler(const InputParameters & parameters);
 
   virtual ~PointValueSampler() {}
 };

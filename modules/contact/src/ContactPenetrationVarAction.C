@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "ContactPenetrationVarAction.h"
 
 #include "Factory.h"
@@ -9,15 +15,15 @@
 template<>
 InputParameters validParams<ContactPenetrationVarAction>()
 {
-  MooseEnum orders("CONSTANT, FIRST, SECOND, THIRD, FOURTH", "FIRST");
+  MooseEnum orders("CONSTANT FIRST SECOND THIRD FOURTH", "FIRST");
 
   InputParameters params = validParams<Action>();
   params.addParam<MooseEnum>("order", orders, "The finite element order: FIRST, SECOND, etc.");
   return params;
 }
 
-ContactPenetrationVarAction::ContactPenetrationVarAction(const std::string & name, InputParameters params) :
-  Action(name, params)
+ContactPenetrationVarAction::ContactPenetrationVarAction(const InputParameters & params) :
+  Action(params)
 {
 }
 
@@ -34,3 +40,4 @@ ContactPenetrationVarAction::act()
                                   Utility::string_to_enum<FEFamily>("LAGRANGE")));
 
 }
+

@@ -27,19 +27,30 @@ class InversePowerMethod : public EigenExecutionerBase
 {
 public:
 
-  InversePowerMethod(const std::string & name, InputParameters parameters);
+  InversePowerMethod(const InputParameters & parameters);
 
+  virtual void init();
   virtual void execute();
 
 protected:
   virtual void takeStep();
 
+  /// name of the postprocessor for evaluating |x-xprevious|; empty means that no postprocessor is provided and power iteration will not check convergence based on it
+  std::string _solution_diff_name;
+  /// postprocessor for evaluating |x-xprevious|
+  const PostprocessorValue * _solution_diff;
+  /// minimum number of power iterations
   const unsigned int & _min_iter;
+  /// maximum number of power iterations
   const unsigned int & _max_iter;
+  /// convergence tolerance on eigenvalue
   const Real & _eig_check_tol;
+  /// convergence tolerance on solution difference
+  const Real & _sol_check_tol;
+  /// tolerance on each power iteration (always one nonlinear iteration)
   const Real & _pfactor;
+  /// indicating if Chebyshev acceleration is turned on
   const bool & _cheb_on;
-  bool _output_pi;
 };
 
 #endif //INVERSEPOWERMETHOD_H

@@ -19,6 +19,7 @@
 #include "libmesh/perf_log.h"
 #include "libmesh/parallel.h"
 #include "libmesh/libmesh_common.h"
+#include "XTermConstants.h"
 
 #include <string>
 
@@ -50,23 +51,6 @@ class Factory;
 class Syntax;
 class FEProblem;
 
-/// Execution flags - when is the object executed/evaluated
-// Note: If this enum is changed, make sure to modify the local
-// function populateExecTypes in Moose.C.
-enum ExecFlagType {
-  /// Object is evaluated only once at the beginning of the simulation
-  EXEC_INITIAL,
-  /// Object is evaluated in every residual computation
-  EXEC_RESIDUAL,
-  /// Object is evaluated in every jacobian computation
-  EXEC_JACOBIAN,
-  /// Object is evaluated at the end of every time step
-  EXEC_TIMESTEP,
-  /// Object is evaluated at the beginning of every time step
-  EXEC_TIMESTEP_BEGIN,
-  /// For use with custom executioners that want to fire objects at a specific time
-  EXEC_CUSTOM
-};
 
 namespace Moose
 {
@@ -78,19 +62,42 @@ namespace Moose
 extern PerfLog perf_log;
 
 /**
- * PerfLog to be used during setup.  This log will get printed just before the first solve.
- */
+ * PerfLog to be used during setup.  This log will get printed just before the first solve. */
 extern PerfLog setup_perf_log;
 
 /**
  * Variable indicating whether we will enable FPE trapping for this run.
  */
-extern bool __trap_fpe;
+extern bool _trap_fpe;
 
 /**
- * A static list of all the exec types.
+ * Variable indicating whether Console coloring will be turned on (default: true).
  */
-extern const std::vector<ExecFlagType> exec_types;
+extern bool _color_console;
+
+/**
+ * Variable to toggle any warning into an error
+ */
+extern bool _warnings_are_errors;
+
+/**
+ * Variable to turn on exceptions during mooseError() and mooseWarning(), should
+ * only be used with MOOSE unit.
+ */
+extern bool _throw_on_error;
+
+/**
+ * Macros for coloring any output stream (_console, std::ostringstream, etc.)
+ */
+#define COLOR_BLACK   (Moose::_color_console ? BLACK : "")
+#define COLOR_RED     (Moose::_color_console ? RED : "")
+#define COLOR_GREEN   (Moose::_color_console ? GREEN : "")
+#define COLOR_YELLOW  (Moose::_color_console ? YELLOW : "")
+#define COLOR_BLUE    (Moose::_color_console ? BLUE : "")
+#define COLOR_MAGENTA (Moose::_color_console ? MAGENTA : "")
+#define COLOR_CYAN    (Moose::_color_console ? CYAN : "")
+#define COLOR_WHITE   (Moose::_color_console ? WHITE : "")
+#define COLOR_DEFAULT (Moose::_color_console ? DEFAULT : "")
 
 /**
  * Import libMesh::out, and libMesh::err for use in MOOSE.
@@ -113,6 +120,11 @@ void setSolverDefaults(FEProblem & problem);
 MPI_Comm swapLibMeshComm(MPI_Comm new_comm);
 
 void enableFPE(bool on = true);
+
+// MOOSE Requires PETSc to run, this CPP check will cause a compile error if PETSc is not found
+#ifndef LIBMESH_HAVE_PETSC
+  #error PETSc has not been detected, please ensure your environment is set up properly then rerun the libmesh build script and try to compile MOOSE again.
+#endif
 
 } // namespace Moose
 

@@ -1,48 +1,39 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSMassSpecifiedNormalFlowBC.h"
 
 template<>
 InputParameters validParams<NSMassSpecifiedNormalFlowBC>()
 {
   InputParameters params = validParams<NSMassBC>();
-
-  // Required parameters.
   params.addRequiredParam<Real>("rhoun", "The specified value of rho*(u.n) for this boundary");
-
   return params;
 }
 
-
-
-NSMassSpecifiedNormalFlowBC::NSMassSpecifiedNormalFlowBC(const std::string & name, InputParameters parameters)
-    : NSMassBC(name, parameters),
-
-      // Required parameters
-      _rhoun(getParam<Real>("rhoun"))
+NSMassSpecifiedNormalFlowBC::NSMassSpecifiedNormalFlowBC(const InputParameters & parameters) :
+    NSMassBC(parameters),
+    _rhoun(getParam<Real>("rhoun"))
 {
 }
 
-
-
-
-
-Real NSMassSpecifiedNormalFlowBC::computeQpResidual()
+Real
+NSMassSpecifiedNormalFlowBC::computeQpResidual()
 {
-  return this->qp_residual(_rhoun);
+  return qpResidualHelper(_rhoun);
 }
 
-
-
-
-Real NSMassSpecifiedNormalFlowBC::computeQpJacobian()
+Real
+NSMassSpecifiedNormalFlowBC::computeQpJacobian()
 {
-  return 0.;
+  return 0.0;
 }
 
-
-
-
-Real NSMassSpecifiedNormalFlowBC::computeQpOffDiagJacobian(unsigned /*jvar*/)
+Real
+NSMassSpecifiedNormalFlowBC::computeQpOffDiagJacobian(unsigned /*jvar*/)
 {
-  return 0.;
+  return 0.0;
 }
-

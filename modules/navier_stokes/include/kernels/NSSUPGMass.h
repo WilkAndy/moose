@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSSUPGMASS_H
 #define NSSUPGMASS_H
 
@@ -16,7 +22,7 @@ InputParameters validParams<NSSUPGMass>();
 class NSSUPGMass : public NSSUPGBase
 {
 public:
-  NSSUPGMass(const std::string & name, InputParameters parameters);
+  NSSUPGMass(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
@@ -27,7 +33,7 @@ private:
   // Single function for computing on and off-diagonal Jacobian
   // entries in a single function.  The input index is in Moose
   // variable numbering.
-  Real compute_jacobian(unsigned var);
+  Real computeJacobianHelper(unsigned var);
 };
 
-#endif // NSSUPGMASS_H
+#endif //NSSUPGMASS_H

@@ -39,17 +39,17 @@
 
 [AuxKernels]
   [./mapper0]
-    type = NodalFloodCountAux
+    type = FeatureFloodCountAux
     variable = bubble_map0
-    execute_on = timestep
+    execute_on = timestep_end
     bubble_object = bubbles
     map_index = 0
   [../]
 
   [./mapper1]
-    type = NodalFloodCountAux
+    type = FeatureFloodCountAux
     variable = bubble_map1
-    execute_on = timestep
+    execute_on = timestep_end
     bubble_object = bubbles
     map_index = 1
   [../]
@@ -97,10 +97,11 @@
 [UserObjects]
   [./bubbles]
     use_single_map = false
-    type = NodalFloodCount
+    type = FeatureFloodCount
     variable = 'u v'
     threshold = 0.3
-    execute_on = timestep
+    execute_on = timestep_end
+    outputs = none
   [../]
 []
 
@@ -109,10 +110,6 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

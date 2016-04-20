@@ -19,18 +19,20 @@
 #include "RandomInterface.h"
 #include "CoupleableMooseVariableDependencyIntermediateInterface.h"
 
-// libMesh
-#include "libmesh/numeric_vector.h"
-#include "libmesh/sparse_matrix.h"
-
+// Forward declarations
 class NodalBC;
+
+// libMesh forward declarations
+namespace libMesh
+{
+template <typename T> class NumericVector;
+}
 
 template<>
 InputParameters validParams<NodalBC>();
 
 /**
  * Base class for deriving any boundary condition that works at nodes
- *
  */
 class NodalBC :
   public BoundaryCondition,
@@ -38,10 +40,11 @@ class NodalBC :
   public CoupleableMooseVariableDependencyIntermediateInterface
 {
 public:
-  NodalBC(const std::string & name, InputParameters parameters);
+  NodalBC(const InputParameters & parameters);
 
   virtual void computeResidual(NumericVector<Number> & residual);
-  virtual void computeJacobian(SparseMatrix<Number> & jacobian);
+  virtual void computeJacobian();
+  virtual void computeOffDiagJacobian(unsigned int jvar);
 
 protected:
   /// current node being processed
@@ -49,10 +52,33 @@ protected:
 
   /// Quadrature point index
   unsigned int _qp;
-  /// Value of the unknown variable this BC is action on
-  VariableValue & _u;
+  /// Value of the unknown variable this BC is acting on
+  const VariableValue & _u;
+
+  /// The aux variables to save the residual contributions to
+  bool _has_save_in;
+  std::vector<MooseVariable*> _save_in;
+  std::vector<AuxVariableName> _save_in_strings;
+
+  /// The aux variables to save the diagonal Jacobian contributions to
+  bool _has_diag_save_in;
+  std::vector<MooseVariable*> _diag_save_in;
+  std::vector<AuxVariableName> _diag_save_in_strings;
 
   virtual Real computeQpResidual() = 0;
+
+  /**
+   * The user can override this function to compute the "on-diagonal"
+   * Jacobian contribution for this NodalBC.  If not overriden,
+   * returns 1.
+   */
+  virtual Real computeQpJacobian();
+
+  /**
+   * This is the virtual that derived classes should override for
+   * computing an off-diagonal jacobian component.
+   */
+  virtual Real computeQpOffDiagJacobian(unsigned int jvar);
 };
 
 #endif /* NODALBC_H */

@@ -1,4 +1,12 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 #include "INSTemperature.h"
+#include "MooseMesh.h"
 
 template<>
 InputParameters validParams<INSTemperature>()
@@ -20,8 +28,8 @@ InputParameters validParams<INSTemperature>()
 
 
 
-INSTemperature::INSTemperature(const std::string & name, InputParameters parameters) :
-  Kernel(name, parameters),
+INSTemperature::INSTemperature(const InputParameters & parameters) :
+  Kernel(parameters),
 
   // Coupled variables
   _u_vel(coupledValue("u")),
@@ -95,3 +103,4 @@ Real INSTemperature::computeQpOffDiagJacobian(unsigned jvar)
   else
     return 0;
 }
+

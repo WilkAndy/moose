@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef ADDPRIMARYSPECIESACTION_H
 #define ADDPRIMARYSPECIESACTION_H
 
@@ -12,7 +18,7 @@ InputParameters validParams<AddPrimarySpeciesAction>();
 class AddPrimarySpeciesAction : public Action
 {
 public:
-  AddPrimarySpeciesAction(const std::string & name, InputParameters params);
+  AddPrimarySpeciesAction(const InputParameters & params);
 
   virtual void act();
 

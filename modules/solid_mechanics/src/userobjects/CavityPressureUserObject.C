@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "CavityPressureUserObject.h"
 
 template<>
@@ -19,8 +25,8 @@ InputParameters validParams<CavityPressureUserObject>()
   return params;
 }
 
-CavityPressureUserObject::CavityPressureUserObject(const std::string & name, InputParameters params)
-  :GeneralUserObject(name, params),
+CavityPressureUserObject::CavityPressureUserObject(const InputParameters & params) :
+    GeneralUserObject(params),
    _cavity_pressure(declareRestartableData<Real>("cavity_pressure", 0)),
    _n0(declareRestartableData<Real>("initial_moles", 0)),
    _initial_pressure(getParam<Real>("initial_pressure")),
@@ -61,7 +67,7 @@ CavityPressureUserObject::getValue( const std::string & quantity ) const
   }
   else
   {
-    mooseError("Unknown quantity in " + _name);
+    mooseError("Unknown quantity in " + name());
   }
   return value;
 }

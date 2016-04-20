@@ -64,7 +64,6 @@
   Chebyshev_acceleration_on = true
   eig_check_tol = 1e-12
   k0 = 0.5
-  output_pi_history = true
 
   bx_norm = 'unorm'
   xdiff = 'udiff'
@@ -80,23 +79,17 @@
   [./unorm]
     type = ElementIntegralVariablePostprocessor
     variable = u
-    execute_on = timestep
+    execute_on = linear
   [../]
 
   [./udiff]
     type = ElementL2Diff
     variable = u
+    execute_on = 'linear timestep_end'
   [../]
 []
 
 [Outputs]
   file_base = ipm
-  interval = 1
   exodus = true
-  output_initial = true
-  [./console]
-    type = Console
-    linear_residuals = true
-    perf_log = true
-  [../]
 []

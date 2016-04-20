@@ -80,6 +80,6 @@
 []
 
 [Outputs]
-  console = true
+  execute_on = 'timestep_end'
   exodus = true
 []

@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSRELPERM_H
 #define RICHARDSRELPERM_H
@@ -20,8 +23,8 @@ InputParameters validParams<RichardsRelPerm>();
  */
 class RichardsRelPerm : public GeneralUserObject
 {
- public:
-  RichardsRelPerm(const std::string & name, InputParameters parameters);
+public:
+  RichardsRelPerm(const InputParameters & parameters);
 
   void initialize();
   void execute();

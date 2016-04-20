@@ -19,6 +19,8 @@
 #include "Checkpoint.h"
 #include "FEProblem.h"
 #include "MooseApp.h"
+#include "MaterialPropertyStorage.h"
+#include "RestartableData.h"
 
 // libMesh includes
 #include "libmesh/checkpoint_io.h"
@@ -28,7 +30,7 @@ template<>
 InputParameters validParams<Checkpoint>()
 {
   // Get the parameters from the base classes
-  InputParameters params = validParams<FileOutput>();
+  InputParameters params = validParams<BasicOutput<FileOutput> >();
 
   // Typical checkpoint options
   params.addParam<unsigned int>("num_files", 2, "Number of the restart files to save");
@@ -37,26 +39,18 @@ InputParameters validParams<Checkpoint>()
   // Advanced settings
   params.addParam<bool>("binary", true, "Toggle the output of binary files");
   params.addParamNamesToGroup("binary", "Advanced");
-
-  // Checkpoint files always output everything, so suppress the toggles
-  params.suppressParameter<bool>("output_nodal_variables");
-  params.suppressParameter<bool>("output_elemental_variables");
-  params.suppressParameter<bool>("output_scalar_variables");
-  params.suppressParameter<bool>("output_postprocessors");
-  params.suppressParameter<bool>("output_vector_postprocessors");
-
   return params;
 }
 
-Checkpoint::Checkpoint(const std::string & name, InputParameters & parameters) :
-    FileOutput(name, parameters),
+Checkpoint::Checkpoint(const InputParameters & parameters) :
+    BasicOutput<FileOutput>(parameters),
     _num_files(getParam<unsigned int>("num_files")),
     _suffix(getParam<std::string>("suffix")),
     _binary(getParam<bool>("binary")),
-    _restartable_data(_problem_ptr->getRestartableData()),
-    _recoverable_data(_problem_ptr->getRecoverableData()),
+    _restartable_data(_app.getRestartableData()),
+    _recoverable_data(_app.getRecoverableData()),
     _material_property_storage(_problem_ptr->getMaterialPropertyStorage()),
-    _material_property_io(MaterialPropertyIO(*_problem_ptr)),
+    _bnd_material_property_storage(_problem_ptr->getBndMaterialPropertyStorage()),
     _restartable_data_io(RestartableDataIO(*_problem_ptr))
 {
 }
@@ -76,7 +70,7 @@ Checkpoint::filename()
          << std::setprecision(0)
          << std::setfill('0')
          << std::right
-         << _t_step;
+         << timeStep();
   return output.str();
 }
 
@@ -87,10 +81,10 @@ Checkpoint::directory()
 }
 
 void
-Checkpoint::output()
+Checkpoint::output(const ExecFlagType & /*type*/)
 {
   // Start the performance log
-  Moose::perf_log.push("output()", "Checkpoint");
+  Moose::perf_log.push("Checkpoint::output()", "Output");
 
   // Create the output directory
   std::string cp_dir = directory();
@@ -121,7 +115,6 @@ Checkpoint::output()
     current_file_struct.system = current_file + ".xda";
   }
   current_file_struct.restart = current_file + ".rd";
-  current_file_struct.material = current_file + ".msmp";
 
   // Write the checkpoint file
   io.write(current_file_struct.checkpoint);
@@ -132,20 +125,17 @@ Checkpoint::output()
   // Write the restartable data
   _restartable_data_io.writeRestartableData(current_file_struct.restart, _restartable_data, _recoverable_data);
 
-  // Write the material property data
-  if (_material_property_storage.hasStatefulProperties())
-    _material_property_io.write(current_file_struct.material);
-
   // Remove old checkpoint files
   updateCheckpointFiles(current_file_struct);
 
   // Stop the logging
-  Moose::perf_log.pop("output()", "Checkpoint");
+  Moose::perf_log.pop("Checkpoint::output()", "Output");
 }
 
 void
 Checkpoint::updateCheckpointFiles(CheckpointFileNames file_struct)
 {
+  int ret = 0;          // return code for file operations
 
   // Update the list of stored files
   _file_names.push_back(file_struct);
@@ -154,19 +144,28 @@ Checkpoint::updateCheckpointFiles(CheckpointFileNames file_struct)
   if (_file_names.size() > _num_files)
   {
     // Extract the filenames to be removed
-    CheckpointFileNames delete_files = _file_names[0];
+    CheckpointFileNames delete_files = _file_names.front();
 
     // Remove these filenames from the list
-    _file_names.erase(_file_names.begin());
+    _file_names.pop_front();
 
     // Get thread and proc information
     processor_id_type proc_id = processor_id();
 
     // Delete checkpoint files (_mesh.cpr)
-    remove(delete_files.checkpoint.c_str());
 
-    // Delete the system files (xdr and xdr.0000, ...)
-    remove(delete_files.system.c_str());
+    if (proc_id == 0)
+    {
+      ret = remove(delete_files.checkpoint.c_str());
+      if (ret != 0)
+        mooseWarning("Error during the deletion of file '" << delete_files.checkpoint << "': " << ret);
+
+      // Delete the system files (xdr and xdr.0000, ...)
+      ret = remove(delete_files.system.c_str());
+      if (ret != 0)
+        mooseWarning("Error during the deletion of file '" << delete_files.system << "': " << ret);
+    }
+
     {
       std::ostringstream oss;
       oss << delete_files.system
@@ -174,54 +173,25 @@ Checkpoint::updateCheckpointFiles(CheckpointFileNames file_struct)
           << std::setprecision(0)
           << std::setfill('0')
           << proc_id;
-      remove( oss.str().c_str() );
+      ret = remove(oss.str().c_str());
+      if (ret != 0)
+        mooseWarning("Error during the deletion of file '" << oss.str().c_str() << "': " << ret);
     }
 
-    // Remove material property files
-    remove(delete_files.material.c_str());
-
-    // Remove the material files
-    {
-      std::ostringstream oss;
-      oss << delete_files.material << '-' << proc_id;
-      remove(oss.str().c_str());
-    }
+    unsigned int n_threads = libMesh::n_threads();
 
     // Remove the restart files (rd)
     {
-      std::ostringstream oss;
-      oss << delete_files.restart << "-" << proc_id;
-      remove(oss.str().c_str());
+      for (THREAD_ID tid = 0; tid < n_threads; tid++)
+      {
+        std::ostringstream oss;
+        oss << delete_files.restart << "-" << proc_id;
+        if (n_threads > 1)
+          oss << "-" << tid;
+        ret = remove(oss.str().c_str());
+        if (ret != 0)
+          mooseWarning("Error during the deletion of file '" << oss.str().c_str() << "': " << ret);
+      }
     }
   }
-}
-
-void
-Checkpoint::outputNodalVariables()
-{
-  mooseError("Invalid for Checkpoint output type");
-}
-
-void
-Checkpoint::outputElementalVariables()
-{
-  mooseError("Invalid for Checkpoint output type");
-}
-
-void
-Checkpoint::outputScalarVariables()
-{
-  mooseError("Invalid for Checkpoint output type");
-}
-
-void
-Checkpoint::outputPostprocessors()
-{
-  mooseError("Invalid for Checkpoint output type");
-}
-
-void
-Checkpoint::outputVectorPostprocessors()
-{
-  mooseError("Invalid for Checkpoint output type");
 }

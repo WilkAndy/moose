@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef C1ICBASE_H
 #define C1ICBASE_H
 
@@ -40,12 +46,9 @@ public:
   /**
    * Constructor
    *
-   * @param name The name given to the initial condition in the input file.
    * @param parameters The parameters object holding data for the class to use.
-   * @param var_name The variable this InitialCondtion is supposed to provide values for.
    */
-  C1ICBase(const std::string & name,
-           InputParameters parameters);
+  C1ICBase(const InputParameters & parameters);
 
 protected:
   Real _average;

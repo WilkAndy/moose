@@ -50,9 +50,6 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   hide = dummy
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

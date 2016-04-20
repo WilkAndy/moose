@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef STRESSDIVERGENCETRUSS_H
 #define STRESSDIVERGENCETRUSS_H
 
@@ -12,8 +18,8 @@ class StressDivergenceTruss : public Kernel
 {
 public:
 
-  StressDivergenceTruss(const std::string & name, InputParameters parameters);
-  virtual ~StressDivergenceTruss() {}
+  StressDivergenceTruss(const InputParameters & parameters);
+    virtual ~StressDivergenceTruss() {}
 
 protected:
   virtual void initialSetup();
@@ -26,8 +32,8 @@ protected:
 
   void computeStiffness(ColumnMajorMatrix & stiff_global);
 
-  MaterialProperty<Real> & _axial_stress;
-  MaterialProperty<Real> & _E_over_L;
+  const MaterialProperty<Real> & _axial_stress;
+  const MaterialProperty<Real> & _E_over_L;
 
 private:
   const unsigned int _component;
@@ -44,7 +50,6 @@ private:
 
   const VariableValue & _area;
   const std::vector<RealGradient> * _orientation;
-
 };
 
 template<>

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "MollifiedLangmuirMaterial.h"
 
 
@@ -17,9 +23,8 @@ InputParameters validParams<MollifiedLangmuirMaterial>()
   return params;
 }
 
-MollifiedLangmuirMaterial::MollifiedLangmuirMaterial(const std::string & name,
-                                 InputParameters parameters) :
-    Material(name, parameters),
+MollifiedLangmuirMaterial::MollifiedLangmuirMaterial(const InputParameters & parameters) :
+    Material(parameters),
     // coupledValue returns a reference (an alias) to a VariableValue, and the & turns it into a pointer
     _one_over_de_time_const(&coupledValue("one_over_desorption_time_const")),
     _one_over_ad_time_const(&coupledValue("one_over_adsorption_time_const")),
@@ -81,3 +86,4 @@ MollifiedLangmuirMaterial::computeQpProperties()
     _dmass_rate_from_matrix_dp[_qp] *= (*_one_over_ad_time_const)[_qp];
   }
 }
+

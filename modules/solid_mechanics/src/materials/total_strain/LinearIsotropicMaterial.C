@@ -1,8 +1,18 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 #include "LinearIsotropicMaterial.h"
 #include "ColumnMajorMatrix.h"
 #include "SolidMechanicsMaterial.h"
 #include "SymmIsotropicElasticityTensor.h"
 #include "VolumetricModel.h"
+
+// libmesh includes
+#include "libmesh/quadrature.h"
 
 template<>
 InputParameters validParams<LinearIsotropicMaterial>()
@@ -15,9 +25,8 @@ InputParameters validParams<LinearIsotropicMaterial>()
   return params;
 }
 
-LinearIsotropicMaterial::LinearIsotropicMaterial(const std::string  & name,
-                                                 InputParameters parameters)
-  :SolidMechanicsMaterial(name, parameters),
+LinearIsotropicMaterial::LinearIsotropicMaterial(const InputParameters & parameters)
+  :SolidMechanicsMaterial(parameters),
    _youngs_modulus(getParam<Real>("youngs_modulus")),
    _poissons_ratio(getParam<Real>("poissons_ratio")),
    _t_ref(getParam<Real>("t_ref")),
@@ -72,18 +81,7 @@ LinearIsotropicMaterial::computeProperties()
 
     }
 
-    SymmTensor v_strain(0);
-    SymmTensor dv_strain_dT(0);
-    for (unsigned int i(0); i < _volumetric_models.size(); ++i)
-    {
-      _volumetric_models[i]->modifyStrain(_qp, 1, v_strain, dv_strain_dT);
-    }
-    SymmTensor strain( v_strain );
-    strain *= _dt;
-    strain += strn;
-
-    dv_strain_dT *= _dt;
-    _d_strain_dT += dv_strain_dT;
+    SymmTensor strain( strn );
 
     computeStress(strain, _stress[_qp]);
 
@@ -156,3 +154,4 @@ LinearIsotropicMaterial::computeAlpha()
 {
   return _alpha;
 }
+

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSGRAVITYPOWER_H
 #define NSGRAVITYPOWER_H
 
@@ -12,8 +18,7 @@ InputParameters validParams<NSGravityPower>();
 class NSGravityPower : public Kernel
 {
 public:
-
-  NSGravityPower(const std::string & name, InputParameters parameters);
+  NSGravityPower(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
@@ -21,9 +26,9 @@ protected:
   virtual Real computeQpOffDiagJacobian(unsigned int jvar);
 
   unsigned int _momentum_var;
-  VariableValue & _momentum;
+  const VariableValue & _momentum;
 
-  Real _acceleration;
+  const Real _acceleration;
 };
 
-#endif
+#endif //NSGRAVITYPOWER_H

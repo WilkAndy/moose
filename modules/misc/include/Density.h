@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef DENSITY_H
 #define DENSITY_H
 
@@ -10,8 +16,7 @@
 class Density : public Material
 {
 public:
-  Density( const std::string & name,
-           InputParameters params );
+  Density( const InputParameters & params);
 
   virtual void initStatefulProperties(unsigned n_points);
 

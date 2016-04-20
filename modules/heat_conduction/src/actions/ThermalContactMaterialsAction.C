@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "ThermalContactMaterialsAction.h"
 #include "ThermalContactAuxVarsAction.h"
 #include "Factory.h"
@@ -10,7 +16,7 @@ static unsigned int n = 0;
 template<>
 InputParameters validParams<ThermalContactMaterialsAction>()
 {
-  MooseEnum orders("CONSTANT, FIRST, SECOND, THIRD, FOURTH", "FIRST");
+  MooseEnum orders("CONSTANT FIRST SECOND THIRD FOURTH", "FIRST");
 
   InputParameters params = validParams<Action>();
   params.addParam<std::string>("appended_property_name", "", "Name appended to material properties to make them unique");
@@ -32,8 +38,8 @@ InputParameters validParams<ThermalContactMaterialsAction>()
   return params;
 }
 
-ThermalContactMaterialsAction::ThermalContactMaterialsAction( const std::string & name, InputParameters params ) :
-  Action(name, params)
+ThermalContactMaterialsAction::ThermalContactMaterialsAction( const InputParameters & params) :
+  Action(params)
 {
 }
 
@@ -51,7 +57,8 @@ ThermalContactMaterialsAction::act()
 
   InputParameters params = _factory.getValidParams(type);
   // Extract global params
-  _app.parser().extractParams(_name, params);
+  if (isParamValid("parser_syntax"))
+    _app.parser().extractParams(getParam<std::string>("parser_syntax"), params);
 
   params.set<std::vector<VariableName> >("variable") = std::vector<VariableName>(1, getParam<NonlinearVariableName>("variable"));
 
@@ -86,7 +93,9 @@ ThermalContactMaterialsAction::act()
 
   params.set<std::string>("conductivity_name") = getParam<std::string>("conductivity_name");
 
-  _problem->addMaterial(type, "gap_value_" + Moose::stringify(n), params);
+  std::string name;
+  name += _name + "_" + "gap_value_" + Moose::stringify(n);
+  _problem->addMaterial(type, name, params);
 
   if (quadrature)
   {
@@ -97,7 +106,9 @@ ThermalContactMaterialsAction::act()
 
     params.set<std::string>("conductivity_name") = getParam<std::string>("conductivity_master_name");
 
-    _problem->addMaterial(type, "gap_value_master_" + Moose::stringify(n), params);
+    std::string master_name;
+    master_name +=  _name + "_" + "gap_value_master_" + Moose::stringify(n);
+    _problem->addMaterial(type, master_name, params);
   }
 
   ++n;

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef MISCAPP_H
 #define MISCAPP_H
 
@@ -11,7 +17,7 @@ InputParameters validParams<MiscApp>();
 class MiscApp : public MooseApp
 {
 public:
-  MiscApp(const std::string & name, InputParameters parameters);
+  MiscApp(const InputParameters & parameters);
   virtual ~MiscApp();
 
   static void registerApps();

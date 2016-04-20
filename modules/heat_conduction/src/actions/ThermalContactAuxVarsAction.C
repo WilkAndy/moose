@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "ThermalContactAuxVarsAction.h"
 #include "FEProblem.h"
 #include "libmesh/string_to_enum.h"
@@ -9,7 +15,7 @@
 template<>
 InputParameters validParams<ThermalContactAuxVarsAction>()
 {
-  MooseEnum orders("CONSTANT, FIRST, SECOND, THIRD, FOURTH", "FIRST");
+  MooseEnum orders("CONSTANT FIRST SECOND THIRD FOURTH", "FIRST");
 
   InputParameters params = validParams<Action>();
 
@@ -25,8 +31,8 @@ InputParameters validParams<ThermalContactAuxVarsAction>()
   return params;
 }
 
-ThermalContactAuxVarsAction::ThermalContactAuxVarsAction(const std::string & name, InputParameters params) :
-   Action(name, params)
+ThermalContactAuxVarsAction::ThermalContactAuxVarsAction(const InputParameters & params) :
+   Action(params)
 {
 }
 
@@ -69,3 +75,4 @@ ThermalContactAuxVarsAction::act()
            Utility::string_to_enum<FEFamily>(family)));
 
 }
+

@@ -1,3 +1,13 @@
+###########################################################
+# This is a test of the Transfer System. This test
+# uses the Multiapp System to solve independent problems
+# related geometrically. Solutions are then interpolated
+# and transferred to a non-aligned domain.
+#
+# @Requirement F7.20
+###########################################################
+
+
 [Mesh]
   type = GeneratedMesh
   dim = 2
@@ -78,20 +88,14 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []
 
 [MultiApps]
   [./sub]
     type = TransientMultiApp
     app_type = MooseTestApp
-    execute_on = timestep
+    execute_on = timestep_end
     positions = '0.2 0 0'
     input_files = tosub_sub.i
   [../]
@@ -101,7 +105,6 @@
   [./tosub]
     type = MultiAppInterpolationTransfer
     direction = to_multiapp
-    execute_on = timestep
     multi_app = sub
     source_variable = u
     variable = from_master
@@ -109,7 +112,6 @@
   [./elemental_tosub]
     type = MultiAppInterpolationTransfer
     direction = to_multiapp
-    execute_on = timestep
     multi_app = sub
     source_variable = u
     variable = elemental_from_master
@@ -117,7 +119,6 @@
   [./radial_tosub]
     type = MultiAppInterpolationTransfer
     direction = to_multiapp
-    execute_on = timestep
     multi_app = sub
     source_variable = u
     variable = radial_from_master
@@ -126,7 +127,6 @@
   [./radial_elemental_tosub]
     type = MultiAppInterpolationTransfer
     direction = to_multiapp
-    execute_on = timestep
     multi_app = sub
     source_variable = u
     variable = radial_elemental_from_master
@@ -135,7 +135,6 @@
   [./displaced_target_tosub]
     type = MultiAppInterpolationTransfer
     direction = to_multiapp
-    execute_on = timestep
     multi_app = sub
     source_variable = u
     variable = displaced_target_from_master
@@ -144,7 +143,6 @@
   [./displaced_source_tosub]
     type = MultiAppInterpolationTransfer
     direction = to_multiapp
-    execute_on = timestep
     multi_app = sub
     source_variable = u
     variable = displaced_source_from_master
@@ -153,7 +151,6 @@
   [./elemental_to_sub_elemental]
     type = MultiAppInterpolationTransfer
     direction = to_multiapp
-    execute_on = timestep
     multi_app = sub
     source_variable = elemental
     variable = elemental_from_master_elemental
@@ -161,7 +158,6 @@
   [./elemental_to_sub_nodal]
     type = MultiAppInterpolationTransfer
     direction = to_multiapp
-    execute_on = timestep
     multi_app = sub
     source_variable = elemental
     variable = nodal_from_master_elemental

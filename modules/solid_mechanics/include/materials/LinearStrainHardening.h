@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef LINEARSTRAINHARDENING_H
 #define LINEARSTRAINHARDENING_H
 
@@ -6,8 +12,7 @@
 class LinearStrainHardening : public SolidModel
 {
 public:
-  LinearStrainHardening( const std::string & name,
-                         InputParameters parameters );
+  LinearStrainHardening( const InputParameters & parameters);
   virtual ~LinearStrainHardening() {}
 
 };

@@ -16,7 +16,8 @@
 #define TABLESOUTPUTBASE_H
 
 // MOOSE includes
-#include "PetscOutput.h"
+#include "AdvancedOutput.h"
+#include "FileOutput.h"
 #include "FormattedTable.h"
 
 class TableOutput;
@@ -35,32 +36,16 @@ InputParameters validParams<TableOutput>();
  *
  * @see CSV Console
  */
-class TableOutput :
-  public PetscOutput
+class TableOutput : public AdvancedOutput<FileOutput>
 {
 public:
 
   /**
    * Class constructor.
    */
-  TableOutput(const std::string & name, InputParameters);
-
-  /**
-   * Destructor
-   */
-  virtual ~TableOutput();
+  TableOutput(const InputParameters & parameters);
 
 protected:
-
-  //@{
-  /**
-   * Produces an error, it is not possible to output nodal and elemental data to a table
-   *
-   * The call to this function is disable by suppressing the input parameter: output_nodal_variables
-   */
-  virtual void outputNodalVariables();
-  virtual void outputElementalVariables();
-  //@}
 
   /**
    * Populates the tables with scalar aux variables
@@ -80,17 +65,26 @@ protected:
    */
   virtual void outputVectorPostprocessors();
 
-  /// Table containing postprocessor data (restartable)
+  /// Flag for allowing all table data to become restartable
+  bool _tables_restartable;
+
+  /// Table containing postprocessor data
   FormattedTable & _postprocessor_table;
 
   /// Formatted tables for outputting vector postprocessor data.  One per VectorPostprocessor
   std::map<std::string, FormattedTable> _vector_postprocessor_tables;
 
-  /// Table containing scalar aux variables (restartable)
+  /// Table for vector postprocessor time data
+  std::map<std::string, FormattedTable> & _vector_postprocessor_time_tables;
+
+  /// Table containing scalar aux variables
   FormattedTable & _scalar_table;
 
-  /// Table containing postprocessor values and scalar aux variables (restartable)
+  /// Table containing postprocessor values and scalar aux variables
   FormattedTable & _all_data_table;
+
+  /// Enable/disable VecptorPostprocessor time data file.
+  bool _time_data;
 
 };
 

@@ -16,6 +16,7 @@
 #include "Tecplot.h"
 #include "MooseApp.h"
 #include "FEProblem.h"
+#include "MooseMesh.h"
 
 // libMesh includes
 #include "libmesh/tecplot_io.h"
@@ -24,16 +25,7 @@ template<>
 InputParameters validParams<Tecplot>()
 {
   // Get the base class parameters
-  InputParameters params = validParams<OversampleOutput>();
-
-  // Suppress unavailable and meaningless parameters for this object
-  params.suppressParameter<bool>("output_nodal_variables");
-  params.suppressParameter<bool>("output_elemental_variables");
-  params.suppressParameter<bool>("output_scalar_variables");
-  params.suppressParameter<bool>("output_postprocessors");
-  params.suppressParameter<bool>("output_vector_postprocessors");
-  params.suppressParameter<bool>("scalar_as_nodal");
-  params.suppressParameter<bool>("sequence");
+  InputParameters params = validParams<BasicOutput<OversampleOutput> >();
 
   // Add binary toggle
   params.addParam<bool>("binary", false, "Set Tecplot files to output in binary format");
@@ -49,22 +41,25 @@ InputParameters validParams<Tecplot>()
   return params;
 }
 
-Tecplot::Tecplot(const std::string & name, InputParameters parameters) :
-    OversampleOutput(name, parameters),
+Tecplot::Tecplot(const InputParameters & parameters) :
+    BasicOutput<OversampleOutput>(parameters),
     _binary(getParam<bool>("binary")),
     _ascii_append(getParam<bool>("ascii_append")),
     _first_time(declareRestartableData<bool>("first_time", true))
 {
-  // Force sequence output Note: This does not change the behavior for
-  // this object b/c outputSetup() is empty, but it is placed here for
-  // consistency.
-  sequence(true);
+#ifndef LIBMESH_HAVE_TECPLOT_API
+  if (_binary)
+  {
+    mooseWarning("Teclplot binary output requested but not available, outputting ASCII format instead.");
+    _binary = false;
+  }
+#endif
 }
 
 
 
 void
-Tecplot::output()
+Tecplot::output(const ExecFlagType & /*type*/)
 {
   TecplotIO out(*_mesh_ptr, _binary, time() + _app.getGlobalTimeOffset());
 
@@ -84,36 +79,6 @@ Tecplot::output()
   // the first time.
   if (_first_time)
     _first_time = false;
-}
-
-void
-Tecplot::outputNodalVariables()
-{
-  mooseError("Individual output of nodal variables is not supported for Tecplot output");
-}
-
-void
-Tecplot::outputElementalVariables()
-{
-  mooseError("Individual output of elemental variables is not supported for Tecplot output");
-}
-
-void
-Tecplot::outputPostprocessors()
-{
-  mooseError("Individual output of postprocessors is not supported for Tecplot output");
-}
-
-void
-Tecplot::outputVectorPostprocessors()
-{
-  mooseError("Individual output of VectorPostprocessors is not supported for Tecplot output");
-}
-
-void
-Tecplot::outputScalarVariables()
-{
-  mooseError("Individual output of scalars is not supported for Tecplot output");
 }
 
 std::string

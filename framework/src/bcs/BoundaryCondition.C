@@ -29,22 +29,24 @@ InputParameters validParams<BoundaryCondition>()
   params.addParam<bool>("use_displaced_mesh", false, "Whether or not this object should use the displaced mesh for computation.  Note that in the case this is true but no displacements are provided in the Mesh block the undisplaced mesh will still be used.");
   params.addParamNamesToGroup("use_displaced_mesh", "Advanced");
 
+  params.declareControllable("enable");
   params.registerBase("BoundaryCondition");
 
   return params;
 }
 
-BoundaryCondition::BoundaryCondition(const std::string & name, InputParameters parameters) :
-    MooseObject(name, parameters),
-    BoundaryRestrictableRequired(name, parameters),
-    SetupInterface(parameters),
-    FunctionInterface(parameters),
-    UserObjectInterface(parameters),
-    TransientInterface(parameters, name, "bcs"),
-    PostprocessorInterface(parameters),
-    GeometricSearchInterface(parameters),
-    Restartable(name, parameters, "BCs"),
+BoundaryCondition::BoundaryCondition(const InputParameters & parameters) :
+    MooseObject(parameters),
+    BoundaryRestrictableRequired(parameters),
+    SetupInterface(this),
+    FunctionInterface(this),
+    UserObjectInterface(this),
+    TransientInterface(this),
+    PostprocessorInterface(this),
+    GeometricSearchInterface(this),
+    Restartable(parameters, "BCs"),
     ZeroInterface(parameters),
+    MeshChangedInterface(parameters),
     _subproblem(*parameters.get<SubProblem *>("_subproblem")),
     _fe_problem(*parameters.get<FEProblem *>("_fe_problem")),
     _sys(*parameters.get<SystemBase *>("_sys")),
@@ -52,17 +54,18 @@ BoundaryCondition::BoundaryCondition(const std::string & name, InputParameters p
     _assembly(_subproblem.assembly(_tid)),
     _var(_sys.getVariable(_tid, parameters.get<NonlinearVariableName>("variable"))),
     _mesh(_subproblem.mesh())
-//    _dim(_mesh.dimension())
 {
 }
 
 MooseVariable &
-BoundaryCondition::variable(){
+BoundaryCondition::variable()
+{
   return _var;
 }
 
 SubProblem &
-BoundaryCondition::subProblem(){
+BoundaryCondition::subProblem()
+{
   return _subproblem;
 }
 

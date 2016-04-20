@@ -1,11 +1,25 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #include "ExampleApp.h"
 #include "Moose.h"
 #include "Factory.h"
 #include "AppFactory.h"
+#include "MooseSyntax.h"
 
 // Example 4 Includes
-#include "Convection.h"
-#include "GaussContForcing.h"
+#include "ExampleConvection.h"
+#include "ExampleGaussContForcing.h"
 #include "CoupledDirichletBC.h"
 #include "CoupledNeumannBC.h"
 
@@ -13,11 +27,14 @@ template<>
 InputParameters validParams<ExampleApp>()
 {
   InputParameters params = validParams<MooseApp>();
+
+  params.set<bool>("use_legacy_uo_initialization") = false;
+  params.set<bool>("use_legacy_uo_aux_computation") = false;
   return params;
 }
 
-ExampleApp::ExampleApp(const std::string & name, InputParameters parameters) :
-    MooseApp(name, parameters)
+ExampleApp::ExampleApp(InputParameters parameters) :
+    MooseApp(parameters)
 {
   srand(processor_id());
 
@@ -35,8 +52,8 @@ ExampleApp::~ExampleApp()
 void
 ExampleApp::registerObjects(Factory & factory)
 {
-  registerKernel(Convection);
-  registerKernel(GaussContForcing);                 // Extra forcing term
+  registerKernel(ExampleConvection);
+  registerKernel(ExampleGaussContForcing);                 // Extra forcing term
   registerBoundaryCondition(CoupledDirichletBC);    // Register our Boundary Conditions
   registerBoundaryCondition(CoupledNeumannBC);
 }

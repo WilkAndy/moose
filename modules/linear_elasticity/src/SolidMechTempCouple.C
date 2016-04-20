@@ -1,4 +1,12 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 #include "SolidMechTempCouple.h"
+#include "MooseMesh.h"
 
 template<>
 InputParameters validParams<SolidMechTempCouple>()
@@ -8,8 +16,8 @@ InputParameters validParams<SolidMechTempCouple>()
   return params;
 }
 
-SolidMechTempCouple::SolidMechTempCouple(const std::string & name, InputParameters parameters)
-  :SolidMech(name, parameters),
+SolidMechTempCouple::SolidMechTempCouple(const InputParameters & parameters)
+  :SolidMech(parameters),
     _temp_var(coupled("temp")),
     _thermal_strain(getMaterialProperty<Real>("thermal_strain")),
    _alpha(getMaterialProperty<Real>("alpha")),
@@ -36,3 +44,4 @@ SolidMechTempCouple::recomputeCouplingConstants()
   if (_mesh_dimension == 3)
     _c4 = _E/(1.-2.*_nu);
 }
+

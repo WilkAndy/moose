@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef INSMOMENTUMTIMEDERIVATIVE_H
 #define INSMOMENTUMTIMEDERIVATIVE_H
 
@@ -17,7 +23,7 @@ InputParameters validParams<INSMomentumTimeDerivative>();
 class INSMomentumTimeDerivative : public TimeDerivative
 {
 public:
-  INSMomentumTimeDerivative(const std::string & name, InputParameters parameters);
+  INSMomentumTimeDerivative(const InputParameters & parameters);
 
   virtual ~INSMomentumTimeDerivative(){}
 

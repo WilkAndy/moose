@@ -1,4 +1,14 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 #include "Density.h"
+
+// libmesh includes
+#include "libmesh/quadrature.h"
 
 template<>
 InputParameters validParams<Density>()
@@ -15,8 +25,8 @@ InputParameters validParams<Density>()
   return params;
 }
 
-Density::Density( const std::string & name, InputParameters parameters ) :
-  Material( name, parameters ),
+Density::Density( const InputParameters & parameters) :
+  Material(parameters),
 
   _is_coupled( isCoupled("disp_x") || isCoupled("disp_r") ),
   _is_RZ( isCoupled("disp_r") && isCoupled("disp_z") ),
@@ -84,3 +94,4 @@ Density::computeProperties()
     _density[qp] = d;
   }
 }
+

@@ -31,8 +31,8 @@ InputParameters validParams<DGFunctionDiffusionDirichletBC>()
   return params;
 }
 
-DGFunctionDiffusionDirichletBC::DGFunctionDiffusionDirichletBC(const std::string & name, InputParameters parameters) :
-    IntegratedBC(name, parameters),
+DGFunctionDiffusionDirichletBC::DGFunctionDiffusionDirichletBC(const InputParameters & parameters) :
+    IntegratedBC(parameters),
     _func(getFunction("function")),
     _epsilon(getParam<Real>("epsilon")),
     _sigma(getParam<Real>("sigma"))
@@ -42,7 +42,7 @@ DGFunctionDiffusionDirichletBC::DGFunctionDiffusionDirichletBC(const std::string
 Real
 DGFunctionDiffusionDirichletBC::computeQpResidual()
 {
-  const unsigned int elem_b_order = static_cast<unsigned int> (_var.getOrder());
+  const unsigned int elem_b_order = _var.order();
   const double h_elem = _current_elem->volume()/_current_side_elem->volume() * 1./std::pow(elem_b_order, 2.);
 
   Real fn = _func.value(_t, _q_point[_qp]);
@@ -57,7 +57,7 @@ DGFunctionDiffusionDirichletBC::computeQpResidual()
 Real
 DGFunctionDiffusionDirichletBC::computeQpJacobian()
 {
-  const unsigned int elem_b_order = static_cast<unsigned int> (_var.getOrder());
+  const unsigned int elem_b_order = _var.order();
   const double h_elem = _current_elem->volume()/_current_side_elem->volume() * 1./std::pow(elem_b_order, 2.);
 
   Real r = 0;
@@ -67,3 +67,4 @@ DGFunctionDiffusionDirichletBC::computeQpJacobian()
 
   return r;
 }
+

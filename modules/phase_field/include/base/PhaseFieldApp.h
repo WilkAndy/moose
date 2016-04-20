@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef PHASE_FIELDAPP_H
 #define PHASE_FIELDAPP_H
 
@@ -11,7 +17,7 @@ InputParameters validParams<PhaseFieldApp>();
 class PhaseFieldApp : public MooseApp
 {
 public:
-  PhaseFieldApp(const std::string & name, InputParameters parameters);
+  PhaseFieldApp(const InputParameters & parameters);
   virtual ~PhaseFieldApp();
 
   static void registerApps();

@@ -87,11 +87,8 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = oneDb
   hide = dummy
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

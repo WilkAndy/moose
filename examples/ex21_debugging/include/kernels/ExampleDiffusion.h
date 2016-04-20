@@ -31,8 +31,7 @@ class ExampleDiffusion : public Diffusion
 {
 public:
 
-  ExampleDiffusion(const std::string & name,
-                   InputParameters parameters);
+  ExampleDiffusion(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
@@ -45,6 +44,7 @@ protected:
    *
    * Do NOT copy this line of code!
    */
-  MaterialProperty<Real> _diffusivity;
+
+  VariableValue _coupled_coef;
 };
 #endif //EXAMPLEDIFFUSION_H

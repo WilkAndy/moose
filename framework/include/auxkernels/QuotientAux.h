@@ -32,15 +32,15 @@ InputParameters validParams<QuotientAux>();
 class QuotientAux : public AuxKernel
 {
 public:
-  QuotientAux(const std::string & name, InputParameters parameters);
+  QuotientAux(const InputParameters & parameters);
 
   virtual ~QuotientAux() {}
 
 protected:
   virtual Real computeValue();
 
-  VariableValue & _numerator;
-  VariableValue & _denominator;
+  const VariableValue & _numerator;
+  const VariableValue & _denominator;
 };
 
 #endif // QUOTIENTAUX_H

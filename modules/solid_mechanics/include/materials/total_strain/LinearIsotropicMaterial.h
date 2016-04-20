@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef LINEARISOTROPICMATERIAL_H
 #define LINEARISOTROPICMATERIAL_H
 
@@ -16,8 +22,7 @@ InputParameters validParams<LinearIsotropicMaterial>();
 class LinearIsotropicMaterial : public SolidMechanicsMaterial
 {
 public:
-  LinearIsotropicMaterial(const std::string & name,
-                          InputParameters parameters);
+  LinearIsotropicMaterial(const InputParameters & parameters);
 
   virtual ~LinearIsotropicMaterial();
 

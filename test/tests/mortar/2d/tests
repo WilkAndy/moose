@@ -5,6 +5,16 @@
     exodiff = 'conforming_out.e'
     max_parallel = 1
     max_threads = 1
+    compiler = 'GCC CLANG'
+  [../]
+
+  [./conforming_two_var]
+    type = 'Exodiff'
+    input = 'conforming_two_var.i'
+    exodiff = 'conforming_two_var_out.e'
+    max_parallel = 1
+    max_threads = 1
+    compiler = 'GCC CLANG'
   [../]
 
   [./non-conforming]
@@ -13,7 +23,6 @@
     exodiff = 'non-conforming_out.e'
     max_parallel = 1
     max_threads = 1
-    deleted = true # Diffs 25% of the time in a significant way #1482
   [../]
 
   [./conforming-2nd-order]
@@ -22,6 +31,7 @@
     exodiff = 'conforming-2nd-order_out.e'
     max_parallel = 1
     max_threads = 1
+    compiler = 'GCC CLANG'
   [../]
 
   [./non-conforming-2nd-order]
@@ -30,6 +40,5 @@
     exodiff = 'non-conforming-2nd-order_out.e'
     max_parallel = 1
     max_threads = 1
-    deleted = true
   [../]
 []

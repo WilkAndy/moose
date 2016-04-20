@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef SOLID_MECHANICSAPP_H
 #define SOLID_MECHANICSAPP_H
 
@@ -11,7 +17,8 @@ InputParameters validParams<SolidMechanicsApp>();
 class SolidMechanicsApp : public MooseApp
 {
 public:
-  SolidMechanicsApp(const std::string & name, InputParameters parameters);
+  SolidMechanicsApp(const InputParameters & parameters);
+
   virtual ~SolidMechanicsApp();
 
   static void registerApps();

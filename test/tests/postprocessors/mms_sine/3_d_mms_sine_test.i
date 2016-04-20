@@ -96,9 +96,4 @@
 [Outputs]
   file_base = 3_d_out
   exodus = true
-  output_initial = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

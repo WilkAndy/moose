@@ -1,16 +1,10 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
+
 
 #ifndef MULTIDCONTACTCONSTRAINT_H
 #define MULTIDCONTACTCONSTRAINT_H
@@ -33,7 +27,7 @@ class MultiDContactConstraint :
   public NodeFaceConstraint
 {
 public:
-  MultiDContactConstraint(const std::string & name, InputParameters parameters);
+  MultiDContactConstraint(const InputParameters & parameters);
   virtual ~MultiDContactConstraint(){}
 
   virtual void timestepSetup();
@@ -65,7 +59,7 @@ protected:
 
   const unsigned int _mesh_dimension;
 
-  RealVectorValue _vars;
+  VectorValue<unsigned> _vars;
 };
 
 #endif

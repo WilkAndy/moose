@@ -16,7 +16,7 @@
 #define FILEOUTPUT_H
 
 // MOOSE includes
-#include "Output.h"
+#include "PetscOutput.h"
 
 // Forward declerations
 class FileOutput;
@@ -29,14 +29,14 @@ InputParameters validParams<FileOutput>();
  *
  * @see Exodus
  */
-class FileOutput : public Output
+class FileOutput : public PetscOutput
 {
 public:
 
   /**
    * Class constructor
    */
-  FileOutput(const std::string & name, InputParameters & parameters);
+  FileOutput(const InputParameters & parameters);
 
   /**
    * Class destructor
@@ -45,24 +45,9 @@ public:
 
   /**
    * The filename for the output file
-   * @return A string of output file including the extension
+   * @return A string of output file including the extension, by default this returns _file_base
    */
-  virtual std::string filename() = 0;
-
-  /**
-   * Performs the initial output, including the creation of the file base contains check
-   */
-  virtual void outputInitial();
-
-  /**
-   * Performs the output of a time step, including the creation of the file base contains check
-   */
-  virtual void outputStep();
-
-  /**
-   * Performs the final output, including the creation of the file base contains check
-   */
-  virtual void outputFinal();
+  virtual std::string filename();
 
   /**
    * Sets the file number manually.
@@ -94,6 +79,11 @@ public:
 protected:
 
   /**
+   * Checks if the output method should be executed
+   */
+  bool shouldOutput(const ExecFlagType & type);
+
+  /**
    * Checks the filename for output
    * Checks the output against the 'output_if_base_contians' list
    * @return Returns true if the filename is valid for output
@@ -109,8 +99,10 @@ protected:
   /// Number of digits to pad the extensions
   unsigned int _padding;
 
-  /// True if the file should be output (used for 'output_if_base_constains'
-  bool _output_file;
+  /// Storage for 'output_if_base_contains'
+  std::vector<std::string> _output_if_base_contains;
+
+private:
 
   // OutputWarehouse needs access to _file_num for MultiApp ninja wizardry (see OutputWarehouse::merge)
   friend class OutputWarehouse;

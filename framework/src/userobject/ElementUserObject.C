@@ -15,6 +15,10 @@
 #include "ElementUserObject.h"
 #include "MooseVariable.h"
 #include "SubProblem.h"
+#include "Assembly.h"
+
+// libMesh includes
+#include "libmesh/elem.h"
 
 template<>
 InputParameters validParams<ElementUserObject>()
@@ -22,20 +26,21 @@ InputParameters validParams<ElementUserObject>()
   InputParameters params = validParams<UserObject>();
   params += validParams<BlockRestrictable>();
   params += validParams<RandomInterface>();
-
+  params += validParams<MaterialPropertyInterface>();
   return params;
 }
 
-ElementUserObject::ElementUserObject(const std::string & name, InputParameters parameters) :
-    UserObject(name, parameters),
-    BlockRestrictable(name, parameters),
-    MaterialPropertyInterface(parameters),
-    UserObjectInterface(parameters),
+ElementUserObject::ElementUserObject(const InputParameters & parameters) :
+    UserObject(parameters),
+    BlockRestrictable(parameters),
+    MaterialPropertyInterface(this, blockIDs()),
+    UserObjectInterface(this),
     Coupleable(parameters, false),
+    ScalarCoupleable(parameters),
     MooseVariableDependencyInterface(),
-    TransientInterface(parameters, name, "element_user_objects"),
-    PostprocessorInterface(parameters),
-    RandomInterface(name, parameters, _fe_problem, _tid, false),
+    TransientInterface(this),
+    PostprocessorInterface(this),
+    RandomInterface(parameters, _fe_problem, _tid, false),
     ZeroInterface(parameters),
     _mesh(_subproblem.mesh()),
     _current_elem(_assembly.elem()),

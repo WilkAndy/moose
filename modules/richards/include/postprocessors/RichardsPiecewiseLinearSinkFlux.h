@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSPIECEWISELINEARSINKFLUX_H
 #define RICHARDSPIECEWISELINEARSINKFLUX_H
@@ -9,7 +12,6 @@
 #include "SideIntegralVariablePostprocessor.h"
 #include "LinearInterpolation.h"
 #include "RichardsVarNames.h"
-#include "FunctionInterface.h"
 
 class Function;
 
@@ -29,11 +31,10 @@ InputParameters validParams<RichardsPiecewiseLinearSinkFlux>();
  *      where knn is n.permeability.n where n is the normal to the boundary
  */
 class RichardsPiecewiseLinearSinkFlux:
-  public SideIntegralVariablePostprocessor,
-  public FunctionInterface
+  public SideIntegralVariablePostprocessor
 {
 public:
-  RichardsPiecewiseLinearSinkFlux(const std::string & name, InputParameters parameters);
+  RichardsPiecewiseLinearSinkFlux(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpIntegral();
@@ -61,19 +62,19 @@ protected:
   unsigned int _pvar;
 
   /// porepressure values (only the _pvar component is used)
-  MaterialProperty<std::vector<Real> > &_pp;
+  const MaterialProperty<std::vector<Real> > &_pp;
 
   /// fluid viscosity
-  MaterialProperty<std::vector<Real> > &_viscosity;
+  const MaterialProperty<std::vector<Real> > &_viscosity;
 
   /// medium permeability
-  MaterialProperty<RealTensorValue> & _permeability;
+  const MaterialProperty<RealTensorValue> & _permeability;
 
   /// fluid relative permeability
-  MaterialProperty<std::vector<Real> > &_rel_perm;
+  const MaterialProperty<std::vector<Real> > &_rel_perm;
 
   /// fluid density
-  MaterialProperty<std::vector<Real> > &_density;
+  const MaterialProperty<std::vector<Real> > &_density;
 
 };
 

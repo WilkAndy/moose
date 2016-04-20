@@ -29,12 +29,16 @@ InputParameters validParams<MatchedValueBC>();
 class MatchedValueBC : public NodalBC
 {
 public:
-  MatchedValueBC(const std::string & name, InputParameters parameters);
+  MatchedValueBC(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
+  virtual Real computeQpOffDiagJacobian(unsigned int jvar);
 
-  VariableValue & _v_face;
+  const VariableValue & _v;
+
+  /// The id of the coupled variable
+  unsigned int _v_num;
 };
 
 #endif //MATCHEDVALUEBC_H

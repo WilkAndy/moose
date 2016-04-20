@@ -17,7 +17,7 @@
 [Mesh]
   type = FileMesh
   file = truss.e
-  displacements = 'disp_x disp_y disp_z'
+  displacements = 'disp_x disp_y'
 []
 
 [Variables]
@@ -26,10 +26,6 @@
     family = LAGRANGE
   [../]
   [./disp_y]
-    order = FIRST
-    family = LAGRANGE
-  [../]
-  [./disp_z]
     order = FIRST
     family = LAGRANGE
   [../]
@@ -89,39 +85,12 @@
     boundary = 1
     value = 0
   [../]
-  [./fixz1]
-    type = DirichletBC
-    variable = disp_z
-    boundary = 1
-    value = 0
-  [../]
 
 
   [./fixy4]
     type = DirichletBC
     variable = disp_y
     boundary = 4
-    value = 0
-  [../]
-
-  [./fixDummyHex_x]
-    type = DirichletBC
-    variable = disp_x
-    boundary = 1000
-    value = 0
-  [../]
-
-  [./fixDummyHex_y]
-    type = DirichletBC
-    variable = disp_y
-    boundary = 1000
-    value = 0
-  [../]
-
-  [./fixDummyHex_z]
-    type = DirichletBC
-    variable = disp_z
-    boundary = 1000
     value = 0
   [../]
 []
@@ -153,7 +122,7 @@
     block = 1
     variable = area
     value = 0.8
-    execute_on = timestep_begin
+    execute_on = 'initial timestep_begin'
   [../]
 []
 
@@ -188,7 +157,6 @@
     variable = disp_x
     disp_x = disp_x
     disp_y = disp_y
-    disp_z = disp_z
     component = 0
     area = area
     save_in = react_x
@@ -200,68 +168,21 @@
     component = 1
     disp_x = disp_x
     disp_y = disp_y
-    disp_z = disp_z
     area = area
     save_in = react_y
-  [../]
-  [./solid_z]
-    type = StressDivergenceTruss
-    block = 1
-    variable = disp_z
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
-    component = 2
-    area = area
-    save_in = react_z
-  [../]
-[]
-
-[SolidMechanics]
-#  [./solid]
-#    type = truss
-#    disp_x = disp_x
-#    disp_y = disp_y
-#    disp_z = disp_z
-#    area = area
-#    save_in = react_x
-#    save_in = react_y
-#    save_in = react_z
-#  [../]
-  [./dummyHex]
-    block = 1000
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
   [../]
 []
 
 [Materials]
-  [./goo]
-    type = Elastic
-    block = 1000
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
-    youngs_modulus = 1e6
-    poissons_ratio = 0
-  [../]
   [./linelast]
     type = TrussMaterial
     block = 1
     disp_x = disp_x
     disp_y = disp_y
-    disp_z = disp_z
     youngs_modulus = 1e6
   [../]
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-    [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

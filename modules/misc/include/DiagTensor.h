@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef DIAGTENSOR_H
 #define DIAGTENSOR_H
 
@@ -50,15 +56,6 @@ public:
       if (init_list.size() != 3)
         mooseError("please enter a vector with 3 entries.");
     }
-
-  DiagTensor(const DiagTensor &a)
-    {
-      *this = a;
-    }
-
-
-  ~DiagTensor() {}
-
 
   Real rowDot(const unsigned int r,
               const libMesh::TypeVector<Real> & v) const

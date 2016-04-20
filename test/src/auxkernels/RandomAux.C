@@ -25,8 +25,8 @@ InputParameters validParams<RandomAux>()
   return params;
 }
 
-RandomAux::RandomAux(const std::string & name, InputParameters params) :
-    AuxKernel(name, params),
+RandomAux::RandomAux(const InputParameters & params) :
+    AuxKernel(params),
     _random_uo(params.isParamValid("random_user_object") ? &getUserObject<RandomElementalUserObject>("random_user_object") : NULL),
     _generate_ints(getParam<bool>("generate_integers"))
 {
@@ -34,7 +34,7 @@ RandomAux::RandomAux(const std::string & name, InputParameters params) :
    * This call turns on Random Number generation for this object, it can be called either in
    * the constructor or in initialSetup().
    */
-  setRandomResetFrequency(EXEC_RESIDUAL);
+  setRandomResetFrequency(EXEC_LINEAR);
 
   if (_random_uo)
   {

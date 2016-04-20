@@ -1,4 +1,19 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
+
 #include "MMSDiffusion.h"
+#include "MooseMesh.h"
 
 template<>
 InputParameters validParams<MMSDiffusion>()
@@ -8,8 +23,8 @@ InputParameters validParams<MMSDiffusion>()
 }
 
 
-MMSDiffusion::MMSDiffusion(const std::string & name, InputParameters parameters) :
-    Kernel(name, parameters),
+MMSDiffusion::MMSDiffusion(const InputParameters & parameters) :
+    Kernel(parameters),
     _mesh_dimension(_mesh.dimension())
 {}
 

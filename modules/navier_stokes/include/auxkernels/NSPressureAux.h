@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSPRESSUREAUX_H
 #define NSPRESSUREAUX_H
 
@@ -20,18 +26,18 @@ public:
    * Factory constructor, takes parameters so that all derived classes can be built using the same
    * constructor.
    */
-  NSPressureAux(const std::string & name, InputParameters parameters);
+  NSPressureAux(const InputParameters & parameters);
 
   virtual ~NSPressureAux() {}
 
 protected:
   virtual Real computeValue();
 
-  VariableValue & _rho;
-  VariableValue & _u_vel;
-  VariableValue & _v_vel;
-  VariableValue & _w_vel;
-  VariableValue & _rhoe;
+  const VariableValue & _rho;
+  const VariableValue & _u_vel;
+  const VariableValue & _v_vel;
+  const VariableValue & _w_vel;
+  const VariableValue & _rhoe;
 
   Real _gamma;
 };

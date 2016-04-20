@@ -72,15 +72,14 @@
     variable = u
     function = exact_fn
   [../]
-
-  [./res]
-    type = Residual
-  [../]
 []
 
 [Executioner]
   type = Transient
-  scheme = 'rk-2'
+
+  [./TimeIntegrator]
+    type = ExplicitMidpoint
+  [../]
   solve_type = 'LINEAR'
 
   start_time = 0.0
@@ -90,7 +89,6 @@
 []
 
 [Outputs]
-  output_initial = true
-  console = true
   exodus = true
+  print_perf_log = true
 []

@@ -28,9 +28,9 @@ InputParameters validParams<TimeStepper>()
   return params;
 }
 
-TimeStepper::TimeStepper(const std::string & name, InputParameters parameters) :
-    MooseObject(name, parameters),
-    Restartable(name, parameters, "TimeSteppers"),
+TimeStepper::TimeStepper(const InputParameters & parameters) :
+    MooseObject(parameters),
+    Restartable(parameters, "TimeSteppers"),
     _fe_problem(*parameters.getCheckedPointerParam<FEProblem *>("_fe_problem")),
     _executioner(*parameters.getCheckedPointerParam<Transient *>("_executioner")),
     _time(_fe_problem.time()),
@@ -166,7 +166,7 @@ TimeStepper::constrainStep(Real &dt)
 
     if (dt <= 0.0)
     {
-      Moose::out << diag.str();
+      _console << diag.str();
       mooseError("Adjusting to sync_time resulted in a non-positive time step.  dt: "
                  <<dt<<" sync_time: "<<*_sync_times.begin()<<" time: "<<_time);
     }
@@ -176,7 +176,7 @@ TimeStepper::constrainStep(Real &dt)
 
   if (_verbose)
   {
-    Moose::out << diag.str();
+    _console << diag.str();
   }
 
   return at_sync_point;
@@ -203,6 +203,7 @@ TimeStepper::acceptStep()
 void
 TimeStepper::rejectStep()
 {
+  _converged = false;
   _fe_problem.restoreSolutions();
 }
 
@@ -229,10 +230,4 @@ void
 TimeStepper::forceTimeStep(Real dt)
 {
   _current_dt = dt;
-}
-
-void
-TimeStepper::addSyncTime(Real sync_time)
-{
-  _sync_times.insert(sync_time);
 }

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef TRICRYSTAL2CIRCLEGRAINSIC_H
 #define TRICRYSTAL2CIRCLEGRAINSIC_H
 
@@ -22,12 +28,9 @@ public:
   /**
    * Constructor
    *
-   * @param name The name given to the initial condition in the input file.
    * @param parameters The parameters object holding data for the class to use.
-   * @param var_name The variable this InitialCondtion is supposed to provide values for.
    */
-  Tricrystal2CircleGrainsIC(const std::string & name,
-                InputParameters parameters);
+  Tricrystal2CircleGrainsIC(const InputParameters & parameters);
 
   /**
    * The value of the variable at a point.
@@ -41,8 +44,8 @@ protected:
   /// A reference to the nonlinear system
   NonlinearSystem & _nl;
 
-  unsigned int _crys_num;
-  unsigned int _crys_index;
+  unsigned int _op_num;
+  unsigned int _op_index;
 
   Point _bottom_left;
   Point _top_right;

@@ -12,12 +12,14 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 
+// MOOSE includes
 #include "MultiAppUserObjectTransfer.h"
-
-// Moose
 #include "MooseTypes.h"
 #include "FEProblem.h"
 #include "DisplacedProblem.h"
+#include "MultiApp.h"
+#include "MooseMesh.h"
+#include "UserObject.h"
 
 // libMesh
 #include "libmesh/meshfree_interpolation.h"
@@ -37,8 +39,8 @@ InputParameters validParams<MultiAppUserObjectTransfer>()
   return params;
 }
 
-MultiAppUserObjectTransfer::MultiAppUserObjectTransfer(const std::string & name, InputParameters parameters) :
-    MultiAppTransfer(name, parameters),
+MultiAppUserObjectTransfer::MultiAppUserObjectTransfer(const InputParameters & parameters) :
+    MultiAppTransfer(parameters),
     _to_var_name(getParam<AuxVariableName>("variable")),
     _user_object_name(getParam<UserObjectName>("user_object")),
     _displaced_target_mesh(getParam<bool>("displaced_target_mesh"))
@@ -48,9 +50,16 @@ MultiAppUserObjectTransfer::MultiAppUserObjectTransfer(const std::string & name,
 }
 
 void
+MultiAppUserObjectTransfer::initialSetup()
+{
+  if (_direction == TO_MULTIAPP)
+    variableIntegrityCheck(_to_var_name);
+}
+
+void
 MultiAppUserObjectTransfer::execute()
 {
-  Moose::out << "Beginning MultiAppUserObjectTransfer " << _name << std::endl;
+  _console << "Beginning MultiAppUserObjectTransfer " << name() << std::endl;
 
   switch (_direction)
   {
@@ -63,10 +72,7 @@ MultiAppUserObjectTransfer::execute()
           MPI_Comm swapped = Moose::swapLibMeshComm(_multi_app->comm());
 
           // Loop over the master nodes and set the value of the variable
-          System * to_sys = find_sys(_multi_app->appProblem(i)->es(), _to_var_name);
-
-          if (!to_sys)
-            mooseError("Cannot find variable "<<_to_var_name<<" for "<<_name<<" Transfer");
+          System * to_sys = find_sys(_multi_app->appProblem(i).es(), _to_var_name);
 
           unsigned int sys_num = to_sys->number();
           unsigned int var_num = to_sys->variable_number(_to_var_name);
@@ -75,16 +81,16 @@ MultiAppUserObjectTransfer::execute()
 
           MeshBase * mesh = NULL;
 
-          if (_displaced_target_mesh && _multi_app->appProblem(i)->getDisplacedProblem())
+          if (_displaced_target_mesh && _multi_app->appProblem(i).getDisplacedProblem())
           {
-            mesh = &_multi_app->appProblem(i)->getDisplacedProblem()->mesh().getMesh();
+            mesh = &_multi_app->appProblem(i).getDisplacedProblem()->mesh().getMesh();
           }
           else
-            mesh = &_multi_app->appProblem(i)->mesh().getMesh();
+            mesh = &_multi_app->appProblem(i).mesh().getMesh();
 
           bool is_nodal = to_sys->variable_type(var_num).family == LAGRANGE;
 
-          const UserObject & user_object = _multi_app->problem()->getUserObjectBase(_user_object_name);
+          const UserObject & user_object = _multi_app->problem().getUserObjectBase(_user_object_name);
 
           if (is_nodal)
           {
@@ -149,7 +155,7 @@ MultiAppUserObjectTransfer::execute()
     }
     case FROM_MULTIAPP:
     {
-      FEProblem & to_problem = *_multi_app->problem();
+      FEProblem & to_problem = _multi_app->problem();
       MooseVariable & to_var = to_problem.getVariable(0, _to_var_name);
       SystemBase & to_system_base = to_var.sys();
 
@@ -162,7 +168,7 @@ MultiAppUserObjectTransfer::execute()
 
       unsigned int to_var_num = to_sys.variable_number(to_var.name());
 
-      Moose::out << "Transferring to: " << to_var.name() << std::endl;
+      _console << "Transferring to: " << to_var.name() << std::endl;
 
       // EquationSystems & to_es = to_sys.get_equation_systems();
 
@@ -248,5 +254,5 @@ MultiAppUserObjectTransfer::execute()
     }
   }
 
-  Moose::out << "Finished MultiAppUserObjectTransfer " << _name << std::endl;
+  _console << "Finished MultiAppUserObjectTransfer " << name() << std::endl;
 }

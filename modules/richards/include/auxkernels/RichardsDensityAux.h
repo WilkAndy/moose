@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSDENSITYAUX_H
 #define RICHARDSDENSITYAUX_H
@@ -22,13 +25,13 @@ InputParameters validParams<RichardsDensityAux>();
 class RichardsDensityAux: public AuxKernel
 {
 public:
-  RichardsDensityAux(const std::string & name, InputParameters parameters);
+  RichardsDensityAux(const InputParameters & parameters);
 
 protected:
   virtual Real computeValue();
 
   /// porepressure
-  VariableValue & _pressure_var;
+  const VariableValue & _pressure_var;
 
   /// userobject that defines density as a fcn of porepressure
   const RichardsDensity & _density_UO;

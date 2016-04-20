@@ -163,12 +163,12 @@
   [./x]
     type = ScalarVariable
     variable = x
-    execute_on = timestep
+    execute_on = 'initial timestep_end'
   [../]
   [./y]
     type = ScalarVariable
     variable = y
-    execute_on = timestep
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -178,20 +178,14 @@
   # Preconditioned JFNK (default)
   solve_type = 'PJFNK'
   dt = 0.01
-  num_steps = 10
+  num_steps = 1
 []
 
 [Outputs]
-  file_base = out
-  output_initial = true
-  [./exodus]
+  show = 'x u nodal elemental'
+  [./out]
     type = Exodus
     elemental_as_nodal = true
     scalar_as_nodal = true
   [../]
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
-  show = 'x u nodal elemental'
 []

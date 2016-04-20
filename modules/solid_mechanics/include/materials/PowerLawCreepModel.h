@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef POWERLAWCREEPMODEL_H
 #define POWERLAWCREEPMODEL_H
 
@@ -10,8 +16,7 @@
 class PowerLawCreepModel : public ReturnMappingModel
 {
 public:
-  PowerLawCreepModel( const std::string & name,
-                       InputParameters parameters );
+  PowerLawCreepModel( const InputParameters & parameters);
 
 protected:
   virtual void computeStressInitialize(unsigned qp, Real effectiveTrialStress, const SymmElasticityTensor & elasticityTensor);

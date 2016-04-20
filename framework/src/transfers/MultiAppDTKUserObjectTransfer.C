@@ -14,9 +14,11 @@
 
 #include "libmesh/libmesh_config.h"
 
-#ifdef LIBMESH_HAVE_DTK
+#ifdef LIBMESH_TRILINOS_HAVE_DTK
 
 #include "MultiAppDTKUserObjectTransfer.h"
+#include "DTKInterpolationAdapter.h"
+#include "MultiApp.h"
 
 // Moose Includes
 #include "MooseTypes.h"
@@ -31,8 +33,8 @@ InputParameters validParams<MultiAppDTKUserObjectTransfer>()
   return params;
 }
 
-MultiAppDTKUserObjectTransfer::MultiAppDTKUserObjectTransfer(const std::string & name, InputParameters parameters) :
-    MultiAppTransfer(name, parameters),
+MultiAppDTKUserObjectTransfer::MultiAppDTKUserObjectTransfer(const InputParameters & parameters) :
+    MultiAppTransfer(parameters),
     MooseVariableInterface(parameters, true),
     _user_object_name(getParam<UserObjectName>("user_object")),
     _setup(false)
@@ -54,28 +56,28 @@ MultiAppDTKUserObjectTransfer::execute()
 
     _multi_app_geom = _multi_app_user_object_evaluator->createSourceGeometry(_comm_default);
 
-    _to_adapter = new DTKInterpolationAdapter(_comm_default, _multi_app->problem()->es(), Point(), 3);
+    _to_adapter = new DTKInterpolationAdapter(_comm_default, _multi_app->problem().es(), Point(), 3);
 
     _src_to_tgt_map = new DataTransferKit::VolumeSourceMap<DataTransferKit::Box, GlobalOrdinal, DataTransferKit::MeshContainer<GlobalOrdinal> >(_comm_default, 3, true);
 
-    Moose::out << "--Setting Up Transfer--" << std::endl;
+    _console << "--Setting Up Transfer--" << std::endl;
     if (_variable->isNodal())
       _src_to_tgt_map->setup(_multi_app_geom, _to_adapter->get_target_coords());
     else
       _src_to_tgt_map->setup(_multi_app_geom, _to_adapter->get_elem_target_coords());
 
-    Moose::out << "--Transfer Setup Complete--" << std::endl;
+    _console << "--Transfer Setup Complete--" << std::endl;
 
     _to_values = _to_adapter->get_values_to_fill(_variable->name());
 
   }
 
-  Moose::out << "--Mapping Values--" << std::endl;
+  _console << "--Mapping Values--" << std::endl;
   _src_to_tgt_map->apply(_field_evaluator, _to_values);
-  Moose::out << "--Finished Mapping--" << std::endl;
+  _console << "--Finished Mapping--" << std::endl;
 
   _to_adapter->update_variable_values(_variable->name(), _src_to_tgt_map->getMissedTargetPoints());
-  _multi_app->problem()->es().update();
+  _multi_app->problem().es().update();
 }
 
-#endif //LIBMESH_HAVE_DTK
+#endif //LIBMESH_TRILINOS_HAVE_DTK

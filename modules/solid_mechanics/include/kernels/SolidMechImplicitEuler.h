@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef SOLIDMECHIMPLICITEULER_H
 #define SOLIDMECHIMPLICITEULER_H
 
@@ -14,7 +20,7 @@ class SolidMechImplicitEuler : public SecondDerivativeImplicitEuler
 {
 public:
 
-  SolidMechImplicitEuler(const std::string & name, InputParameters parameters);
+  SolidMechImplicitEuler(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
@@ -24,7 +30,7 @@ protected:
   virtual Real scaling();
 
 private:
-  MaterialProperty<Real> & _density;
+  const MaterialProperty<Real> & _density;
   const bool _artificial_scaling_set;
   const Real _artificial_scaling;
 };

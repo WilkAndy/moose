@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef AQUEOUSEQUILIBRIUMRXNAUX_H
 #define AQUEOUSEQUILIBRIUMRXNAUX_H
 
@@ -26,7 +32,7 @@ public:
    * Factory constructor, takes parameters so that all derived classes can be built using the same
    * constructor.
    */
-  AqueousEquilibriumRxnAux(const std::string & name, InputParameters parameters);
+  AqueousEquilibriumRxnAux(const InputParameters & parameters);
 
   virtual ~AqueousEquilibriumRxnAux() {}
 
@@ -43,7 +49,7 @@ protected:
   std::vector<Real> _sto_v;
 
   /// Coupled primary species
-  std::vector<VariableValue *>  _vals;
+  std::vector<const VariableValue *>  _vals;
 };
 
 #endif //AQUEOUSEQUILIBRIUMRXNAUX_H

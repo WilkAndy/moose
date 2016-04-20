@@ -299,12 +299,6 @@
 
 [Outputs]
   file_base = PLC_LSH_plc_out
-  output_initial = true
   exodus = true
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

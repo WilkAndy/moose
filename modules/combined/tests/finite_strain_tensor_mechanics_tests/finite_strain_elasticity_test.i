@@ -22,6 +22,9 @@
   # Comment
   # Mesh
   file = patch_mesh.e
+[]
+
+[GlobalParams]
   displacements = 'disp_x disp_y disp_z'
 []
 
@@ -103,11 +106,9 @@
   [../]
 []
 
-[TensorMechanics]
-  [./solid]
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
+[Kernels]
+  [./TensorMechanics]
+    use_displaced_mesh = true
   [../]
 []
 
@@ -117,43 +118,43 @@
     type = RankTwoAux
     rank_two_tensor = stress
     variable = stress_xx
-    index_i = 1
-    index_j = 1
+    index_i = 0
+    index_j = 0
   [../]
   [./stress_yy]
     type = RankTwoAux
     rank_two_tensor = stress
     variable = stress_yy
-    index_i = 2
-    index_j = 2
+    index_i = 1
+    index_j = 1
   [../]
   [./stress_zz]
     type = RankTwoAux
     rank_two_tensor = stress
     variable = stress_zz
-    index_i = 3
-    index_j = 3
+    index_i = 2
+    index_j = 2
   [../]
   [./stress_xy]
     type = RankTwoAux
     rank_two_tensor = stress
     variable = stress_xy
-    index_i = 1
-    index_j = 2
+    index_i = 0
+    index_j = 1
   [../]
   [./stress_yz]
     type = RankTwoAux
     rank_two_tensor = stress
     variable = stress_yz
-    index_i = 2
-    index_j = 3
+    index_i = 1
+    index_j = 2
   [../]
   [./stress_zx]
     type = RankTwoAux
     rank_two_tensor = stress
     variable = stress_zx
-    index_i = 3
-    index_j = 1
+    index_i = 2
+    index_j = 0
   [../]
 []
 
@@ -311,7 +312,7 @@
     # reading C_11  C_12  C_13  C_22  C_23  C_33  C_44  C_55  C_66
     type = FiniteStrainElasticMaterial
     block = '1 2 3 4 5 6 7'
-    all_21 = false
+    fill_method = symmetric9
     disp_x = disp_x
     disp_y = disp_y
     disp_z = disp_z
@@ -377,14 +378,8 @@
 
 [Outputs]
   file_base = out
-  output_initial = true
   [./exodus]
     type = Exodus
     elemental_as_nodal = true
-  [../]
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
   [../]
 [] # Output

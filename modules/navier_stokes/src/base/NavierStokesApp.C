@@ -1,6 +1,13 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NavierStokesApp.h"
 #include "Moose.h"
 #include "AppFactory.h"
+#include "MooseSyntax.h"
 
 #include "NSMassInviscidFlux.h"
 #include "NSMomentumInviscidFlux.h"
@@ -76,14 +83,14 @@ template<>
 InputParameters validParams<NavierStokesApp>()
 {
   InputParameters params = validParams<MooseApp>();
+  params.set<bool>("use_legacy_uo_initialization") = false;
+  params.set<bool>("use_legacy_uo_aux_computation") = false;
   return params;
 }
 
-NavierStokesApp::NavierStokesApp(const std::string & name, InputParameters parameters) :
-    MooseApp(name, parameters)
+NavierStokesApp::NavierStokesApp(InputParameters parameters) :
+    MooseApp(parameters)
 {
-  srand(processor_id());
-
   Moose::registerObjects(_factory);
   NavierStokesApp::registerObjects(_factory);
 
@@ -95,12 +102,16 @@ NavierStokesApp::~NavierStokesApp()
 {
 }
 
+// External entry point for dynamic application loading
+extern "C" void NavierStokesApp__registerApps() { NavierStokesApp::registerApps(); }
 void
 NavierStokesApp::registerApps()
 {
   registerApp(NavierStokesApp);
 }
 
+// External entry point for dynamic object registration
+extern "C" void NavierStokesApp__registerObjects(Factory & factory) { NavierStokesApp::registerObjects(factory); }
 void
 NavierStokesApp::registerObjects(Factory & factory)
 {
@@ -175,6 +186,8 @@ NavierStokesApp::registerObjects(Factory & factory)
   registerPostprocessor(INSExplicitTimestepSelector);
 }
 
+// External entry point for dynamic syntax association
+extern "C" void NavierStokesApp__associateSyntax(Syntax & syntax, ActionFactory & action_factory) { NavierStokesApp::associateSyntax(syntax, action_factory); }
 void
 NavierStokesApp::associateSyntax(Syntax & /*syntax*/, ActionFactory & /*action_factory*/)
 {

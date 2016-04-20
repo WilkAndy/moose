@@ -11,11 +11,13 @@
 /*                                                              */
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
-#include "NodeFaceConstraint.h"
 
+#include "NodeFaceConstraint.h"
 #include "SystemBase.h"
 #include "PenetrationLocator.h"
 #include "MooseEnum.h"
+#include "Assembly.h"
+#include "MooseMesh.h"
 
 // libMesh includes
 #include "libmesh/string_to_enum.h"
@@ -23,7 +25,7 @@
 template<>
 InputParameters validParams<NodeFaceConstraint>()
 {
-  MooseEnum orders("FIRST, SECOND, THIRD, FORTH", "FIRST");
+  MooseEnum orders("FIRST SECOND THIRD FOURTH", "FIRST");
   InputParameters params = validParams<Constraint>();
   params.addRequiredParam<BoundaryName>("slave", "The boundary ID associated with the slave side");
   params.addRequiredParam<BoundaryName>("master", "The boundary ID associated with the master side");
@@ -37,8 +39,8 @@ InputParameters validParams<NodeFaceConstraint>()
   return params;
 }
 
-NodeFaceConstraint::NodeFaceConstraint(const std::string & name, InputParameters parameters) :
-    Constraint(name, parameters),
+NodeFaceConstraint::NodeFaceConstraint(const InputParameters & parameters) :
+    Constraint(parameters),
     // The slave side is at nodes (hence passing 'true').  The neighbor side is the master side and it is not at nodes (so passing false)
     NeighborCoupleableMooseVariableDependencyIntermediateInterface(parameters, true, false),
     _slave(_mesh.getBoundaryID(getParam<BoundaryName>("slave"))),

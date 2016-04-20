@@ -39,18 +39,22 @@ InputParameters validParams<SetupMeshAction>()
   params.addParam<std::vector<BoundaryName> >("ghosted_boundaries", "Boundaries to be ghosted if using Nemesis");
   params.addParam<std::vector<Real> >("ghosted_boundaries_inflation", "If you are using ghosted boundaries you will want to set this value to a vector of amounts to inflate the bounding boxes by.  ie if you are running a 3D problem you might set it to '0.2 0.1 0.4'");
   params.addParam<unsigned int>("patch_size", 40, "The number of nodes to consider in the NearestNode neighborhood.");
+
   params.addParam<unsigned int>("uniform_refine", 0, "Specify the level of uniform refinement applied to the initial mesh");
+
+  params.addParam<bool>("skip_partitioning", false, "If true the mesh won't be partitioned. This may cause large load imbalanced but is currently required if you "
+                                                    "have a simulation containing uniform refinement, adaptivity and stateful material properties");
 
   // groups
   params.addParamNamesToGroup("displacements ghosted_boundaries ghosted_boundaries_inflation patch_size", "Advanced");
-  params.addParamNamesToGroup("second_order construct_side_list_from_node_list", "Advanced");
+  params.addParamNamesToGroup("second_order construct_side_list_from_node_list skip_partitioning", "Advanced");
   params.addParamNamesToGroup("block_id block_name boundary_id boundary_name", "Add Names");
 
   return params;
 }
 
-SetupMeshAction::SetupMeshAction(const std::string & name, InputParameters params) :
-    MooseObjectAction(name, params)
+SetupMeshAction::SetupMeshAction(InputParameters params) :
+    MooseObjectAction(params)
 {
 }
 
@@ -58,6 +62,7 @@ void
 SetupMeshAction::setupMesh(MooseMesh *mesh)
 {
   std::vector<BoundaryName> ghosted_boundaries = getParam<std::vector<BoundaryName> >("ghosted_boundaries");
+
   for (unsigned int i=0; i<ghosted_boundaries.size(); i++)
     mesh->addGhostedBoundary(mesh->getBoundaryID(ghosted_boundaries[i]));
 
@@ -80,7 +85,7 @@ SetupMeshAction::setupMesh(MooseMesh *mesh)
   // Did they specify extra refinement levels on the command-line?
   level += _app.getParam<unsigned int>("refinements");
 
-  mesh->uniformRefineLevel() = level;
+  mesh->setUniformRefineLevel(level);
 #endif //LIBMESH_ENABLE_AMR
 
   // Add entity names to the mesh
@@ -121,39 +126,37 @@ SetupMeshAction::setupMesh(MooseMesh *mesh)
   }
 
   if (getParam<bool>("construct_side_list_from_node_list"))
-    mesh->getMesh().boundary_info->build_side_list_from_node_list();
+    mesh->getMesh().get_boundary_info().build_side_list_from_node_list();
 
+  // Here we can override the partitioning for special cases
+  if (getParam<bool>("skip_partitioning"))
+    mesh->getMesh().skip_partitioning(getParam<bool>("skip_partitioning"));
 }
 
 void
 SetupMeshAction::act()
 {
-  if (_type == "MooseMesh")
-  {
-    mooseDeprecated();
-    Moose::err << "Warning: MooseMesh is gone - please use FileMesh instead!";
-    _type = "FileMesh";
-  }
-
   // Create the mesh object and tell it to build itself
-  _mesh = dynamic_cast<MooseMesh *>(_factory.create(_type, "mesh", _moose_object_pars));
-  _mesh->init();
-
-  mooseAssert(_mesh != NULL, "Mesh hasn't been created");
-
-  if (isParamValid("displacements"))
+  if (_current_task == "setup_mesh")
+    _mesh = _factory.create<MooseMesh>(_type, "mesh", _moose_object_pars);
+  else if (_current_task == "init_mesh")
   {
-    // Create the displaced mesh
-    _displaced_mesh = dynamic_cast<MooseMesh *>(_factory.create(_type, "displaced_mesh", _moose_object_pars));
-    _displaced_mesh->init();
+    _mesh->init();
 
-    std::vector<std::string> displacements = getParam<std::vector<std::string> >("displacements");
-    if (displacements.size() != _displaced_mesh->dimension())
-      mooseError("Number of displacements and dimension of mesh MUST be the same!");
+    if (isParamValid("displacements"))
+    {
+      // Create the displaced mesh
+      _displaced_mesh = _factory.create<MooseMesh>(_type, "displaced_mesh", _moose_object_pars);
+      _displaced_mesh->init();
+
+      std::vector<std::string> displacements = getParam<std::vector<std::string> >("displacements");
+      if (displacements.size() < _displaced_mesh->dimension())
+        mooseError("Number of displacements must be greater than or equal to the dimension of the mesh!");
+    }
+
+    setupMesh(_mesh.get());
+
+    if (_displaced_mesh)
+      setupMesh(_displaced_mesh.get());
   }
-
-  setupMesh(_mesh);
-
-  if (_displaced_mesh)
-    setupMesh(_displaced_mesh);
 }

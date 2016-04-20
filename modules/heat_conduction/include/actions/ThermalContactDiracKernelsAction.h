@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef THERMALCONTACTDIRACKERNELSACTION_H
 #define THERMALCONTACTDIRACKERNELSACTION_H
 
@@ -6,7 +12,7 @@
 class ThermalContactDiracKernelsAction : public Action
 {
 public:
-  ThermalContactDiracKernelsAction(const std::string & name, InputParameters params);
+  ThermalContactDiracKernelsAction(const InputParameters & params);
   virtual ~ThermalContactDiracKernelsAction(){}
   virtual void act();
 };

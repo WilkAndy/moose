@@ -43,7 +43,7 @@ public:
   /**
    * Constructor
    */
-  ImplicitODEx(const std::string & name, InputParameters parameters);
+  ImplicitODEx(const InputParameters & parameters);
 
 protected:
   /**
@@ -79,7 +79,7 @@ protected:
   /**
    * Coupled scalar variable values
    */
-  VariableValue & _y;
+  const VariableValue & _y;
 };
 
 

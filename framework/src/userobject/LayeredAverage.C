@@ -14,9 +14,6 @@
 
 #include "LayeredAverage.h"
 
-// libmesh includes
-#include "libmesh/mesh_tools.h"
-
 template<>
 InputParameters validParams<LayeredAverage>()
 {
@@ -25,8 +22,8 @@ InputParameters validParams<LayeredAverage>()
   return params;
 }
 
-LayeredAverage::LayeredAverage(const std::string & name, InputParameters parameters) :
-    LayeredIntegral(name, parameters)
+LayeredAverage::LayeredAverage(const InputParameters & parameters) :
+    LayeredIntegral(parameters)
 {
   _layer_volumes.resize(_num_layers);
 }
@@ -70,3 +67,4 @@ LayeredAverage::threadJoin(const UserObject & y)
   for (unsigned int i=0; i<_layer_volumes.size(); i++)
     _layer_volumes[i] += la._layer_volumes[i];
 }
+

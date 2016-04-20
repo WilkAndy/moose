@@ -21,15 +21,13 @@ InputParameters validParams<AddMaterialAction>()
   return validParams<MooseObjectAction>();
 }
 
-AddMaterialAction::AddMaterialAction(const std::string & name, InputParameters params) :
-    MooseObjectAction(name, params)
+AddMaterialAction::AddMaterialAction(InputParameters params) :
+    MooseObjectAction(params)
 {
 }
 
 void
 AddMaterialAction::act()
 {
-  std::vector<SubdomainName> blocks = _moose_object_pars.get<std::vector<SubdomainName> >("block");
-
-  _problem->addMaterial(_type, getShortName(), _moose_object_pars);
+  _problem->addMaterial(_type, _name, _moose_object_pars);
 }

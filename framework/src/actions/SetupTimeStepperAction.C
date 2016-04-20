@@ -25,8 +25,8 @@ InputParameters validParams<SetupTimeStepperAction>()
   return params;
 }
 
-SetupTimeStepperAction::SetupTimeStepperAction(const std::string & name, InputParameters parameters) :
-    MooseObjectAction(name, parameters)
+SetupTimeStepperAction::SetupTimeStepperAction(InputParameters parameters) :
+    MooseObjectAction(parameters)
 {
 }
 
@@ -39,13 +39,13 @@ SetupTimeStepperAction::act()
 {
   if (_problem->isTransient())
   {
-    Transient * transient = dynamic_cast<Transient *>(_executioner);
+    Transient * transient = dynamic_cast<Transient *>(_executioner.get());
     if (transient == NULL)
       mooseError("You can setup time stepper only with executioners of transient type.");
 
-    _moose_object_pars.set<FEProblem *>("_fe_problem") = _problem;
+    _moose_object_pars.set<FEProblem *>("_fe_problem") = _problem.get();
     _moose_object_pars.set<Transient *>("_executioner") = transient;
-    TimeStepper * ts = static_cast<TimeStepper *>(_factory.create(_type, "TimeStepper", _moose_object_pars));
+    MooseSharedPointer<TimeStepper> ts = _factory.create<TimeStepper>(_type, "TimeStepper", _moose_object_pars);
     transient->setTimeStepper(ts);
   }
 }

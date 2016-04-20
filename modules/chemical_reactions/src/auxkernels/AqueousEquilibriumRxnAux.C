@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "AqueousEquilibriumRxnAux.h"
 
 template<>
@@ -13,8 +19,8 @@ InputParameters validParams<AqueousEquilibriumRxnAux>()
   return params;
 }
 
-AqueousEquilibriumRxnAux::AqueousEquilibriumRxnAux(const std::string & name, InputParameters parameters) :
-  AuxKernel(name, parameters),
+AqueousEquilibriumRxnAux::AqueousEquilibriumRxnAux(const InputParameters & parameters) :
+  AuxKernel(parameters),
   _log_k(getParam<Real>("log_k")),
   _sto_v(getParam<std::vector<Real> >("sto_v"))
 {
@@ -35,3 +41,4 @@ AqueousEquilibriumRxnAux::computeValue()
 
   return std::pow(10.0,_log_k)*conc_product;
 }
+

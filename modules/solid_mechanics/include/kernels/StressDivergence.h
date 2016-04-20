@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef STRESSDIVERGENCE_H
 #define STRESSDIVERGENCE_H
 
@@ -16,7 +22,7 @@ class StressDivergence : public Kernel
 {
 public:
 
-  StressDivergence(const std::string & name, InputParameters parameters);
+  StressDivergence(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
@@ -25,9 +31,11 @@ protected:
 
   virtual Real computeQpOffDiagJacobian(unsigned int jvar);
 
-  MaterialProperty<SymmTensor> & _stress;
-  MaterialProperty<SymmElasticityTensor> & _Jacobian_mult;
-  MaterialProperty<SymmTensor> & _d_stress_dT;
+  const MaterialProperty<SymmTensor> & _stress_older;
+  const MaterialProperty<SymmTensor> & _stress_old;
+  const MaterialProperty<SymmTensor> & _stress;
+  const MaterialProperty<SymmElasticityTensor> & _Jacobian_mult;
+  const MaterialProperty<SymmTensor> & _d_stress_dT;
 
 private:
   const unsigned int _component;
@@ -41,5 +49,7 @@ private:
   const unsigned int _ydisp_var;
   const unsigned int _zdisp_var;
   const unsigned int _temp_var;
+  const Real _zeta;
+  const Real _alpha;
 };
 #endif //STRESSDIVERGENCE_H

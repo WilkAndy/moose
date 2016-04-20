@@ -34,7 +34,7 @@
     source_variable = u
     normalization = unorm
     normal_factor = 2.0
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
 []
 
@@ -65,17 +65,15 @@
   [./unorm]
     type = ElementIntegralVariablePostprocessor
     variable = u
-    execute_on = timestep
+    execute_on = 'initial timestep_end'
   [../]
   [./u_normalized_norm]
     type = ElementIntegralVariablePostprocessor
     variable = u_normalized
-    execute_on = timestep
+    execute_on = 'initial timestep_end'
   [../]
 []
 
 [Outputs]
   exodus = true
-  console = true
-  output_initial = true
 []

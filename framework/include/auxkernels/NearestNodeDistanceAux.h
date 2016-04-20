@@ -16,11 +16,11 @@
 #define NEARESTNODEDISTANCEAUX_H
 
 #include "AuxKernel.h"
-#include "NearestNodeLocator.h"
 
 
 //Forward Declarations
 class NearestNodeDistanceAux;
+class NearestNodeLocator;
 
 template<>
 InputParameters validParams<NearestNodeDistanceAux>();
@@ -35,7 +35,7 @@ public:
    * Factory constructor, takes parameters so that all derived classes can be built using the same
    * constructor.
    */
-  NearestNodeDistanceAux(const std::string & name, InputParameters parameters);
+  NearestNodeDistanceAux(const InputParameters & parameters);
 
   virtual ~NearestNodeDistanceAux();
 

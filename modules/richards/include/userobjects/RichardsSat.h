@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSSAT_H
 #define RICHARDSSAT_H
@@ -21,8 +24,8 @@ InputParameters validParams<RichardsSat>();
  */
 class RichardsSat : public GeneralUserObject
 {
- public:
-  RichardsSat(const std::string & name, InputParameters parameters);
+public:
+  RichardsSat(const InputParameters & parameters);
 
   void initialize();
   void execute();
@@ -37,10 +40,7 @@ class RichardsSat : public GeneralUserObject
   /// derivative of saturation wrt effective saturation
   Real dsat(Real /*seff*/) const;
 
-  /// second derivative of saturation wrt effective saturation
-  Real d2sat(Real /*seff*/) const;
-
- protected:
+protected:
 
   /// residual saturation for this phase
   Real _s_res;

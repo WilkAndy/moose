@@ -15,12 +15,10 @@
 #ifndef LAYEREDSIDEAVERAGE_H
 #define LAYEREDSIDEAVERAGE_H
 
+// MOOSE includes
 #include "LayeredSideIntegral.h"
 
-// libmesh includes
-#include "libmesh/mesh_tools.h"
-
-//Forward Declarations
+// Forward Declarations
 class LayeredSideAverage;
 
 template<>
@@ -32,7 +30,7 @@ InputParameters validParams<LayeredSideAverage>();
 class LayeredSideAverage : public LayeredSideIntegral
 {
 public:
-  LayeredSideAverage(const std::string & name, InputParameters parameters);
+  LayeredSideAverage(const InputParameters & parameters);
 
   virtual void initialize();
   virtual void execute();

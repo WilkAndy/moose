@@ -70,12 +70,8 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = out_wedge
-  output_initial = false
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []
 

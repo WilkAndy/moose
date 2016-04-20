@@ -1,5 +1,29 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "SymmElasticityTensor.h"
 #include <vector>
+
+template<>
+void
+dataStore(std::ostream & stream, SymmElasticityTensor & set, void * context)
+{
+  dataStore(stream, set._constant, context);
+  dataStore(stream, set._values_computed, context);
+  dataStore(stream, set._val, context);
+}
+
+template<>
+void
+dataLoad(std::istream & stream, SymmElasticityTensor & set, void * context)
+{
+  dataLoad(stream, set._constant, context);
+  dataLoad(stream, set._values_computed, context);
+  dataLoad(stream, set._val, context);
+}
 
 SymmElasticityTensor::SymmElasticityTensor(const bool constant)
   : _constant(constant),
@@ -55,7 +79,7 @@ SymmElasticityTensor::operator*( const SymmTensor & x ) const
 Real
 SymmElasticityTensor::stiffness( const unsigned int i, const unsigned int j,
                                  const RealGradient & test,
-                                 const RealGradient & phi )
+                                 const RealGradient & phi ) const
 {
   RealGradient b;
   if (0 == i && 0 == j)

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 // This class is deprecated, use NSMomentumInviscidSpecifiedPressureBC instead.
 
 // #ifndef NSPRESSURENEUMANNBC_H
@@ -28,7 +34,7 @@
 // {
 // public:
 //
-//   NSPressureNeumannBC(const std::string & name, InputParameters parameters);
+//   NSPressureNeumannBC(const InputParameters & parameters);
 //
 //   virtual ~NSPressureNeumannBC(){}
 //
@@ -39,7 +45,7 @@
 //   virtual Real computeQpOffDiagJacobian(unsigned jvar);
 //
 //   // Coupled vars
-//   VariableValue & _pressure;
+//   const VariableValue & _pressure;
 //
 //   // Required parameters
 //   unsigned _component;
@@ -56,7 +62,7 @@
 // private:
 //   // Computes the Jacobian value for this term for variable 'm'
 //   // in the canonical ordering.
-//   Real compute_jacobian(unsigned m);
+//   Real computeJacobianHelper(unsigned m);
 // };
 //
 // #endif //PRESSURENEUMANNBC_H

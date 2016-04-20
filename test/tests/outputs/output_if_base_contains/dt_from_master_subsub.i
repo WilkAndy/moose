@@ -45,13 +45,6 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
   output_if_base_contains = 'sub1_sub1 sub0_sub1'
-
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

@@ -30,16 +30,16 @@ InputParameters validParams<ConvDiffMetaAction>()
   return params;
 }
 
-ConvDiffMetaAction::ConvDiffMetaAction(const std::string & name, InputParameters params) :
-    Action(name, params)
+ConvDiffMetaAction::ConvDiffMetaAction(const InputParameters & params) :
+    Action(params)
 {
 }
 
 void
 ConvDiffMetaAction::act()
 {
-  Action *action;
-  MooseObjectAction *moose_object_action;
+  MooseSharedPointer<Action> action;
+  MooseSharedPointer<MooseObjectAction> moose_object_action;
 
   std::vector<NonlinearVariableName> variables = getParam<std::vector<NonlinearVariableName> > ("variables");
 
@@ -58,18 +58,13 @@ ConvDiffMetaAction::act()
   InputParameters variable_params = _action_factory.getValidParams("AddVariableAction");
   variable_params.set<ActionWarehouse *>("awh") = &_awh;
 
-//  for (unsigned int i=0; i<variable_params.size(); ++i)
-//  {
-
   // Create and Add First Variable Action
-  action = _action_factory.create("AddVariableAction", "Variables/" + variables[0], variable_params);
+  action = _action_factory.create("AddVariableAction", variables[0], variable_params);
   _awh.addActionBlock(action);
 
   // Create and Add Second Variable Action
-  action = _action_factory.create("AddVariableAction", "Variables/" + variables[1], variable_params);
+  action = _action_factory.create("AddVariableAction", variables[1], variable_params);
   _awh.addActionBlock(action);
-//  }
-
 
   //*******************************************//
   //**************** Kernels ******************//
@@ -79,9 +74,9 @@ ConvDiffMetaAction::act()
 
   // Setup our Diffusion Kernel on the "u" variable
   action_params.set<std::string>("type") = "Diffusion";
-  action = _action_factory.create("AddKernelAction", "Kernels/diff_u", action_params);
-  moose_object_action = dynamic_cast<MooseObjectAction *>(action);
-  mooseAssert (moose_object_action, "Dynamic Cast failed");
+  action = _action_factory.create("AddKernelAction", "diff_u", action_params);
+  moose_object_action = MooseSharedNamespace::dynamic_pointer_cast<MooseObjectAction>(action);
+  mooseAssert (moose_object_action.get(), "Dynamic Cast failed");
   {
     InputParameters & params = moose_object_action->getObjectParams();
     params.set<NonlinearVariableName>("variable") = variables[0];
@@ -90,22 +85,23 @@ ConvDiffMetaAction::act()
   }
 
   // Setup our Diffusion Kernel on the "v" variable
-  action = _action_factory.create("AddKernelAction", "Kernels/diff_v", action_params);
+  action = _action_factory.create("AddKernelAction", "diff_v", action_params);
 
-  moose_object_action = dynamic_cast<MooseObjectAction *>(action);
-  mooseAssert (moose_object_action, "Dynamic Cast failed");
+  moose_object_action = MooseSharedNamespace::dynamic_pointer_cast<MooseObjectAction>(action);
+  mooseAssert (moose_object_action.get(), "Dynamic Cast failed");
   {
     InputParameters & params = moose_object_action->getObjectParams();
     params.set<NonlinearVariableName>("variable") = variables[1];
+    // add it to the warehouse
+    _awh.addActionBlock(action);
+
   }
-  // add it to the warehouse
-  _awh.addActionBlock(action);
 
   // Setup our Convection Kernel on the "u" variable coupled to the diffusion variable "v"
   action_params.set<std::string>("type") = "Convection";
-  action = _action_factory.create("AddKernelAction", "Kernels/conv_u", action_params);
-  moose_object_action = dynamic_cast<MooseObjectAction *>(action);
-  mooseAssert (moose_object_action, "Dynamic Cast failed");
+  action = _action_factory.create("AddKernelAction", "conv_u", action_params);
+  moose_object_action = MooseSharedNamespace::dynamic_pointer_cast<MooseObjectAction>(action);
+  mooseAssert (moose_object_action.get(), "Dynamic Cast failed");
   {
     std::vector<std::string> vel_vec_variable;
     InputParameters & params = moose_object_action->getObjectParams();
@@ -114,7 +110,8 @@ ConvDiffMetaAction::act()
     params.set<std::vector<std::string> >("some_variable") = vel_vec_variable;
 
     params.set<RealVectorValue>("velocity") = RealVectorValue(0, 0, 0);
+    // add it to the warehouse
+    _awh.addActionBlock(action);
   }
-  // add it to the warehouse
-  _awh.addActionBlock(action);
+
 }

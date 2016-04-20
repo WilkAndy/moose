@@ -15,126 +15,156 @@
 #ifndef MATERIALWAREHOUSE_H
 #define MATERIALWAREHOUSE_H
 
-#include <vector>
-#include <map>
-#include <set>
-
-#include "MooseTypes.h"
-
-
-class Material;
-
-// Forward Declaration
-template <class T> class DependencyResolver;
+// MOOSE includes
+#include "ExecuteMooseObjectWarehouse.h"
 
 /**
- * Stores materials.
+ * Material objects are special in that they have additional objects created automatically (see FEProblem::addMaterial).
  *
- * There are currently these types of materials
- * 1) material - material defined in the interior of an element (associated with a subdomain)
- * 2) face material - same as above but the material lives on the element side (also associated with a subdomain)
- * 3) neighbor material - same as face material but on the neighboring element (used by DG)
- * 4) boundary material - defined on a surface (associated with a side set)
+ * This class specializes the base class to acount for the additional Neightbor and face objects that may
+ * exist.
  */
-class MaterialWarehouse
+template<typename T>
+class MaterialWarehouse : public ExecuteMooseObjectWarehouse<T>
 {
 public:
-  MaterialWarehouse();
+  const ExecuteMooseObjectWarehouse<T> & operator[](Moose::MaterialDataType data_type) const;
 
-  // Copy Constructor
-  MaterialWarehouse(const MaterialWarehouse &rhs);
-
-  virtual ~MaterialWarehouse();
-
-  // Setup /////
-  void initialSetup();
-  void timestepSetup();
-  void residualSetup();
-  void jacobianSetup();
-
-  bool hasMaterials(SubdomainID block_id);
-  bool hasFaceMaterials(SubdomainID block_id);
-  bool hasNeighborMaterials(SubdomainID block_id);
-  bool hasBoundaryMaterials(BoundaryID boundary_id);
-
-  std::vector<Material *> & getMaterialsByName(const std::string & name);
-
-  std::vector<Material *> & getMaterials(){ return _mats;}
-  std::vector<Material *> & getMaterials(SubdomainID block_id);
-  std::vector<Material *> & getFaceMaterials(SubdomainID block_id);
-  std::vector<Material *> & getNeighborMaterials(SubdomainID block_id);
-  std::vector<Material *> & getBoundaryMaterials(BoundaryID boundary_id);
-
-  const std::vector<Material *> & active(SubdomainID block_id) { return _active_materials[block_id]; }
-
-  void updateMaterialDataState();
-
-  void addMaterial(std::vector<SubdomainID> blocks, Material *material);
-  void addFaceMaterial(std::vector<SubdomainID> blocks, Material *material);
-  void addNeighborMaterial(std::vector<SubdomainID> blocks, Material *material);
-  void addBoundaryMaterial(std::vector<BoundaryID> boundaries, Material *material);
+  ///@{
+  /**
+   * Convenience methods for calling object setup methods that handle the extra neighbor and face objects.
+   */
+  virtual void initialSetup(THREAD_ID tid = 0) const;
+  virtual void timestepSetup(THREAD_ID tid = 0) const;
+  virtual void subdomainSetup(THREAD_ID tid = 0) const;
+  virtual void subdomainSetup(SubdomainID id, THREAD_ID tid = 0) const;
+  virtual void jacobianSetup(THREAD_ID tid = 0) const;
+  virtual void residualSetup(THREAD_ID tid = 0) const;
+  virtual void updateActive(THREAD_ID tid = 0);
+  void sort(THREAD_ID tid = 0);
+  ///@}
 
   /**
-   * Get the list of blocks that materials are defined on
-   * @return The list of subdomain IDs
+   * A special method unique to this class for adding Block, Neighbor, and Face material objects.
    */
-  const std::set<SubdomainID> & blocks() const { return _blocks; }
-
-  /**
-   * Get the list of boundary ids that the materials are defined
-   * @return The set of Boundary IDs
-   */
-  const std::set<BoundaryID> & boundaries() const { return _boundaries; }
-
-  /// This method displays a list of active materials and the properties they supply
-  void printMaterialMap() const;
-
-  /// This method checks for coupled material properties to make sure that all retrieved properties are supplied
-  void checkMaterialDependSanity() const;
-
-  /// This method loops over all materials and calls checkStatefulSanity() on the individual materials
-  void checkStatefulSanity() const;
+  void addObjects(MooseSharedPointer<T> block, MooseSharedPointer<T> neighbor, MooseSharedPointer<T> face, THREAD_ID tid = 0);
 
 protected:
-  /// A list of material associated with the block (subdomain)
-  std::map<SubdomainID, std::vector<Material *> > _active_materials;
 
-  /// A list of face materials associated with the block (subdomain)
-  std::map<SubdomainID, std::vector<Material *> > _active_face_materials;
+  /// Stroage for neighbor material objects (Block are stored in the base class)
+  ExecuteMooseObjectWarehouse<T> _neighbor_materials;
 
-  /// A list of neighbor materials associated with the block (subdomain) (for DG)
-  std::map<SubdomainID, std::vector<Material *> > _active_neighbor_materials;
+  /// Stroage for face material objects (Block are stored in the base class)
+  ExecuteMooseObjectWarehouse<T> _face_materials;
 
-  /// A list of boundary materials associated with the boundary (boundary)
-  std::map<BoundaryID, std::vector<Material *> > _active_boundary_materials;
-
-  /// Set of blocks where materials are defined
-  std::set<SubdomainID> _blocks;
-
-  /// Set of boundaries where materials are defined
-  std::set<BoundaryID> _boundaries;
-
-  /// A convenience list of all the maps
-  std::vector<std::map<SubdomainID, std::vector<Material *> > *> _master_list;
-
-  /// list of materials by name
-  std::map<std::string, std::vector<Material *> > _mat_by_name;
-
-  /// All of the material objects this warehouse knows about
-  std::vector<Material *> _mats;
-
-private:
-  /**
-   * This routine uses the Dependency Resolver to sort Materials based on dependencies they
-   * might have on coupled values
-   */
-  void sortMaterials(std::vector<Material *> & materials_vector);
-
-  /**
-   * This routine checks to make sure that all requests for material properties, specifically
-   * by other materials make sense for the given block.
-   */
-  void checkDependMaterials(const std::map<SubdomainID, std::vector<Material *> > & materials_map) const;
 };
+
+
+template<typename T>
+void
+MaterialWarehouse<T>::addObjects(MooseSharedPointer<T> block, MooseSharedPointer<T> neighbor, MooseSharedPointer<T> face, THREAD_ID tid /*=0*/)
+{
+  ExecuteMooseObjectWarehouse<T>::addObject(block, tid);
+  _neighbor_materials.addObject(neighbor, tid);
+  _face_materials.addObject(face, tid);
+}
+
+
+template<typename T>
+const ExecuteMooseObjectWarehouse<T> &
+MaterialWarehouse<T>::operator[](Moose::MaterialDataType data_type) const
+{
+  switch (data_type)
+  {
+  case Moose::NEIGHBOR_MATERIAL_DATA:
+    return _neighbor_materials;
+    break;
+  case Moose::FACE_MATERIAL_DATA:
+    return _face_materials;
+    break;
+  default:
+    return *this;
+  }
+}
+
+
+template<typename T>
+void
+MaterialWarehouse<T>::initialSetup(THREAD_ID tid /*=0*/) const
+{
+  ExecuteMooseObjectWarehouse<T>::initialSetup(tid);
+  _neighbor_materials.initialSetup(tid);
+  _face_materials.initialSetup(tid);
+}
+
+
+template<typename T>
+void
+MaterialWarehouse<T>::timestepSetup(THREAD_ID tid /*=0*/) const
+{
+  ExecuteMooseObjectWarehouse<T>::timestepSetup(tid);
+  _neighbor_materials.timestepSetup(tid);
+  _face_materials.timestepSetup(tid);
+}
+
+
+template<typename T>
+void
+MaterialWarehouse<T>::subdomainSetup(THREAD_ID tid /*=0*/) const
+{
+  ExecuteMooseObjectWarehouse<T>::subdomainSetup(tid);
+  _neighbor_materials.subdomainSetup(tid);
+  _face_materials.subdomainSetup(tid);
+}
+
+
+template<typename T>
+void
+MaterialWarehouse<T>::subdomainSetup(SubdomainID id, THREAD_ID tid /*=0*/) const
+{
+  ExecuteMooseObjectWarehouse<T>::subdomainSetup(id, tid);
+  _neighbor_materials.subdomainSetup(id, tid);
+  _face_materials.subdomainSetup(id, tid);
+}
+
+
+template<typename T>
+void
+MaterialWarehouse<T>::residualSetup(THREAD_ID tid /*=0*/) const
+{
+  ExecuteMooseObjectWarehouse<T>::residualSetup(tid);
+  _neighbor_materials.residualSetup(tid);
+  _face_materials.residualSetup(tid);
+}
+
+
+template<typename T>
+void
+MaterialWarehouse<T>::jacobianSetup(THREAD_ID tid /*=0*/) const
+{
+  ExecuteMooseObjectWarehouse<T>::jacobianSetup(tid);
+  _neighbor_materials.jacobianSetup(tid);
+  _face_materials.jacobianSetup(tid);
+}
+
+
+template<typename T>
+void
+MaterialWarehouse<T>::updateActive(THREAD_ID tid /*=0*/)
+{
+  ExecuteMooseObjectWarehouse<T>::updateActive(tid);
+  _neighbor_materials.updateActive(tid);
+  _face_materials.updateActive(tid);
+}
+
+
+template<typename T>
+void
+MaterialWarehouse<T>::sort(THREAD_ID tid /*=0*/)
+{
+  ExecuteMooseObjectWarehouse<T>::sort(tid);
+  _neighbor_materials.sort(tid);
+  _face_materials.sort(tid);
+}
 
 #endif // MATERIALWAREHOUSE_H

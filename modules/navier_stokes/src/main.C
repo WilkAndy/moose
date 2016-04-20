@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NavierStokesApp.h"
 #include "MooseInit.h"
 #include "Moose.h"
@@ -18,6 +24,9 @@ int main(int argc, char *argv[])
 
   // This creates dynamic memory that we're responsible for deleting
   MooseApp * app = AppFactory::createApp("NavierStokesApp", argc, argv);
+
+  app->setCheckUnusedFlag(true);
+  app->setErrorOverridden();
 
   // Execute the application
   app->run();

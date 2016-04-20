@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  This post processor returns the density of a region.
 //
@@ -17,10 +20,10 @@ InputParameters validParams<RichardsDensityAux>()
   return params;
 }
 
-RichardsDensityAux::RichardsDensityAux(const std::string & name, InputParameters parameters) :
-  AuxKernel(name, parameters),
-  _pressure_var(coupledValue("pressure_var")),
-  _density_UO(getUserObject<RichardsDensity>("density_UO"))
+RichardsDensityAux::RichardsDensityAux(const InputParameters & parameters) :
+    AuxKernel(parameters),
+    _pressure_var(coupledValue("pressure_var")),
+    _density_UO(getUserObject<RichardsDensity>("density_UO"))
 {}
 
 Real
@@ -28,3 +31,4 @@ RichardsDensityAux::computeValue()
 {
   return _density_UO.density(_pressure_var[_qp]);
 }
+

@@ -73,12 +73,6 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = langmuir_jac1
-  output_initial = false
-  exodus = false
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

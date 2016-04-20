@@ -15,22 +15,26 @@
 #ifndef MOOSEENUM_H
 #define MOOSEENUM_H
 
-#include "libmesh/parameters.h"
+// MOOSE includes
+#include "MooseEnumBase.h"
 
-#include <string>
-#include <vector>
-#include <map>
-#include <ostream>
-#include <limits>
+// Forward declarations
+namespace libMesh
+{
+class Parameters;
+}
 
 /**
- * This is a "smart" enum class intended to replace many of the shortcomings in the C++ enum type
- * It should be initialized with a comma-separated list of strings which become the enum values.
- * You may also optionally supply numeric ints for one or more values similar to a C++ enum.  This
- * is done with the "=" sign. It can be used any place where an integer (switch statements), const char*
- * or std::string is expected.  In addition the InputParameters system has full support for this Enum type
+ * This is a "smart" enum class intended to replace many of the
+ * shortcomings in the C++ enum type It should be initialized with a
+ * space-delimited list of strings which become the enum values.  You
+ * may also optionally supply numeric ints for one or more values
+ * similar to a C++ enum.  This is done with the "=" sign (no
+ * spaces). It can be used any place where an integer (switch
+ * statements), const char* or std::string is expected. In addition
+ * the InputParameters system has full support for this Enum type
  */
-class MooseEnum
+class MooseEnum : public MooseEnumBase
 {
 public:
   /**
@@ -49,23 +53,13 @@ public:
   MooseEnum(const MooseEnum & other_enum);
 
   /**
-   * Method for returning a vector of all valid enumeration names for this instance
-   * @return a vector of names
+   * Named constructor to build an empty MooseEnum with only the valid names
+   * and the allow_out_of_range flag taken from another enumeration
+   * @param other_enum - The other enumeration to copy the validity checking data from
    */
-  /// TODO: This should probably be turn into a set to avoid duplicate entries
-  const std::vector<std::string> & getNames() const { return _names; }
+  static MooseEnum withNamesFrom(const MooseEnumBase & other_enum);
 
-  /**
-   * Method for returning the raw name strings for this instance
-   * @return a comma separated list of names
-   */
-  const std::string & getRawNames() const { return _raw_names; }
-
-  /**
-   * Method for returning the raw name strings for this instance
-   * @return a space separated list of names
-   */
-  const std::string & getRawNamesNoCommas() const { return _raw_names_no_commas; }
+  virtual ~MooseEnum();
 
   /**
    * Cast operators to make this object behave as value_types and std::string
@@ -104,7 +98,7 @@ public:
    * IsValid
    * @return - a Boolean indicating whether this Enumeration has been set
    */
-  bool isValid() const { return _current_id > INVALID_ID; }
+  virtual bool isValid() const { return _current_id > INVALID_ID; }
 
   // InputParameters is allowed to create an empty enum but is responsible for
   // filling it in after the fact
@@ -112,6 +106,10 @@ public:
 
   /// Operator for printing to iostreams
   friend std::ostream & operator<<(std::ostream & out, const MooseEnum & obj) { out << obj._current_name_preserved; return out; }
+
+protected:
+  /// Check whether the current value is deprecated when called
+  virtual void checkDeprecated() const;
 
 private:
 
@@ -121,22 +119,10 @@ private:
   MooseEnum();
 
   /**
-   * Populates the _names vector
-   * @param names - a space separated list of names used to populate the internal names vector
+   * Private constructor that can accept a MooseEnumBase for ::withOptionsFrom()
+   * @param other_enum - MooseEnumBase type to copy names and out-of-range data from
    */
-  void fillNames(std::string names);
-
-  /// The vector of enumeration names
-  std::vector<std::string> _names;
-
-  /// The raw string of names separated by commas
-  std::string _raw_names;
-
-  /// The raw string of names separated by space
-  std::string _raw_names_no_commas;
-
-  /// The map of names to enumeration constants
-  std::map<std::string, int> _name_to_id;
+  MooseEnum(const MooseEnumBase & other_enum);
 
   /// The current id
   int _current_id;
@@ -144,16 +130,6 @@ private:
   /// The corresponding name
   std::string _current_name;
   std::string _current_name_preserved;
-
-  /**
-   * The index of values assigned that are NOT values in this enum.  If this index is 0 (false) then
-   * out of range values are not allowed.
-   */
-  int _out_of_range_index;
-
-  /// Constants
-  const static int INVALID_ID;
-
 };
 
 #endif //MOOSEENUM_H

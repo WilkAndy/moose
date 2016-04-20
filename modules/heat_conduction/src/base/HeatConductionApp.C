@@ -1,6 +1,13 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "HeatConductionApp.h"
 #include "Moose.h"
 #include "AppFactory.h"
+#include "MooseSyntax.h"
 
 #include "AddSlaveFluxVectorAction.h"
 #include "ConvectiveFluxFunction.h"
@@ -14,28 +21,29 @@
 #include "HeatConductionMaterial.h"
 #include "AnisoHeatConductionMaterial.h"
 #include "HeatConductionBC.h"
-#include "BulkCoolantBC.h"
+#include "HomogenizedHeatConduction.h"
+#include "HomogenizedThermalConductivity.h"
 #include "ThermalContactAuxBCsAction.h"
 #include "ThermalContactAuxVarsAction.h"
 #include "ThermalContactBCsAction.h"
 #include "ThermalContactDiracKernelsAction.h"
 #include "ThermalContactMaterialsAction.h"
 #include "HeatSource.h"
-#include "ThermalCond.h"
+#include "ThermalConductivity.h"
 #include "CoupledConvectiveFlux.h"
 
 template<>
 InputParameters validParams<HeatConductionApp>()
 {
   InputParameters params = validParams<MooseApp>();
+  params.set<bool>("use_legacy_uo_initialization") = false;
+  params.set<bool>("use_legacy_uo_aux_computation") = false;
   return params;
 }
 
-HeatConductionApp::HeatConductionApp(const std::string & name, InputParameters parameters) :
-    MooseApp(name, parameters)
+HeatConductionApp::HeatConductionApp(const InputParameters & parameters) :
+    MooseApp(parameters)
 {
-  srand(processor_id());
-
   Moose::registerObjects(_factory);
   HeatConductionApp::registerObjects(_factory);
 
@@ -47,12 +55,16 @@ HeatConductionApp::~HeatConductionApp()
 {
 }
 
+// External entry point for dynamic application loading
+extern "C" void HeatConductionApp__registerApps() { HeatConductionApp::registerApps(); }
 void
 HeatConductionApp::registerApps()
 {
   registerApp(HeatConductionApp);
 }
 
+// External entry point for dynamic object registration
+extern "C" void HeatConductionApp__registerObjects(Factory & factory) { HeatConductionApp::registerObjects(factory); }
 void
 HeatConductionApp::registerObjects(Factory & factory)
 {
@@ -60,19 +72,25 @@ HeatConductionApp::registerObjects(Factory & factory)
   registerKernel(AnisoHeatConduction);
   registerKernel(HeatConductionTimeDerivative);
   registerKernel(HeatSource);
+  registerKernel(HomogenizedHeatConduction);
   registerBoundaryCondition(HeatConductionBC);
   registerBoundaryCondition(ConvectiveFluxFunction);
   registerBoundaryCondition(GapHeatTransfer);
-  registerBoundaryCondition(BulkCoolantBC);
   registerBoundaryCondition(CoupledConvectiveFlux);
   registerMaterial(GapConductance);
   registerMaterial(HeatConductionMaterial);
   registerMaterial(AnisoHeatConductionMaterial);
   registerDiracKernel(GapHeatPointSourceMaster);
-  registerPostprocessor(ThermalCond);
+  registerPostprocessor(HomogenizedThermalConductivity);
+  registerPostprocessor(ThermalConductivity);
   registerConstraint(GapConductanceConstraint);
+
+  registerDeprecatedObjectName(ThermalConductivity, "ThermalCond", "15/09/2016 00:00");
+  registerDeprecatedObjectName(HomogenizedHeatConduction, "HomogenizationHeatConduction", "15/09/2016 00:00");
 }
 
+// External entry point for dynamic syntax association
+extern "C" void HeatConductionApp__associateSyntax(Syntax & syntax, ActionFactory & action_factory) { HeatConductionApp::associateSyntax(syntax, action_factory); }
 void
 HeatConductionApp::associateSyntax(Syntax & syntax, ActionFactory & action_factory)
 {

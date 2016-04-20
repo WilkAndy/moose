@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  Fluid density base class.
 //
@@ -15,8 +18,8 @@ InputParameters validParams<RichardsDensity>()
   return params;
 }
 
-RichardsDensity::RichardsDensity(const std::string & name, InputParameters parameters) :
-  GeneralUserObject(name, parameters)
+RichardsDensity::RichardsDensity(const InputParameters & parameters) :
+    GeneralUserObject(parameters)
 {}
 
 void
@@ -29,3 +32,4 @@ RichardsDensity::execute()
 
 void RichardsDensity::finalize()
 {}
+

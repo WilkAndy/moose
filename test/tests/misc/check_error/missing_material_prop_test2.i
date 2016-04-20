@@ -12,9 +12,7 @@
 []
 
 [Kernels]
-  active = 'diff body_force'
-
-  [./diff]
+  [./diff_km_kernel]
     type = DiffMKernel
     variable = u
     mat_prop = diff1
@@ -48,18 +46,24 @@
 
 [Materials]
   [./mat11]
-    type = Diff1Material
+    type = GenericConstantMaterial
     block = 1
+    prop_names =  'diff1'
+    prop_values = '1'
   [../]
 
   [./mat12]
-    type = Diff2Material
+    type = GenericConstantMaterial
     block = 1
+    prop_names =  'diff2'
+    prop_values = '1'
   [../]
 
   [./mat22]
-    type = Diff2Material
+    type = GenericConstantMaterial
     block = 2
+    prop_names =  'diff2'
+    prop_values = '1'
   [../]
 []
 
@@ -70,12 +74,7 @@
 
 [Outputs]
   file_base = out
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []
 
 [Debug]

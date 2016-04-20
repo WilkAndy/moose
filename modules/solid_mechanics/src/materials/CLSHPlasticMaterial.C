@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "CLSHPlasticMaterial.h"
 
 template<>
@@ -16,11 +22,10 @@ InputParameters validParams<CLSHPlasticMaterial>()
    return params;
 }
 
-CLSHPlasticMaterial::CLSHPlasticMaterial(std::string name,
-                                         InputParameters parameters)
-  :SolidModel(name, parameters)
+CLSHPlasticMaterial::CLSHPlasticMaterial(const InputParameters & parameters)
+  :SolidModel(parameters)
 {
 
-  createConstitutiveModel("CLSHPlasticModel", parameters);
+  createConstitutiveModel("CLSHPlasticModel");
 
 }

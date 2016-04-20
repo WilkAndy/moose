@@ -27,17 +27,18 @@
 #include "libmesh/patch_recovery_error_estimator.h"
 #include "libmesh/fourth_error_estimators.h"
 #include "libmesh/parallel.h"
+#include "libmesh/error_vector.h"
 
 #ifdef LIBMESH_ENABLE_AMR
 
 Adaptivity::Adaptivity(FEProblem & subproblem) :
+    ConsoleStreamInterface(subproblem.getMooseApp()),
     _subproblem(subproblem),
     _mesh(_subproblem.mesh()),
     _mesh_refinement_on(false),
     _mesh_refinement(NULL),
     _error_estimator(NULL),
     _error(NULL),
-    _displaced_problem(_subproblem.getDisplacedProblem()),
     _displaced_mesh_refinement(NULL),
     _initial_steps(0),
     _steps(0),
@@ -47,7 +48,8 @@ Adaptivity::Adaptivity(FEProblem & subproblem) :
     _stop_time(std::numeric_limits<Real>::max()),
     _cycles_per_step(1),
     _use_new_system(false),
-    _max_h_level(0)
+    _max_h_level(0),
+    _recompute_markers_during_cycles(false)
 {
 }
 
@@ -69,6 +71,10 @@ Adaptivity::~Adaptivity()
 void
 Adaptivity::init(unsigned int steps, unsigned int initial_steps)
 {
+  // Get the pointer to the DisplacedProblem, this cannot be done at construction because DisplacedProblem
+  // does not exist at that point.
+  _displaced_problem = _subproblem.getDisplacedProblem();
+
   if (!_mesh_refinement)
     _mesh_refinement = new MeshRefinement(_mesh);
 
@@ -91,8 +97,14 @@ Adaptivity::init(unsigned int steps, unsigned int initial_steps)
 
     if (!_displaced_mesh_refinement)
       _displaced_mesh_refinement = new MeshRefinement(_displaced_problem->mesh());
+
+    // The periodic boundaries pointer allows the MeshRefinement
+    // object to determine elements which are "topological" neighbors,
+    // i.e. neighbors across periodic boundaries, for the purposes of
+    // refinement.
     _displaced_mesh_refinement->set_periodic_boundaries_ptr(_subproblem.getNonlinearSystem().dofMap().get_periodic_boundaries());
 
+    // TODO: This is currently an empty function on the DisplacedProblem... could it be removed?
     _displaced_problem->initAdaptivity();
   }
 }
@@ -133,7 +145,7 @@ Adaptivity::adaptMesh()
         _subproblem.getAuxiliarySystem().solution().close();
         _subproblem.getAuxiliarySystem().solution().localize(serialized_solution);
 
-        FlagElementsThread fet(_subproblem, serialized_solution, _displaced_problem, _max_h_level);
+        FlagElementsThread fet(_subproblem, serialized_solution, _max_h_level);
         ConstElemRange all_elems(_subproblem.mesh().getMesh().active_elements_begin(),
                                  _subproblem.mesh().getMesh().active_elements_end(), 1);
         Threads::parallel_reduce(all_elems, fet);
@@ -153,20 +165,31 @@ Adaptivity::adaptMesh()
         _displaced_mesh_refinement->flag_elements_by_error_fraction (*_error);
     }
 
+    // If the DisplacedProblem is active, undisplace the DisplacedMesh
+    // in preparation for refinement.  We can't safely refine the
+    // DisplacedMesh directly, since the Hilbert keys computed on the
+    // inconsistenly-displaced Mesh are different on different
+    // processors, leading to inconsistent Hilbert keys.  We must do
+    // this before the undisplaced Mesh is refined, so that the
+    // element and node numbering is still consistent.
+    if (_displaced_problem)
+      _displaced_problem->undisplaceMesh();
+
     // Perform refinement and coarsening
     meshChanged = _mesh_refinement->refine_and_coarsen_elements();
 
-    if (_displaced_problem)
+    if (_displaced_problem && meshChanged)
     {
+      // Now do refinement/coarsening
       bool dispMeshChanged = _displaced_mesh_refinement->refine_and_coarsen_elements();
-      if ((meshChanged && !dispMeshChanged) ||
-          (!meshChanged && dispMeshChanged))
-        mooseError("If either undisplaced mesh or displaced mesh changes due to adaptivity, both must change");
+
+      // Since the undisplaced mesh changed, the displaced mesh better have changed!
+      mooseAssert(dispMeshChanged, "Undisplaced mesh changed, but displaced mesh did not!");
     }
 
     if (meshChanged && _print_mesh_changed)
     {
-      Moose::out << "\nMesh Changed:\n";
+      _console << "\nMesh Changed:\n";
       _mesh.printInfo();
     }
   }
@@ -190,16 +213,33 @@ Adaptivity::initialAdaptMesh()
 }
 
 void
-Adaptivity::uniformRefine(unsigned int level)
+Adaptivity::uniformRefine(MooseMesh *mesh)
+{
+  mooseAssert(mesh, "Mesh pointer must not be NULL");
+
+  // NOTE: we are using a separate object here, since adaptivity may not be on, but we need to be able to do refinements
+  MeshRefinement mesh_refinement(*mesh);
+  unsigned int level = mesh->uniformRefineLevel();
+  mesh_refinement.uniformly_refine(level);
+}
+
+void
+Adaptivity::uniformRefineWithProjection()
 {
   // NOTE: we are using a separate object here, since adaptivity may not be on, but we need to be able to do refinements
   MeshRefinement mesh_refinement(_mesh);
+  unsigned int level = _mesh.uniformRefineLevel();
   MeshRefinement displaced_mesh_refinement(_displaced_problem ? _displaced_problem->mesh() : _mesh);
 
   // we have to go step by step so EquationSystems::reinit() won't freak out
   for (unsigned int i = 0; i < level; i++)
   {
+    // See comment above about why refining the displaced mesh is potentially unsafe.
+    if (_displaced_problem)
+      _displaced_problem->undisplaceMesh();
+
     mesh_refinement.uniformly_refine(1);
+
     if (_displaced_problem)
       displaced_mesh_refinement.uniformly_refine(1);
     _subproblem.meshChanged();

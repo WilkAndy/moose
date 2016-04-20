@@ -53,11 +53,6 @@
 []
 
 [Outputs]
-  output_initial = true
+  execute_on = 'timestep_end'
   exodus = true
-  [./console]
-    type = Console
-    linear_residuals = true
-    perf_log = true
-  [../]
 []

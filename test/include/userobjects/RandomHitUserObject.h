@@ -1,5 +1,5 @@
 /****************************************************************/
-/*               Do NOT MODIFY THIS HEADER                      */
+/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
 /*           (c) 2010 Battelle Energy Alliance, LLC             */
@@ -11,6 +11,7 @@
 /*                                                              */
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
+
 
 #ifndef RANDOMHITUSEROBJECT_H
 #define RANDOMHITUSEROBJECT_H
@@ -29,7 +30,7 @@ class RandomHitUserObject :
   public GeneralUserObject
 {
 public:
-  RandomHitUserObject(const std::string & name, InputParameters parameters);
+  RandomHitUserObject(const InputParameters & parameters);
 
   virtual ~RandomHitUserObject() {}
 

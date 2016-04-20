@@ -16,8 +16,6 @@
 #define SIDESETSFROMPOINTS_H
 
 #include "AddSideSetsBase.h"
-#include "BoundaryRestrictableRequired.h"
-#include "libmesh/fe.h"
 
 class SideSetsFromPoints;
 
@@ -25,11 +23,10 @@ template<>
 InputParameters validParams<SideSetsFromPoints>();
 
 class SideSetsFromPoints :
-  public AddSideSetsBase,
-  public BoundaryRestrictableRequired
+  public AddSideSetsBase
 {
 public:
-  SideSetsFromPoints(const std::string & name, InputParameters parameters);
+  SideSetsFromPoints(const InputParameters & parameters);
 
   virtual ~SideSetsFromPoints();
 
@@ -37,7 +34,7 @@ public:
 
 protected:
 
-  std::vector<BoundaryID> _boundary_ids;
+  std::vector<BoundaryName> _boundary_names;
 
   std::vector<Point> _points;
 };

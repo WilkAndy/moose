@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef SPLITCHBASE_H
 #define SPLITCHBASE_H
 
@@ -10,10 +16,11 @@ class SplitCHBase;
 template<>
 InputParameters validParams<SplitCHBase>();
 
+/// The couple, SplitCHBase and SplitCHWRes, splits the CH equation by replacing chemical potential with 'w'.
 class SplitCHBase : public Kernel
 {
 public:
-  SplitCHBase(const std::string & name, InputParameters parameters);
+  SplitCHBase(const InputParameters & parameters);
 
 protected:
   enum PFFunctionType

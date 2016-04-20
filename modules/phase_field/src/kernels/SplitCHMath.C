@@ -1,15 +1,21 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "SplitCHMath.h"
-// The couple, SplitCHMath and SplitCHWRes, splits the CH equation by replacing chemical potential with 'w'.
+
 template<>
 InputParameters validParams<SplitCHMath>()
 {
   InputParameters params = validParams<SplitCHCRes>();
-
+  params.addClassDescription("Simple demonstration split formulation Cahn-Hilliard Kernel using an algebraic double-well potential");
   return params;
 }
 
-SplitCHMath::SplitCHMath(const std::string & name, InputParameters parameters) :
-    SplitCHCRes(name, parameters)
+SplitCHMath::SplitCHMath(const InputParameters & parameters) :
+    SplitCHCRes(parameters)
 {
 }
 
@@ -27,3 +33,4 @@ SplitCHMath::computeDFDC(PFFunctionType type)
 
   mooseError("Invalid type passed in");
 }
+

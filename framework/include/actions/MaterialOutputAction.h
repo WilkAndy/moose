@@ -17,12 +17,12 @@
 
 // MOOSE includes
 #include "Action.h"
-#include "MooseObjectAction.h"
-#include "ActionFactory.h"
-#include "Material.h"
+#include "MaterialData.h"
 
 // Forward declarations
 class MaterialOutputAction;
+class MooseObjectAction;
+class Material;
 
 template<>
 InputParameters validParams<MaterialOutputAction>();
@@ -37,20 +37,19 @@ public:
 
   /**
    * Class constructor
-   * @param name Name of this action
    * @param params Input parameters for this action object
    */
-  MaterialOutputAction(const std::string & name, InputParameters params);
-
-  /**
-   * Class destructor
-   */
-  virtual ~MaterialOutputAction();
+  MaterialOutputAction(InputParameters params);
 
   /**
    * Performs the task of adding a AuxVariable and AuxKernel for outputting material properties
    */
   virtual void act();
+
+  /**
+   * Builds the objects necessary for material property output
+   */
+  void buildMaterialOutputObjects(FEProblem * problem_ptr);
 
 private:
 
@@ -73,7 +72,7 @@ private:
    * act() method.
    */
   template<typename T>
-  void materialOutputHelper(const std::string & property_name, Material * material);
+  void materialOutputHelper(const std::string & property_name, MooseSharedPointer<Material> material);
 
   /**
    * A method for creating an AuxVariable and associated action
@@ -82,23 +81,26 @@ private:
    * @param variable_name The AuxVariable name to create
    * @param material A pointer to the Material object containing the property of interest
    */
-  MooseObjectAction * createAction(const std::string & type, const std::string & property_name,
-                                   const std::string & variable_name, Material * material);
+  MooseSharedPointer<MooseObjectAction> createAction(const std::string & type, const std::string & property_name,
+                                                     const std::string & variable_name, MooseSharedPointer<Material> material);
 
   /// Pointer the MaterialData object storing the block restricted materials
-  MaterialData * _block_material_data;
+  MooseSharedPointer<MaterialData> _block_material_data;
 
   /// Pointer the MaterialData object storing the boundary restricted materials
-  MaterialData * _boundary_material_data;
+  MooseSharedPointer<MaterialData> _boundary_material_data;
 
   /// Map of variable name that contains the blocks to which the variable should be restricted
   std::map<std::string, std::set<SubdomainID> > _block_variable_map;
 
   /// Set of variable names for boundary
-  std::set<AuxVariableName> _variable_names;
+  std::set<std::string> _variable_names;
 
   /// List of variables for the current Material object
-  std::set<AuxVariableName> _material_variable_names;
+  std::set<std::string> _material_variable_names;
+
+  /// Map of output names and list of variables associated with the output
+  std::map<OutputName, std::set<std::string> > _material_variable_names_map;
 
   /// Reference to the OutputWarehouse
   OutputWarehouse & _output_warehouse;
@@ -107,7 +109,7 @@ private:
 
 template<typename T>
 void
-MaterialOutputAction::materialOutputHelper(const std::string & /*property_name*/, Material * /*material*/)
+MaterialOutputAction::materialOutputHelper(const std::string & /*property_name*/, MooseSharedPointer<Material> /*material*/)
 {
   mooseError("Unknown type, you must create a specialization of materialOutputHelper");
 }

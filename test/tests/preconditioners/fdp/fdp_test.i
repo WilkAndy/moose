@@ -21,9 +21,9 @@
 
   [./FDP]
     type = FDP
-#    full = true
-    off_diag_row    = 'v'
-    off_diag_column = 'u'
+    full = true
+  #  off_diag_row    = 'v'
+  #  off_diag_column = 'u'
   [../]
 []
 
@@ -82,8 +82,8 @@
 [Executioner]
   type = Steady
 
-  l_max_its = 1
-  nl_max_its = 1
+#  l_max_its = 1
+#  nl_max_its = 1
 
   petsc_options_iname = '-pc_type'
   petsc_options_value = 'lu'
@@ -91,10 +91,5 @@
 
 [Outputs]
   file_base = out
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

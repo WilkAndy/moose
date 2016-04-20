@@ -14,6 +14,9 @@
 
 #include "SteadyState.h"
 
+// libMesh includes
+#include "libmesh/numeric_vector.h"
+
 template<>
 InputParameters validParams<SteadyState>()
 {
@@ -22,8 +25,8 @@ InputParameters validParams<SteadyState>()
   return params;
 }
 
-SteadyState::SteadyState(const std::string & name, InputParameters parameters) :
-    TimeIntegrator(name, parameters)
+SteadyState::SteadyState(const InputParameters & parameters) :
+    TimeIntegrator(parameters)
 {
 }
 
@@ -37,8 +40,7 @@ SteadyState::computeTimeDerivatives()
   _u_dot.zero();
   _u_dot.close();
 
-  _du_dot_du.zero();
-  _du_dot_du.close();
+  _du_dot_du = 0;
 }
 
 void

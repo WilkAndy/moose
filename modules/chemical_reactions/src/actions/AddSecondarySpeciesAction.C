@@ -1,8 +1,13 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "AddSecondarySpeciesAction.h"
 #include "MooseUtils.h"
 #include "FEProblem.h"
 #include "Factory.h"
-#include "MooseEnum.h"
 #include "MooseError.h"
 
 #include <sstream>
@@ -29,8 +34,8 @@ InputParameters validParams<AddSecondarySpeciesAction>()
 }
 
 
-AddSecondarySpeciesAction::AddSecondarySpeciesAction(const std::string & name, InputParameters params) :
-    Action(name, params)
+AddSecondarySpeciesAction::AddSecondarySpeciesAction(const InputParameters & params) :
+    Action(params)
 {
 }
 
@@ -44,7 +49,7 @@ AddSecondarySpeciesAction::act()
 
     for (unsigned int i=0; i < vars.size(); i++)
     {
-      Moose::out << "aux variables: " << vars[i] << "\t";
+      _console << "aux variables: " << vars[i] << "\t";
       FEType fe_type(Utility::string_to_enum<Order>("first"),
                      Utility::string_to_enum<FEFamily>("lagrange"));
       _problem->addAuxVariable(vars[i], fe_type);
@@ -71,13 +76,13 @@ AddSecondarySpeciesAction::act()
           if (stos_vars.size() == 1)
           {
             kin_species = stos_vars[0];
-            Moose::out << "I'm here and the kin_species is: " << stos_vars[0] << "\n";
+            _console << "I'm here and the kin_species is: " << stos_vars[0] << "\n";
 
           }
 //           else
 //             mooseError("There's no solid kinetic species.");
         }
-        Moose::out << "the " << j+1 << "-th solid kinetic species: " << kin_species << "\n";
+        _console << "the " << j+1 << "-th solid kinetic species: " << kin_species << "\n";
         FEType fe_type(Utility::string_to_enum<Order>("first"),
                        Utility::string_to_enum<FEFamily>("lagrange"));
         _problem->addAuxVariable(kin_species, fe_type);
@@ -88,3 +93,4 @@ AddSecondarySpeciesAction::act()
   }
 
 }
+

@@ -12,36 +12,45 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 
+// MOOSE includes
 #include "Transfer.h"
 #include "FEProblem.h"
 #include "MooseMesh.h"
 #include "Assembly.h"
 #include "MooseVariable.h"
+#include "MooseEnum.h"
+#include "InputParameters.h"
+
+// libMesh
+#include "libmesh/system.h"
+
+const Number Transfer::OutOfMeshValue = -999999;
 
 template<>
 InputParameters validParams<Transfer>()
 {
   InputParameters params = validParams<MooseObject>();
   params.addParam<bool>("use_displaced_mesh", false, "Whether or not this object should use the displaced mesh for computation.  Note that in the case this is true but no displacements are provided in the Mesh block the undisplaced mesh will still be used.");
-  // Add the SetupInterface parameter, 'execute_on', and set it to a default of 'timestep'
+  // Add the SetupInterface parameter, 'execute_on', and set it to a default of 'timestep_begin'
   params += validParams<SetupInterface>();
-  params.set<MooseEnum>("execute_on") = "timestep_begin";
+  params.set<MultiMooseEnum>("execute_on") = "timestep_begin";
 
   params.registerBase("Transfer");
 
   params.addParamNamesToGroup("use_displaced_mesh", "Advanced");
+
+  params.declareControllable("enable");
   return params;
 }
 
-Transfer::Transfer(const std::string & name, InputParameters parameters) :
-    MooseObject(name, parameters),
-    SetupInterface(parameters),
-    Restartable(name, parameters, "Transfers"),
+Transfer::Transfer(const InputParameters & parameters) :
+    MooseObject(parameters),
+    SetupInterface(this),
+    Restartable(parameters, "Transfers"),
     _subproblem(*parameters.get<SubProblem *>("_subproblem")),
     _fe_problem(*parameters.get<FEProblem *>("_fe_problem")),
     _sys(*parameters.get<SystemBase *>("_sys")),
-    _tid(parameters.get<THREAD_ID>("_tid")),
-    _execute_on(getParam<MooseEnum>("execute_on"))
+    _tid(parameters.get<THREAD_ID>("_tid"))
 {
 }
 
@@ -51,21 +60,15 @@ Transfer::Transfer(const std::string & name, InputParameters parameters) :
  * Note that this implies that variable names are unique across all systems!
  */
 System *
-Transfer::find_sys(EquationSystems & es, std::string & var_name)
+Transfer::find_sys(EquationSystems & es, const std::string & var_name)
 {
-  System * sys = NULL;
-
   // Find the system this variable is from
   for (unsigned int i=0; i<es.n_systems(); i++)
-  {
     if (es.get_system(i).has_variable(var_name))
-    {
-      sys = &es.get_system(i);
-      break;
-    }
-  }
+      return &es.get_system(i);
 
-  mooseAssert(sys, "Unable to find variable " + var_name);
+  mooseError("Unable to find variable " + var_name + " in any system.");
 
-  return sys;
+  // Unreachable
+  return &es.get_system(0);
 }

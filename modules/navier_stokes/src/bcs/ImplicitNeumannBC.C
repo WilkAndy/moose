@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "ImplicitNeumannBC.h"
 
 template<>
@@ -9,8 +15,8 @@ InputParameters validParams<ImplicitNeumannBC>()
 
 
 
-ImplicitNeumannBC::ImplicitNeumannBC(const std::string & name, InputParameters parameters) :
-  IntegratedBC(name, parameters)
+ImplicitNeumannBC::ImplicitNeumannBC(const InputParameters & parameters) :
+  IntegratedBC(parameters)
 {
 }
 
@@ -37,3 +43,4 @@ Real ImplicitNeumannBC::computeQpOffDiagJacobian(unsigned /*jvar*/)
   // off-diagonal derivatives are all zero.
   return 0.;
 }
+

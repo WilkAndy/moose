@@ -21,8 +21,8 @@ InputParameters validParams<ProcessorIDAux>()
   return params;
 }
 
-ProcessorIDAux::ProcessorIDAux(const std::string & name, InputParameters parameters) :
-    AuxKernel(name, parameters)
+ProcessorIDAux::ProcessorIDAux(const InputParameters & parameters) :
+    AuxKernel(parameters)
 {
 }
 
@@ -38,3 +38,4 @@ ProcessorIDAux::computeValue()
   else
     return _current_elem->processor_id();
 }
+

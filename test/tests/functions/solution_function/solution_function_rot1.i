@@ -18,8 +18,8 @@
   [./solution_uo]
     type = SolutionUserObject
     mesh = cube_with_u_equals_x.e
-    timestep = 1
-    nodal_variables = u
+    timestep = LATEST
+    system_variables = u
     rotation0_vector = '0 0 1'
     rotation0_angle = 45
     transformation_order = rotation0
@@ -69,10 +69,7 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = solution_function_rot1
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

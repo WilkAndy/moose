@@ -23,36 +23,44 @@ template<>
 InputParameters validParams<AuxScalarKernel>()
 {
   InputParameters params = validParams<MooseObject>();
+  params += validParams<SetupInterface>();
+  params += validParams<MeshChangedInterface>();
+
   params.addRequiredParam<AuxVariableName>("variable", "The name of the variable that this kernel operates on");
   params.addParam<bool>("use_displaced_mesh", false, "Whether or not this object should use the displaced mesh for computation.  Note that in the case this is true but no displacements are provided in the Mesh block the undisplaced mesh will still be used.");
   params.addParamNamesToGroup("use_displaced_mesh", "Advanced");
 
+  params.declareControllable("enable"); // allows Control to enable/disable this type of object
   params.registerBase("AuxScalarKernel");
 
   return params;
 }
 
-AuxScalarKernel::AuxScalarKernel(const std::string & name, InputParameters parameters) :
-    MooseObject(name, parameters),
+AuxScalarKernel::AuxScalarKernel(const InputParameters & parameters) :
+    MooseObject(parameters),
     ScalarCoupleable(parameters),
-    SetupInterface(parameters),
-    FunctionInterface(parameters),
-    UserObjectInterface(parameters),
-    PostprocessorInterface(parameters),
-    TransientInterface(parameters, name, "scalar_aux_kernels"),
+    SetupInterface(this),
+    FunctionInterface(this),
+    UserObjectInterface(this),
+    PostprocessorInterface(this),
+    DependencyResolverInterface(),
+    TransientInterface(this),
     ZeroInterface(parameters),
+    MeshChangedInterface(parameters),
     _subproblem(*parameters.get<SubProblem *>("_subproblem")),
     _sys(*parameters.get<SystemBase *>("_sys")),
-
     _tid(parameters.get<THREAD_ID>("_tid")),
     _assembly(_subproblem.assembly(_tid)),
     _var(_sys.getScalarVariable(_tid, parameters.get<AuxVariableName>("variable"))),
     _mesh(_subproblem.mesh()),
-//    _dim(_mesh.dimension()),
-
     _u(_var.sln()),
     _u_old(_var.slnOld())
 {
+  _supplied_vars.insert(parameters.get<AuxVariableName>("variable"));
+
+  const std::vector<MooseVariableScalar *> & coupled_vars = getCoupledMooseScalarVars();
+  for (std::vector<MooseVariableScalar *>::const_iterator it = coupled_vars.begin(); it != coupled_vars.end(); ++it)
+    _depend_vars.insert((*it)->name());
 }
 
 AuxScalarKernel::~AuxScalarKernel()
@@ -68,6 +76,19 @@ AuxScalarKernel::compute()
     _var.setValue(_i, value);                  // update variable data, which is referenced by other kernels, so the value is up-to-date
   }
 }
+
+const std::set<std::string> &
+AuxScalarKernel::getRequestedItems()
+{
+  return _depend_vars;
+}
+
+const std::set<std::string> &
+AuxScalarKernel::getSuppliedItems()
+{
+  return _supplied_vars;
+}
+
 
 bool
 AuxScalarKernel::isActive()

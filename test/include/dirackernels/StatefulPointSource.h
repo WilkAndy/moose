@@ -32,7 +32,7 @@ InputParameters validParams<StatefulPointSource>();
 class StatefulPointSource : public DiracKernel
 {
 public:
-  StatefulPointSource(const std::string & name, InputParameters parameters);
+  StatefulPointSource(const InputParameters & parameters);
 
   virtual void addPoints();
   virtual Real computeQpResidual();
@@ -40,7 +40,7 @@ public:
 protected:
   Point _p;
 
-  MaterialProperty<Real> & _value;
+  const MaterialProperty<Real> & _value;
 };
 
 #endif //STATEFULPOINTSOURCE_H

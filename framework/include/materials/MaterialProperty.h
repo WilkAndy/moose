@@ -19,7 +19,7 @@
 
 #include "MooseArray.h"
 #include "ColumnMajorMatrix.h"
-#include "MaterialPropertyIO.h"
+#include "DataIO.h"
 
 #include "libmesh/libmesh_common.h"
 #include "libmesh/tensor_value.h"
@@ -62,7 +62,7 @@ public:
    */
   virtual PropertyValue *init (int size) = 0;
 
-  virtual int size () = 0;
+  virtual unsigned int size () const = 0;
 
   /**
    * Resizes the property to the size n
@@ -109,6 +109,9 @@ template <typename T>
 class MaterialProperty : public PropertyValue
 {
 public:
+  /// Explicitly declare a public constructor because we made the copy constructor private
+  MaterialProperty() : PropertyValue() { /* */ }
+
   virtual ~MaterialProperty()
   {
     _value.release();
@@ -144,7 +147,7 @@ public:
    */
   T & operator[](const unsigned int i) { return _value[i]; }
 
-  int size() { return _value.size(); }
+  unsigned int size() const { return _value.size(); }
 
   /**
    * Get element i out of the array.
@@ -195,6 +198,11 @@ public:
   PropertyValue *_init_helper(int size, PropertyValue *prop, const std::vector<P>* the_type);
 
 private:
+  /// private copy constructor to avoid shallow copying of material properties
+  MaterialProperty(const MaterialProperty<T> & /*src*/) { mooseError("Material properties must be assigned to references (missing '&')"); }
+
+  /// private assignment operator to avoid shallow copying of material properties
+  MaterialProperty<T> & operator = (const MaterialProperty<T> & /*rhs*/) { mooseError("Material properties must be assigned to references (missing '&')"); }
 
   /// Stored parameter value.
   MooseArray<T> _value;
@@ -229,7 +237,7 @@ inline void
 MaterialProperty<T>::swap (PropertyValue *rhs)
 {
   mooseAssert(rhs != NULL, "Assigning NULL?");
-  _value.swap(libmesh_cast_ptr<MaterialProperty<T>*>(rhs)->_value);
+  _value.swap(cast_ptr<MaterialProperty<T>*>(rhs)->_value);
 }
 
 template <typename T>
@@ -237,7 +245,7 @@ inline void
 MaterialProperty<T>::qpCopy (const unsigned int to_qp, PropertyValue *rhs, const unsigned int from_qp)
 {
   mooseAssert(rhs != NULL, "Assigning NULL?");
-  _value[to_qp] = libmesh_cast_ptr<const MaterialProperty<T>*>(rhs)->_value[from_qp];
+  _value[to_qp] = cast_ptr<const MaterialProperty<T>*>(rhs)->_value[from_qp];
 }
 
 template<typename T>

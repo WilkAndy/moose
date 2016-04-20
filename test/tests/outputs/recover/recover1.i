@@ -48,14 +48,9 @@
 []
 
 [Outputs]
-  output_initial = true
   file_base = recover_out
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
-  [./checkpoint]
+  [./recover]
     type = Checkpoint
     file_base = test_recover_dir
   [../]

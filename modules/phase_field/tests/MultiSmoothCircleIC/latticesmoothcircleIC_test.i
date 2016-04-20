@@ -20,19 +20,21 @@
   [./c]
     order = FIRST
     family = LAGRANGE
-    [./InitialCondition]
-       type = LatticeSmoothCircleIC
-       Lx = 100.0
-       Ly = 100.0
-       Lz = 100.0
-       invalue = 1.0
-       outvalue = 0.0001
-       circles_per_side = '3 3 3'
-       Rnd_variation = 0.0
-       radius = 10.0
-       int_width = 12.0
-       radius_variation = 0.2
-    [../]
+  [../]
+[]
+
+[ICs]
+  [./c]
+     type = LatticeSmoothCircleIC
+     variable = c
+     invalue = 1.0
+     outvalue = 0.0001
+     circles_per_side = '3 3 3'
+     pos_variation = 0.0
+     radius = 10.0
+     int_width = 12.0
+     radius_variation = 0.2
+     radius_variation_type = uniform
   [../]
 []
 
@@ -70,9 +72,9 @@ active = 'Dv'
   active = 'bubbles'
 
   [./bubbles]
-    type = NodalFloodCount
+    type = FeatureFloodCount
     variable = c
-    execute_on = timestep
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -102,11 +104,5 @@ active = 'Dv'
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 []

@@ -86,9 +86,4 @@
 
 [Outputs]
   exodus = true
-  output_initial = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

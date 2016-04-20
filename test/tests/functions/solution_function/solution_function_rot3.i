@@ -19,7 +19,7 @@
     type = SolutionUserObject
     mesh = cube_with_u_equals_x.e
     timestep = 1
-    nodal_variables = u
+    system_variables = u
     # the following takes:
     # (0.7, 0.7, +/-0.7) -> (-0.7, 0.7, +/-0.7)
     # (-0.7, 0.7, +/-0.7) -> (-0.7, -0.7, +/-0.7)
@@ -82,10 +82,7 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = solution_function_rot3
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

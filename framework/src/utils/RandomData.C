@@ -17,7 +17,7 @@
 #include "MooseMesh.h"
 #include "RandomInterface.h"
 
-const unsigned int MASTER = std::numeric_limits<dof_id_type>::max();
+const unsigned int MASTER = std::numeric_limits<unsigned int>::max();
 
 RandomData::RandomData(FEProblem &problem, const RandomInterface & random_interface) :
     _rd_problem(problem),
@@ -52,9 +52,9 @@ RandomData::updateSeeds(ExecFlagType exec_flag)
     _new_seed = _master_seed + _rd_problem.timeStep();
   /**
    * case EXEC_TIMESTEP_BEGIN:   // reset and advance every timestep
-   * case EXEC_TIMESTEP:         // reset and advance every timestep
-   * case EXEC_RESIDUAL:         // Reset every residual, advance every timestep
-   * case EXEC_JACOBIAN:         // Reset every Jacobian, advance every timestep
+   * case EXEC_TIMESTEP_END:     // reset and advance every timestep
+   * case EXEC_LINEAR:           // Reset every residual, advance every timestep
+   * case EXEC_NONLINEAR:        // Reset every Jacobian, advance every timestep
    */
 
   // If the _new_seed has been updated, we need to update all of the generators
@@ -96,32 +96,29 @@ RandomData::updateGenerators()
   }
 
   if (_is_nodal)
-  {
-    MeshBase::const_node_iterator it = _rd_mesh.getMesh().active_nodes_begin();
-    MeshBase::const_node_iterator end_it = _rd_mesh.getMesh().active_nodes_end();
-
-    for (; it != end_it; ++it)
-    {
-      dof_id_type id = (*it)->id();
-      _seeds[id] = _generator.randl(MASTER);
-
-      // Update the individual dof object generators
-      _generator.seed(id, _seeds[id]);
-    }
-  }
+    updateGeneratorHelper(_rd_mesh.getMesh().active_nodes_begin(), _rd_mesh.getMesh().active_nodes_end());
   else
-  {
-    MeshBase::const_element_iterator it = _rd_mesh.getMesh().active_elements_begin();
-    MeshBase::const_element_iterator end_it = _rd_mesh.getMesh().active_elements_end();
+    updateGeneratorHelper(_rd_mesh.getMesh().active_elements_begin(),_rd_mesh.getMesh().active_elements_end());
+}
 
-    for (; it != end_it; ++it)
+template<typename T>
+void
+RandomData::updateGeneratorHelper(T it, T end_it)
+{
+  processor_id_type processor_id = _rd_problem.processor_id();
+
+  for (; it != end_it; ++it)
+  {
+    dof_id_type id = (*it)->id();
+    uint32_t rand_int = _generator.randl(MASTER);
+
+    if (processor_id == (*it)->processor_id())
     {
-      dof_id_type id = (*it)->id();
-      _seeds[id] = _generator.randl(MASTER);
+      // Only save states for local dofs
+      _seeds[id] = rand_int;
 
       // Update the individual dof object generators
-      _generator.seed(id, _seeds[id]);
+      _generator.seed(static_cast<unsigned int>(id), _seeds[id]);
     }
   }
-
 }

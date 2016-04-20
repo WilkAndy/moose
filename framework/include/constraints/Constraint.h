@@ -24,19 +24,14 @@
 #include "GeometricSearchInterface.h"
 #include "Restartable.h"
 #include "ZeroInterface.h"
-
-#include "MooseVariable.h"
-#include "SubProblem.h"
-#include "MooseMesh.h"
-
-//libMesh includes
-#include "libmesh/libmesh_common.h"
-#include "libmesh/elem.h"
-#include "libmesh/point.h"
+#include "MeshChangedInterface.h"
 
 //Forward Declarations
 class Assembly;
 class Constraint;
+class MooseVariable;
+class SubProblem;
+class MooseMesh;
 
 template<>
 InputParameters validParams<Constraint>();
@@ -52,10 +47,11 @@ class Constraint :
   public TransientInterface,
   protected GeometricSearchInterface,
   public Restartable,
-  public ZeroInterface
+  public ZeroInterface,
+  public MeshChangedInterface
 {
 public:
-  Constraint(const std::string & name, InputParameters parameters);
+  Constraint(const InputParameters & parameters);
   virtual ~Constraint();
 
   /**
@@ -68,6 +64,8 @@ public:
    * The variable number that this object operates on.
    */
   MooseVariable & variable() { return _var; }
+
+  virtual bool addCouplingEntriesToJacobian() { return true; }
 
 protected:
   SubProblem & _subproblem;

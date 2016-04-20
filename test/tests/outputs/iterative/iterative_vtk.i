@@ -3,6 +3,7 @@
   dim = 2
   nx = 10
   ny = 10
+  distribution = serial
 []
 
 [Variables]
@@ -48,16 +49,12 @@
 []
 
 [Outputs]
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
+  execute_on = 'timestep_end'
   [./out]
     type = VTK
-    nonlinear_residuals = true
     nonlinear_residual_dt_divisor = 100
     start_time = 1.8
     end_time = 1.85
+    execute_on = 'nonlinear timestep_end'
   [../]
 []

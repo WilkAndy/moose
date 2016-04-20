@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef CHEMICAL_REACTIONSAPP_H
 #define CHEMICAL_REACTIONSAPP_H
 
@@ -11,7 +17,7 @@ InputParameters validParams<ChemicalReactionsApp>();
 class ChemicalReactionsApp : public MooseApp
 {
 public:
-  ChemicalReactionsApp(const std::string & name, InputParameters parameters);
+  ChemicalReactionsApp(const InputParameters & parameters);
   virtual ~ChemicalReactionsApp();
 
   static void registerApps();

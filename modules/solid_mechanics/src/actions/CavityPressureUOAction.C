@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "CavityPressureUOAction.h"
 
 #include "Factory.h"
@@ -19,13 +25,13 @@ InputParameters validParams<CavityPressureUOAction>()
   params.addParam<std::string>("output", "The name to use for the cavity pressure value.");
 
   params += validParams<SetupInterface>();
-  params.set<MooseEnum>("execute_on") = "residual";
+  params.set<MultiMooseEnum>("execute_on") = "linear";
 
   return params;
 }
 
-CavityPressureUOAction::CavityPressureUOAction(const std::string & name, InputParameters params) :
-  Action(name, params),
+CavityPressureUOAction::CavityPressureUOAction(const InputParameters & params) :
+  Action(params),
   _initial_pressure(getParam<Real>("initial_pressure")),
   _material_input(getParam<std::vector<PostprocessorName> >("material_input")),
   _R(getParam<Real>("R")),
@@ -38,16 +44,13 @@ CavityPressureUOAction::CavityPressureUOAction(const std::string & name, InputPa
 void
 CavityPressureUOAction::act()
 {
-  std::string short_name(_name);
-  // Chop off "BCs/CavityPressure/"
-  short_name.erase(0, 19);
-  std::string name = short_name + "UserObject";
+  std::string name = _name + "UserObject";
 
   const std::string uo_type_name("CavityPressureUserObject");
 
   InputParameters params = _factory.getValidParams(uo_type_name);
 
-  params.set<MooseEnum>("execute_on") = getParam<MooseEnum>("execute_on");
+  params.set<MultiMooseEnum>("execute_on") = getParam<MultiMooseEnum>("execute_on");
 
   params.set<Real>("initial_pressure") = _initial_pressure;
   params.set<std::vector<PostprocessorName> >("material_input") = _material_input;

@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  Richards standard SUPG
 //
@@ -16,9 +19,9 @@ InputParameters validParams<RichardsSUPGstandard>()
   return params;
 }
 
-RichardsSUPGstandard::RichardsSUPGstandard(const std::string & name, InputParameters parameters) :
-  RichardsSUPG(name, parameters),
-  _p_SUPG(getParam<Real>("p_SUPG"))
+RichardsSUPGstandard::RichardsSUPGstandard(const InputParameters & parameters) :
+    RichardsSUPG(parameters),
+    _p_SUPG(getParam<Real>("p_SUPG"))
 {
 }
 
@@ -44,10 +47,8 @@ RichardsSUPGstandard::dvelSUPG_dp(RealTensorValue perm, Real density_prime, Real
 Real
 RichardsSUPGstandard::cosh_relation(Real alpha) const
 {
-  if (alpha >= 5.0)
-    return 1 - 1.0/alpha; // prevents overflows
-  else if (alpha <= -5.0)
-    return -1 - 1.0/alpha;
+  if (alpha >= 5.0 || alpha <= -5.0)
+    return ((alpha > 0) ? 1 : -1) - 1.0/alpha; // prevents overflows
   else if (alpha == 0)
     return 0.0;
   return std::cosh(alpha)/std::sinh(alpha) - 1.0/alpha;
@@ -56,10 +57,8 @@ RichardsSUPGstandard::cosh_relation(Real alpha) const
 Real
 RichardsSUPGstandard::cosh_relation_prime(Real alpha) const
 {
-  if (alpha >= 5.0)
-      return 1.0/alpha/alpha;
-  else if (alpha <= -5.0)
-      return 1.0/alpha/alpha;
+  if (alpha >= 5.0 || alpha <= -5.0)
+      return 1.0/alpha/alpha; // prevents overflows
   else if (alpha == 0)
     return 1.0/3.0;
   return 1 - std::pow(std::cosh(alpha)/std::sinh(alpha), 2) + 1.0/alpha/alpha;
@@ -170,3 +169,12 @@ RichardsSUPGstandard::dtauSUPG_dp(RealVectorValue vel, RealVectorValue dvel_dp, 
 
   return tau_dp;
 }
+
+
+bool
+RichardsSUPGstandard::SUPG_trivial() const
+{
+  return false;
+}
+
+

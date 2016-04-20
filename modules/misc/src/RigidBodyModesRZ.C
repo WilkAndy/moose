@@ -1,18 +1,12 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
 
 #include "RigidBodyModesRZ.h"
+#include "NonlinearSystem.h"
 
 template<>
 InputParameters validParams<RigidBodyModesRZ>()
@@ -25,8 +19,8 @@ InputParameters validParams<RigidBodyModesRZ>()
   return params;
 }
 
-RigidBodyModesRZ::RigidBodyModesRZ(const std::string & name, InputParameters parameters) :
-  NodalUserObject(name, parameters),
+RigidBodyModesRZ::RigidBodyModesRZ(const InputParameters & parameters) :
+  NodalUserObject(parameters),
   _subspace_name(parameters.get<std::string>("subspace_name")),
   _subspace_indices(parameters.get<std::vector<unsigned int> >("subspace_indices")),
   _disp_r_i(coupled("disp_r")),
@@ -78,3 +72,4 @@ RigidBodyModesRZ::finalize()
     mode.close();
   }
 }
+

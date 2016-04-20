@@ -33,22 +33,16 @@ public:
 
   /**
    * Class constructor
-   * @param name The name of the AuxKernel
    * @param parameters The input parameters for this AuxKernel
    */
-  MaterialRealTensorValueAux(const std::string & name, InputParameters parameters);
+  MaterialRealTensorValueAux(const InputParameters & parameters);
 
-  /**
-   * Class destructor
-   */
   virtual ~MaterialRealTensorValueAux();
 
 protected:
 
-  /**
-   * Computes the component of the tensor for output
-   */
-  virtual Real computeValue();
+  /// Returns the component of the tensor for output
+  virtual Real getRealValue();
 
   /// The row index to output
   unsigned int _row;

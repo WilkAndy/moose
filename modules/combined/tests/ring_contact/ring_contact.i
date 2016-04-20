@@ -51,6 +51,7 @@
     disp_y = disp_y
     disp_z = disp_z
     penalty = 1e3
+    tension_release = -1
   [../]
 []
 
@@ -135,27 +136,18 @@
 [Executioner]
   type = Transient
 
-  #Preconditioned JFNK (default)
+  # Preconditioned JFNK (default)
   solve_type = 'PJFNK'
 
-
-
-#  petsc_options_iname = '-pc_type -pc_hypre_type -snes_type -snes_ls -snes_linesearch_type -ksp_gmres_restart'
-#  petsc_options_value = 'hypre    boomeramg      ls         basic    basic                    101'
   petsc_options_iname = '-pc_type -ksp_gmres_restart'
   petsc_options_value = 'lu       101'
-
-
   line_search = 'none'
 
-
-  nl_abs_tol = 1e-8
-
+  nl_rel_tol = 1.e-10
   l_max_its = 100
   nl_max_its = 10
   dt = 0.1
   end_time = 0.5
-  num_steps = 100
 
   [./Quadrature]
     order = THIRD
@@ -165,11 +157,5 @@
 
 [Outputs]
   file_base = out
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 [] # Outputs

@@ -16,10 +16,10 @@
 #define SOLUTIONAUX_H
 
 #include "AuxKernel.h"
-#include "SolutionUserObject.h"
 
 // Forward declaration
 class SolutionAux;
+class SolutionUserObject;
 
 template<>
 InputParameters validParams<SolutionAux>();
@@ -34,14 +34,18 @@ class SolutionAux : public AuxKernel
 public:
 
   /** Constructor
-   * @param name The name of the SolutionAux kernel
    * @param parameters The input parameters for the kernel
    */
-  SolutionAux(const std::string & name, InputParameters parameters);
+  SolutionAux(const InputParameters & parameters);
 
   /** Empty destructor
    */
   virtual ~SolutionAux();
+
+  /**
+   * Sets up the variable name for extraction from the SolutionUserObject
+   */
+  void initialSetup();
 
 protected:
 

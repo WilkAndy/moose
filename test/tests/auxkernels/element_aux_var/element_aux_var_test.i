@@ -139,14 +139,8 @@
 
 [Outputs]
   file_base = out
-  output_initial = true
-  interval = 1
   [./exodus]
     type = Exodus
     elemental_as_nodal = true
-  [../]
-  [./console]
-    type = Console
-    perf_log = true
   [../]
 []

@@ -11,9 +11,9 @@
 /*                                                              */
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
-#include "MultiApp.h"
 
-// Moose
+// MOOSE includes
+#include "MultiApp.h"
 #include "AppFactory.h"
 #include "SetupInterface.h"
 #include "Executioner.h"
@@ -22,54 +22,51 @@
 #include "OutputWarehouse.h"
 #include "AppFactory.h"
 #include "MooseUtils.h"
+#include "Console.h"
+#include "RestartableDataIO.h"
+#include "MooseMesh.h"
 
-// libMesh
+// libMesh includes
 #include "libmesh/mesh_tools.h"
+#include "libmesh/numeric_vector.h"
 
-#include <iostream>
+// C++ includes
+#include <fstream>
 #include <iomanip>
 #include <iterator>
-#include <fstream>
-#include <vector>
 #include <algorithm>
 
+// Call to "uname"
 #include <sys/utsname.h>
+
 
 template<>
 InputParameters validParams<MultiApp>()
 {
   InputParameters params = validParams<MooseObject>();
+  params += validParams<SetupInterface>();
 
   params.addParam<bool>("use_displaced_mesh", false, "Whether or not this object should use the displaced mesh for computation.  Note that in the case this is true but no displacements are provided in the Mesh block the undisplaced mesh will still be used.");
   params.addParamNamesToGroup("use_displaced_mesh", "Advanced");
 
   std::ostringstream app_types_strings;
-
   registeredMooseAppIterator it = AppFactory::instance().registeredObjectsBegin();
-  while (it != AppFactory::instance().registeredObjectsEnd())
-  {
-    app_types_strings << it->first;
-    ++it;
-    if (it != AppFactory::instance().registeredObjectsEnd())
-      app_types_strings<< ", ";
-  }
+  for ( ; it != AppFactory::instance().registeredObjectsEnd(); ++it)
+    app_types_strings << it->first << " ";
+  MooseEnum app_types_options(app_types_strings.str(), "", true);
 
-  MooseEnum app_types_options(app_types_strings.str());
+  params.addParam<MooseEnum>("app_type", app_types_options, "The type of application to build (applications not registered can be loaded with dynamic libraries. Master application type will be used if not provided.");
+  params.addParam<std::string>("library_path", "", "Path to search for dynamic libraries (please avoid committing absolute paths in addition to MOOSE_LIBRARY_PATH)");
+  params.addParam<std::vector<Point> >("positions", "The positions of the App locations.  Each set of 3 values will represent a Point.  This and 'positions_file' cannot be both supplied. If this and 'positions_file' are not supplied, a single position (0,0,0) will be used");
+  params.addParam<std::vector<FileName> >("positions_file", "A filename that should be looked in for positions. Each set of 3 values in that file will represent a Point.  This and 'positions' cannot be both supplied");
 
-  params.addRequiredParam<MooseEnum>("app_type", app_types_options, "The type of application to build.");
-  params.addParam<std::vector<Point> >("positions", "The positions of the App locations.  Each set of 3 values will represent a Point.  Either this must be supplied or 'positions_file'");
-  params.addParam<FileName>("positions_file", "A filename that should be looked in for positions. Each set of 3 values in that file will represent a Point.  Either this must be supplied or 'positions'");
-
-  params.addRequiredParam<std::vector<std::string> >("input_files", "The input file for each App.  If this parameter only contains one input file it will be used for all of the Apps.");
+  params.addRequiredParam<std::vector<FileName> >("input_files", "The input file for each App.  If this parameter only contains one input file it will be used for all of the Apps.  When using 'positions_from_file' it is also admissable to provide one input_file per file.");
   params.addParam<Real>("bounding_box_inflation", 0.01, "Relative amount to 'inflate' the bounding box of this MultiApp.");
 
   params.addPrivateParam<MPI_Comm>("_mpi_comm");
 
-
-  MooseEnum execute_options(SetupInterface::getExecuteOptions());
-  execute_options = "timestep_begin";  // set the default
-
-  params.addParam<MooseEnum>("execute_on", execute_options, "Set to (residual|jacobian|timestep|timestep_begin|custom) to execute only at that moment");
+  // Set the default execution time
+  params.set<MultiMooseEnum>("execute_on") = "timestep_begin";
 
   params.addParam<unsigned int>("max_procs_per_app", std::numeric_limits<unsigned int>::max(), "Maximum number of processors to give to each App in this MultiApp.  Useful for restricting small solves to just a few procs so they don't get spread out");
 
@@ -85,19 +82,25 @@ InputParameters validParams<MultiApp>()
 
   params.addParam<std::vector<Point> >("move_positions", "The positions corresponding to each move_app.");
 
+  params.declareControllable("enable");
   params.registerBase("MultiApp");
 
   return params;
 }
 
-MultiApp::MultiApp(const std::string & name, InputParameters parameters):
-    MooseObject(name, parameters),
-    Restartable(name, parameters, "MultiApps"),
-    _fe_problem(getParam<FEProblem *>("_fe_problem")),
-    _app_type(getParam<MooseEnum>("app_type")),
-    _input_files(getParam<std::vector<std::string> >("input_files")),
+MultiApp::MultiApp(const InputParameters & parameters):
+    MooseObject(parameters),
+    SetupInterface(this),
+    Restartable(parameters, "MultiApps"),
+    _fe_problem(*parameters.getCheckedPointerParam<FEProblem *>("_fe_problem")),
+    _app_type(isParamValid("app_type") ? std::string(getParam<MooseEnum>("app_type")) : _fe_problem.getMooseApp().type()),
+    _input_files(getParam<std::vector<FileName> >("input_files")),
+    _total_num_apps(0),
+    _my_num_apps(0),
+    _first_local_app(0),
     _orig_comm(getParam<MPI_Comm>("_mpi_comm")),
-    _execute_on(getParam<MooseEnum>("execute_on")),
+    _my_comm(MPI_COMM_SELF),
+    _my_rank(0),
     _inflation(getParam<Real>("bounding_box_inflation")),
     _max_procs_per_app(getParam<unsigned int>("max_procs_per_app")),
     _output_in_position(getParam<bool>("output_in_position")),
@@ -108,8 +111,27 @@ MultiApp::MultiApp(const std::string & name, InputParameters parameters):
     _move_apps(getParam<std::vector<unsigned int> >("move_apps")),
     _move_positions(getParam<std::vector<Point> >("move_positions")),
     _move_happened(false),
-    _has_an_app(true)
+    _has_an_app(true),
+    _backups(declareRestartableDataWithContext<SubAppBackups>("backups", this))
 {
+  if (_move_apps.size() != _move_positions.size())
+    mooseError("The number of apps to move and the positions to move them to must be the same for MultiApp " << _name);
+
+  // Fill in the _positions vector
+  fillPositions();
+
+  _total_num_apps = _positions.size();
+
+  mooseAssert(_input_files.size() == 1 || _positions.size() == _input_files.size(), "Number of positions and input files are not the same!");
+
+  /// Set up our Comm and set the number of apps we're going to be working on
+  buildComm();
+
+  _backups.resize(_my_num_apps);
+
+  // Initialize the backups
+  for (unsigned int i=0; i<_my_num_apps; i++)
+    _backups[i] = MooseSharedPointer<Backup>(new Backup);
 }
 
 MultiApp::~MultiApp()
@@ -126,51 +148,8 @@ MultiApp::~MultiApp()
 }
 
 void
-MultiApp::init()
+MultiApp::initialSetup()
 {
-  if (isParamValid("positions"))
-    _positions = getParam<std::vector<Point> >("positions");
-  else if (isParamValid("positions_file"))
-  {
-    // Read the file on the root processor then broadcast it
-    if (processor_id() == 0)
-    {
-      std::string positions_file = getParam<FileName>("positions_file");
-      MooseUtils::checkFileReadable(positions_file);
-
-      std::ifstream is(positions_file.c_str());
-      std::istream_iterator<Real> begin(is), end;
-      _positions_vec.insert(_positions_vec.begin(), begin, end);
-    }
-    unsigned int num_values = _positions_vec.size();
-
-    _communicator.broadcast(num_values);
-
-    _positions_vec.resize(num_values);
-
-    _communicator.broadcast(_positions_vec);
-
-    mooseAssert(num_values % LIBMESH_DIM == 0, "Wrong number of entries in 'positions'");
-
-    _positions.reserve(num_values / LIBMESH_DIM);
-
-    for (unsigned int i = 0; i < num_values; i += 3)
-      _positions.push_back(Point(_positions_vec[i], _positions_vec[i+1], _positions_vec[i+2]));
-
-  }
-
-  else
-    mooseError("Must supply either 'positions' or 'positions_file' for MultiApp "<<_name);
-
-  if (_move_apps.size() != _move_positions.size())
-    mooseError("The number of apps to move and the positions to move them to must be the same for MultiApp "<<_name);
-
-  _total_num_apps = _positions.size();
-  mooseAssert(_input_files.size() == 1 || _positions.size() == _input_files.size(), "Number of positions and input files are not the same!");
-
-  /// Set up our Comm and set the number of apps we're going to be working on
-  buildComm();
-
   if (!_has_an_app)
     return;
 
@@ -178,12 +157,91 @@ MultiApp::init()
 
   _apps.resize(_my_num_apps);
 
+  // If the user provided an unregistered app type, see if we can load it dynamically
+  if (!AppFactory::instance().isRegistered(_app_type))
+    _app.dynamicAppRegistration(_app_type, getParam<std::string>("library_path"));
+
   for (unsigned int i=0; i<_my_num_apps; i++)
     createApp(i, _app.getGlobalTimeOffset());
 
   // Swap back
   Moose::swapLibMeshComm(swapped);
 }
+
+void
+MultiApp::fillPositions()
+{
+  if (isParamValid("positions") && isParamValid("positions_file"))
+    mooseError("Both 'positions' and 'positions_file' cannot be specified simultaneously in MultiApp " << name());
+
+  if (isParamValid("positions"))
+  {
+    _positions = getParam<std::vector<Point> >("positions");
+
+    if (_positions.size() < _input_files.size())
+      mooseError("Not enough positions for the number of input files provided in MultiApp " << name());
+  }
+  else if (isParamValid("positions_file"))
+  {
+    std::vector<FileName> positions_files = getParam<std::vector<FileName> >("positions_file");
+    std::vector<FileName> input_files = getParam<std::vector<FileName> >("input_files");
+
+    if (input_files.size() != 1 && positions_files.size() != input_files.size())
+      mooseError("Number of input_files for MultiApp " << name() << " must either be only one or match the number of positions_file files");
+
+    // Clear out the _input_files because we're going to rebuild it
+    if (input_files.size() != 1)
+      _input_files.clear();
+
+    for (unsigned int p_file_it = 0; p_file_it < positions_files.size(); p_file_it++)
+    {
+      std::string positions_file = positions_files[p_file_it];
+
+      std::vector<Real> positions_vec;
+
+      // Read the file on the root processor then broadcast it
+      if (processor_id() == 0)
+      {
+        MooseUtils::checkFileReadable(positions_file);
+
+        std::ifstream is(positions_file.c_str());
+        std::istream_iterator<Real> begin(is), end;
+        positions_vec.insert(positions_vec.begin(), begin, end);
+
+        if (positions_vec.size() % LIBMESH_DIM != 0)
+          mooseError("Number of entries in 'positions_file' " << positions_file << " must be divisible by " << LIBMESH_DIM << " in MultiApp " << name());
+      }
+
+      // Bradcast the vector to all processors
+      std::size_t num_positions = positions_vec.size();
+      _communicator.broadcast(num_positions);
+      positions_vec.resize(num_positions);
+      _communicator.broadcast(positions_vec);
+
+      for (unsigned int i = 0; i < positions_vec.size(); i += LIBMESH_DIM)
+      {
+        if (input_files.size() != 1)
+          _input_files.push_back(input_files[p_file_it]);
+
+        Point position;
+
+        // This is here so it will theoretically work with LIBMESH_DIM=1 or 2. That is completely untested!
+        for (unsigned int j = 0; j < LIBMESH_DIM; j++)
+          position(j) = positions_vec[i + j];
+
+        _positions.push_back(position);
+      }
+    }
+  }
+  else
+  {
+    _positions = std::vector<Point>(1, Point());
+
+    if (_positions.size() < _input_files.size())
+      mooseError("Not enough positions for the number of input files provided in MultiApp " << name());
+  }
+}
+
 
 void
 MultiApp::preTransfer(Real /*dt*/, Real target_time)
@@ -209,22 +267,42 @@ Executioner *
 MultiApp::getExecutioner(unsigned int app)
 {
   if (!_has_an_app)
-    mooseError("No app for " << _name << " on processor " << _orig_rank);
+    mooseError("No app for " << name() << " on processor " << _orig_rank);
 
   return _apps[globalAppToLocal(app)]->getExecutioner();
+}
+
+void
+MultiApp::backup()
+{
+  for (unsigned int i=0; i<_my_num_apps; i++)
+    _backups[i] = _apps[i]->backup();
+}
+
+void
+MultiApp::restore()
+{
+  // Must be restarting / recovering so hold off on restoring
+  // Instead - the restore will happen in createApp()
+  // Note that _backups was already populated by dataLoad()
+  if (_apps.empty())
+    return;
+
+  for (unsigned int i=0; i<_my_num_apps; i++)
+    _apps[i]->restore(_backups[i]);
 }
 
 MeshTools::BoundingBox
 MultiApp::getBoundingBox(unsigned int app)
 {
   if (!_has_an_app)
-    mooseError("No app for " << _name << " on processor " << _orig_rank);
+    mooseError("No app for " << name() << " on processor " << _orig_rank);
 
-  FEProblem * problem = appProblem(app);
+  FEProblem & problem = appProblem(app);
 
   MPI_Comm swapped = Moose::swapLibMeshComm(_my_comm);
 
-  MooseMesh & mesh = problem->mesh();
+  MooseMesh & mesh = problem.mesh();
   MeshTools::BoundingBox bbox = MeshTools::bounding_box(mesh);
 
   Moose::swapLibMeshComm(swapped);
@@ -245,7 +323,7 @@ MultiApp::getBoundingBox(unsigned int app)
 
   // If the problem is RZ then we're going to invent a box that would cover the whole "3D" app
   // FIXME: Assuming all subdomains are the same coordinate system type!
-  if (problem->getCoordSystem(*(problem->mesh().meshSubdomains().begin())) == Moose::COORD_RZ)
+  if (problem.getCoordSystem(*(problem.mesh().meshSubdomains().begin())) == Moose::COORD_RZ)
   {
     shifted_min(0) = -inflated_max(0);
     shifted_min(1) = inflated_min(1);
@@ -263,42 +341,39 @@ MultiApp::getBoundingBox(unsigned int app)
   return MeshTools::BoundingBox(shifted_min, shifted_max);
 }
 
-FEProblem *
+FEProblem &
 MultiApp::appProblem(unsigned int app)
 {
   if (!_has_an_app)
-    mooseError("No app for " << _name << " on processor " << _orig_rank);
+    mooseError("No app for " << name() << " on processor " << _orig_rank);
 
   unsigned int local_app = globalAppToLocal(app);
 
-  FEProblem * problem = dynamic_cast<FEProblem *>(&_apps[local_app]->getExecutioner()->problem());
-  mooseAssert(problem, "Not an FEProblem!");
-
-  return problem;
+  return _apps[local_app]->getExecutioner()->feProblem();
 }
 
 const UserObject &
 MultiApp::appUserObjectBase(unsigned int app, const std::string & name)
 {
   if (!_has_an_app)
-    mooseError("No app for " << _name << " on processor " << _orig_rank);
+    mooseError("No app for " << MultiApp::name() << " on processor " << _orig_rank);
 
-  return appProblem(app)->getUserObjectBase(name);
+  return appProblem(app).getUserObjectBase(name);
 }
 
 Real
 MultiApp::appPostprocessorValue(unsigned int app, const std::string & name)
 {
   if (!_has_an_app)
-    mooseError("No app for " << _name << " on processor " << _orig_rank);
+    mooseError("No app for " << MultiApp::name() << " on processor " << _orig_rank);
 
-  return appProblem(app)->getPostprocessorValue(name);
+  return appProblem(app).getPostprocessorValue(name);
 }
 
 NumericVector<Number> &
 MultiApp::appTransferVector(unsigned int app, std::string /*var_name*/)
 {
-  return appProblem(app)->getAuxiliarySystem().solution();
+  return appProblem(app).getAuxiliarySystem().solution();
 }
 
 bool
@@ -308,6 +383,12 @@ MultiApp::hasLocalApp(unsigned int global_app)
     return true;
 
   return false;
+}
+
+MooseApp *
+MultiApp::localApp(unsigned int local_app)
+{
+  return _apps[local_app];
 }
 
 void
@@ -352,7 +433,7 @@ MultiApp::moveApp(unsigned int global_app, Point p)
 void
 MultiApp::parentOutputPositionChanged()
 {
-  if (getParam<bool>("output_in_position"))
+  if (_output_in_position)
     for (unsigned int i = 0; i < _apps.size(); i++)
       _apps[i]->setOutputPosition(_app.getOutputPosition() + _positions[_first_local_app + i]);
 }
@@ -360,9 +441,23 @@ MultiApp::parentOutputPositionChanged()
 void
 MultiApp::createApp(unsigned int i, Real start_time)
 {
+
+  // Define the app name
+  std::ostringstream multiapp_name;
+  std::string full_name;
+  multiapp_name << name() <<  std::setw(std::ceil(std::log10(_total_num_apps)))
+           << std::setprecision(0) << std::setfill('0') << std::right << _first_local_app + i;
+
+  // Only add parent name if it the parent is not the main app
+  if (_app.multiAppLevel() > 0)
+    full_name = _app.name() + "_" + multiapp_name.str();
+  else
+    full_name = multiapp_name.str();
+
   InputParameters app_params = AppFactory::instance().getValidParams(_app_type);
-  app_params.set<FEProblem *>("_parent_fep") = _fe_problem;
-  MooseApp * app = AppFactory::instance().create(_app_type, "multi_app", app_params, _my_comm);
+  app_params.set<FEProblem *>("_parent_fep") = &_fe_problem;
+  app_params.set<MooseSharedPointer<CommandLine> >("_command_line") = _app.commandLine();
+  MooseApp * app = AppFactory::instance().create(_app_type, full_name, app_params, _my_comm);
   _apps[i] = app;
 
   std::string input_file = "";
@@ -373,7 +468,6 @@ MultiApp::createApp(unsigned int i, Real start_time)
 
   std::ostringstream output_base;
 
-  /* The following file_base needs to be improved (see #2554) */
   // Create an output base by taking the output base of the master problem and appending
   // the name of the multiapp + a number to it
   if (!_app.getOutputFileBase().empty())
@@ -386,22 +480,28 @@ MultiApp::createApp(unsigned int i, Real start_time)
   }
 
   // Append the sub app name to the output file base
-  output_base << _name
-              << std::setw(std::ceil(std::log10(_total_num_apps)))
-              << std::setprecision(0)
-              << std::setfill('0')
-              << std::right
-              << _first_local_app + i;
-
+  output_base << multiapp_name.str();
   app->setGlobalTimeOffset(start_time);
   app->setInputFileName(input_file);
   app->setOutputFileBase(output_base.str());
   app->setOutputFileNumbers(_app.getOutputWarehouse().getFileNumbers());
+  app->setRestart(_app.isRestarting());
+  app->setRecover(_app.isRecovering());
+
+  // This means we have a backup of this app that we need to give to it
+  // Note: This won't do the restoration immediately.  The Backup
+  // will be cached by the MooseApp object so that it can be used
+  // during FEProblem::initialSetup() during runInputFile()
+  if (_app.isRestarting() || _app.isRecovering())
+    app->restore(_backups[i]);
 
   if (getParam<bool>("output_in_position"))
     app->setOutputPosition(_app.getOutputPosition() + _positions[_first_local_app + i]);
 
+  // Update the MultiApp level for the app that was just created
+  app->setMultiAppLevel(_app.multiAppLevel() + 1);
   app->setupOptions();
+  preRunInputFile();
   app->runInputFile();
 }
 
@@ -499,6 +599,11 @@ MultiApp::globalAppToLocal(unsigned int global_app)
   if (global_app >= _first_local_app && global_app <= _first_local_app + (_my_num_apps-1))
     return global_app-_first_local_app;
 
-  Moose::out << _first_local_app << " " << global_app << '\n';
+  _console << _first_local_app << " " << global_app << '\n';
   mooseError("Invalid global_app!");
+}
+
+void
+MultiApp::preRunInputFile()
+{
 }

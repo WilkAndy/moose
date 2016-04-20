@@ -214,8 +214,6 @@
 [Executioner]
   type = Transient
 
-  restart_file_base = restart_out_cp/0010
-
   # Preconditioned JFNK (default)
   solve_type = 'PJFNK'
   petsc_options = '-snes_ksp_ew'
@@ -229,11 +227,9 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
+[]
+
+[Problem]
+  restart_file_base = restart_out_cp/0010
 []

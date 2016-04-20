@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  Fluid density ideal gas
 //
@@ -17,10 +20,10 @@ InputParameters validParams<RichardsDensityIdeal>()
   return params;
 }
 
-RichardsDensityIdeal::RichardsDensityIdeal(const std::string & name, InputParameters parameters) :
-  RichardsDensity(name, parameters),
-  _slope(getParam<Real>("slope")),
-  _p0(getParam<Real>("p0"))
+RichardsDensityIdeal::RichardsDensityIdeal(const InputParameters & parameters) :
+    RichardsDensity(parameters),
+    _slope(getParam<Real>("slope")),
+    _p0(getParam<Real>("p0"))
 {}
 
 
@@ -41,4 +44,5 @@ RichardsDensityIdeal::d2density(Real /*p*/) const
 {
   return 0.0;
 }
+
 

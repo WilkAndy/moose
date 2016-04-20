@@ -27,6 +27,14 @@
   [../]
 []
 
+[ICs]
+  [./reporter_ic]
+    type = ConstantIC
+    variable = reporter
+    value = 10
+  [../]
+[]
+
 [Kernels]
   active = 'diff body_force'
 
@@ -75,12 +83,14 @@
     type = ElementAverageValue
     variable = u
     block = 'center_block'
+    execute_on = 'initial timestep_end'
   [../]
 
   [./side_average]
     type = SideAverageValue
     variable = u
     boundary = 'right_side'
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -106,12 +116,5 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
-
 []

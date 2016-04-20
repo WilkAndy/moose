@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef LINEARELASTICITYMATERIAL_H
 #define LINEARELASTICITYMATERIAL_H
 
@@ -10,8 +16,7 @@
 class LinearElasticityMaterial : public Material
 {
 public:
-  LinearElasticityMaterial(const std::string & name,
-                           InputParameters parameters);
+  LinearElasticityMaterial(const InputParameters & parameters);
 
 protected:
   virtual void computeProperties();
@@ -19,7 +24,7 @@ protected:
 private:
 
   bool _has_temp;
-  VariableValue & _temp;
+  const VariableValue & _temp;
 
   Real _my_thermal_expansion;
   Real _my_youngs_modulus;

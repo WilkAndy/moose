@@ -18,42 +18,60 @@
 #include "FEProblem.h"
 
 #include <unistd.h>
+#include <time.h>
 
 template<>
 InputParameters validParams<FileOutput>()
 {
   // Create InputParameters object for this stand-alone object
-  InputParameters params = validParams<Output>();
+  InputParameters params = validParams<PetscOutput>();
   params.addParam<std::string>("file_base", "The desired solution output name without an extension");
-  params.addParam<bool>("append_displaced", false, "Append '_displaced' to the output file base");
-  params.addParamNamesToGroup("append_displaced", "Displaced");
-
+  params.addParam<bool>("append_date", false, "When true the date and time are appended to the output filename.");
+  params.addParam<std::string>("append_date_format", "The format of the date/time to append, if not given UTC format used (see http://www.cplusplus.com/reference/ctime/strftime).");
   // Add the padding option and list it as 'Advanced'
   params.addParam<unsigned int>("padding", 4, "The number of for extension suffix (e.g., out.e-s002)");
-  params.addParam<std::vector<std::string> >("output_if_base_contains", "If this is supplied then output will only be done in the case that the output base contains one of these strings.  This is helpful in outputting only a subset of outputs when using MultiApps.");
+  params.addParam<std::vector<std::string> >("output_if_base_contains", std::vector<std::string>(), "If this is supplied then output will only be done in the case that the output base contains one of these strings.  This is helpful in outputting only a subset of outputs when using MultiApps.");
   params.addParamNamesToGroup("padding output_if_base_contains", "Advanced");
 
   return params;
 }
 
-FileOutput::FileOutput(const std::string & name, InputParameters & parameters) :
-    Output(name, parameters),
-    _file_base(getParam<std::string>("file_base")),
+FileOutput::FileOutput(const InputParameters & parameters) :
+    PetscOutput(parameters),
     _file_num(declareRecoverableData<unsigned int>("file_num", 0)),
     _padding(getParam<unsigned int>("padding")),
-    _output_file(true)
+    _output_if_base_contains(parameters.get<std::vector<std::string> >("output_if_base_contains"))
 {
   // If restarting reset the file number
-  if (_problem_ptr->isRestarting())
+  if (_app.isRestarting())
     _file_num = 0;
 
-  // Set the file base, if it has not been set already
-  if (!isParamValid("file_base"))
+  // Set the file base
+  if (isParamValid("file_base"))
+    _file_base = getParam<std::string>("file_base");
+  else if (getParam<bool>("_built_by_moose"))
+    _file_base = getOutputFileBase(_app);
+  else
+    _file_base = getOutputFileBase(_app, "_" + name());
+
+  // Append the date/time
+  if (getParam<bool>("append_date"))
   {
-    if (getParam<bool>("_short_cut"))
-      _file_base = getOutputFileBase(_app);
+    std::string format;
+    if (isParamValid("append_date_format"))
+      format = getParam<std::string>("append_date_format");
     else
-      _file_base = getOutputFileBase(_app, "_" + name);
+      format = "%Y-%m-%dT%T%z";
+
+    // Get the current time
+    time_t now;
+    ::time(&now); // need :: to avoid confusion with time() method of Output class
+
+    // Format the time
+    char buffer[80];
+    strftime(buffer, 80, format.c_str(), localtime(&now));
+    _file_base += "_";
+    _file_base += buffer;
   }
 
   // Check the file directory of file_base
@@ -62,50 +80,10 @@ FileOutput::FileOutput(const std::string & name, InputParameters & parameters) :
   if (access(base.c_str(), W_OK) == -1)
     mooseError("Can not write to directory: " + base + " for file base: " + _file_base);
 
-  // Append the 'displaced' name, if desired and displaced mesh is being used
-  if (isParamValid("use_displaced") && getParam<bool>("use_displaced") &&
-      isParamValid("append_displaced") && getParam<bool>("append_displaced"))
-    _file_base = _file_base + "_displaced";
-
-  // Update the file_base check
-  _output_file = checkFilename();
 }
 
 FileOutput::~FileOutput()
 {
-}
-
-void
-FileOutput::outputInitial()
-{
-  // Perform filename check
-  if (!_output_file)
-    return;
-
-  // Call the initial output method
-  Output::outputInitial();
-}
-
-void
-FileOutput::outputStep()
-{
-  // Perform filename check
-  if (!_output_file)
-    return;
-
-  // Call the step output method
-  Output::outputStep();
-}
-
-void
-FileOutput::outputFinal()
-{
-  // Perform filename check
-  if (!_output_file)
-    return;
-
-  // Call the final output methods
-  Output::outputFinal();
 }
 
 std::string
@@ -134,24 +112,25 @@ FileOutput::getOutputFileBase(MooseApp & app, std::string suffix)
 }
 
 bool
+FileOutput::shouldOutput(const ExecFlagType & type)
+{
+  if (checkFilename())
+    return PetscOutput::shouldOutput(type);
+  return false;
+}
+
+bool
 FileOutput::checkFilename()
 {
   // Return true if 'output_if_base_contains' is not utilized
-  if (!isParamValid("output_if_base_contains"))
-    return true;
-
-  // Get the file list
-  std::vector<std::string> contain = getParam<std::vector<std::string> >("output_if_base_contains");
-
-  // Return true if it is empty
-  if (contain.empty())
+  if (_output_if_base_contains.empty())
     return true;
 
   // Assumed output is false
   bool output = false;
 
   // Loop through each string in the list
-  for (std::vector<std::string>::const_iterator it = contain.begin(); it != contain.end(); ++it)
+  for (std::vector<std::string>::const_iterator it = _output_if_base_contains.begin(); it != _output_if_base_contains.end(); ++it)
   {
     // Search for the string in the file base, if found set the output to true and break the loop
     if (_file_base.find(*it) != std::string::npos)
@@ -165,6 +144,11 @@ FileOutput::checkFilename()
   return output;
 }
 
+std::string
+FileOutput::filename()
+{
+  return _file_base;
+}
 
 void
 FileOutput::setFileNumber(unsigned int num)

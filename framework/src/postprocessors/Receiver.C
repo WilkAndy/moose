@@ -19,13 +19,14 @@ InputParameters validParams<Receiver>()
 {
   InputParameters params = validParams<GeneralPostprocessor>();
   params.addParam<Real>("default", "The default value");
-
+  params.addParam<bool>("initialize_old", true, "Initialize the old postprocessor value with the default value");
   return params;
 }
 
-Receiver::Receiver(const std::string & name, InputParameters params) :
-    GeneralPostprocessor(name, params),
-    _my_value(getPostprocessorValueByName(name))
+Receiver::Receiver(const InputParameters & params) :
+    GeneralPostprocessor(params),
+    _initialize_old(getParam<bool>("initialize_old")),
+    _my_value(getPostprocessorValueByName(name()))
 {
 }
 
@@ -40,5 +41,14 @@ void
 Receiver::initialSetup()
 {
   if (isParamValid("default"))
-    _fe_problem.getPostprocessorValue(_pp_name) = getParam<Real>("default");
+  {
+    Real value = getParam<Real>("default");
+    _fe_problem.getPostprocessorValue(_pp_name) = value;
+    if (_initialize_old)
+    {
+      _fe_problem.getPostprocessorValueOld(_pp_name) = value;
+      _fe_problem.getPostprocessorValueOlder(_pp_name) = value;
+    }
+  }
 }
+

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "Kernel.h"
 
 #ifndef PRIMARYCONVECTION_H
@@ -25,7 +31,7 @@ public:
    * It is ok to have the definition in the .h if the function body
    * is really small.  Otherwise it should be in the .C
    */
-  PrimaryConvection(const std::string & name, InputParameters parameters);
+  PrimaryConvection(const InputParameters & parameters);
 
 protected:
   /**
@@ -51,7 +57,7 @@ protected:
   virtual Real computeQpOffDiagJacobian(unsigned int jvar);
 
   /// Material property of hydraulic conductivity
-  MaterialProperty<Real> & _cond;
+  const MaterialProperty<Real> & _cond;
 
 private:
   /**
@@ -61,6 +67,7 @@ private:
    * constructor!
    */
   /// Coupled gradient of hydraulic head.
-  VariableGradient & _grad_p;
+  const VariableGradient & _grad_p;
 };
+
 #endif //PRIMARYCONVECTION_H

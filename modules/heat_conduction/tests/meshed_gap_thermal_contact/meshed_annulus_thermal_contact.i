@@ -65,12 +65,6 @@
 []
 
 [Outputs]
-  output_initial = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
   [./out]
     type = Exodus
   [../]

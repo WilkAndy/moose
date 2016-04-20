@@ -41,6 +41,15 @@
   [../]
 []
 
+[ICs]
+  [./ic1]
+    type = ConstantIC
+    variable = constantVar
+    value = 1
+    block = 1
+  [../]
+[]
+
 [Kernels]
 
   [./heat_r]
@@ -91,27 +100,25 @@
     type = ElementAverageValue
     block = 1
     variable = constantVar
+    execute_on = 'initial timestep_end'
   [../]
   [./volume1]
     type = VolumePostprocessor
     block = 1
+    execute_on = 'initial timestep_end'
   [../]
   [./volume2]
     type = VolumePostprocessor
     block = 2
+    execute_on = 'initial timestep_end'
   [../]
   [./volume3]
     type = VolumePostprocessor
     block = 3
+    execute_on = 'initial timestep_end'
   [../]
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = true
-  [../]
 [] # Output
