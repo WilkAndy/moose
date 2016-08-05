@@ -24,7 +24,8 @@
 #include "PorousFlowMaterialPorosityConst.h"
 #include "PorousFlowPorosityHM.h"
 #include "PorousFlowMaterialMassFractionBuilder.h"
-#include "PorousFlowMaterialPermeabilityConst.h"
+#include "PorousFlowPermeabilityConst.h"
+#include "PorousFlowPermeabilityKozenyCarman.h"
 #include "PorousFlowMaterialRelativePermeabilityBase.h"
 #include "PorousFlowMaterialRelativePermeabilityConstant.h"
 #include "PorousFlowMaterialRelativePermeabilityLinear.h"
@@ -116,7 +117,8 @@ PorousFlowApp::registerObjects(Factory & factory)
   registerMaterial(PorousFlowMaterialPorosityConst);
   registerMaterial(PorousFlowPorosityHM);
   registerMaterial(PorousFlowMaterialMassFractionBuilder);
-  registerMaterial(PorousFlowMaterialPermeabilityConst);
+  registerMaterial(PorousFlowPermeabilityConst);
+  registerMaterial(PorousFlowPermeabilityKozenyCarman);
   registerMaterial(PorousFlowMaterialCapillaryPressureBase);
   registerMaterial(PorousFlowMaterialCapillaryPressureConstant);
   registerMaterial(PorousFlowMaterialCapillaryPressureLinear);

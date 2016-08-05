@@ -129,7 +129,7 @@
     material_property = PorousFlow_viscosity
   [../]
   [./permeability]
-    type = PorousFlowMaterialPermeabilityConst
+    type = PorousFlowPermeabilityConst
     permeability = '1 0 0  0 2 0  0 0 3'
   [../]
   [./relperm_water]

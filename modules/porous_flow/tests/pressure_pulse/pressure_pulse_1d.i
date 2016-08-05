@@ -70,7 +70,7 @@
     porosity = 0.1
   [../]
   [./permeability]
-    type = PorousFlowMaterialPermeabilityConst
+    type = PorousFlowPermeabilityConst
     permeability = '1E-15 0 0 0 1E-15 0 0 0 1E-15'
   [../]
   [./relperm]
