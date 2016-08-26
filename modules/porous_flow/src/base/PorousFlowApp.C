@@ -6,6 +6,7 @@
 
 // UserObjects
 #include "PorousFlowDictator.h"
+#include "PorousFlow1PhaseSet.h"
 
 // DiracKernels
 #include "PorousFlowSquarePulsePointSource.h"
@@ -52,6 +53,7 @@
 #include "PorousFlowMatrixInternalEnergy.h"
 #include "PorousFlowInternalEnergyIdeal.h"
 #include "PorousFlowEnthalpy.h"
+#include "PorousFlow1PhasePorS_VG.h"
 
 // Kernels
 #include "PorousFlowAdvectiveFlux.h"
@@ -70,6 +72,7 @@
 
 // AuxKernels
 #include "PorousFlowDarcyVelocityComponent.h"
+#include "PorousFlowVariableSwitchUpdater.h"
 
 template<>
 InputParameters validParams<PorousFlowApp>()
@@ -114,6 +117,7 @@ PorousFlowApp::registerObjects(Factory & factory)
 {
   // UserObjects
   registerUserObject(PorousFlowDictator);
+  registerUserObject(PorousFlow1PhaseSet);
 
   // DiracKernels
   registerDiracKernel(PorousFlowSquarePulsePointSource);
@@ -160,7 +164,7 @@ PorousFlowApp::registerObjects(Factory & factory)
   registerMaterial(PorousFlowMatrixInternalEnergy);
   registerMaterial(PorousFlowInternalEnergyIdeal);
   registerMaterial(PorousFlowEnthalpy);
-
+  registerMaterial(PorousFlow1PhasePorS_VG);
 
   // Kernels
   registerKernel(PorousFlowAdvectiveFlux);
@@ -179,6 +183,7 @@ PorousFlowApp::registerObjects(Factory & factory)
 
   // AuxKernels
   registerAuxKernel(PorousFlowDarcyVelocityComponent);
+  registerAuxKernel(PorousFlowVariableSwitchUpdater);
 }
 
 // External entry point for dynamic syntax association

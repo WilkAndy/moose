@@ -1,0 +1,606 @@
+
+Framework Information:
+MOOSE version:           git commit eaffdd0 on 2016-08-24
+PETSc Version:           3.6.4
+Current Time:            Fri Aug 26 16:42:36 2016
+Executable Timestamp:    Fri Aug 26 16:33:08 2016
+
+Parallelism:
+  Num Processors:          1
+  Num Threads:             1
+
+Mesh: 
+  Parallel Type:           replicated
+  Mesh Dimension:          2
+  Spatial Dimension:       2
+  Nodes:                   
+    Total:                 22
+    Local:                 22
+  Elems:                   
+    Total:                 10
+    Local:                 10
+  Num Subdomains:          1
+  Num Partitions:          1
+
+Nonlinear System:
+  Num DOFs:                22
+  Num Local DOFs:          22
+  Variables:               "thevar" 
+  Finite Element Types:    "LAGRANGE" 
+  Approximation Orders:    "FIRST" 
+
+Execution Information:
+  Executioner:             Transient
+  TimeStepper:             ConstantDT
+  Solver Mode:             NEWTON
+  Preconditioner:          bjacobi 
+
+
+
+
+Time Step  0, time = 0
+                dt = 0
+
+Time Step  1, time = 1e+08
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m7.071068e+04[39m
+      0 Linear |R| = [32m7.071068e+04[39m
+      1 Linear |R| = [32m2.293988e-20[39m
+ 1 Nonlinear |R| = [32m1.601618e-07[39m
+Nonlinear solve converged due to CONVERGED_FNORM_RELATIVE iterations 1
+[32m Solve Converged![39m
+
+Time Step  2, time = 2e+08
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m9.404654e-07[39m
+      0 Linear |R| = [32m9.404654e-07[39m
+      1 Linear |R| = [32m1.260200e-34[39m
+ 1 Nonlinear |R| = [32m1.158245e-07[39m
+      0 Linear |R| = [32m1.158245e-07[39m
+      1 Linear |R| = [32m6.499231e-38[39m
+ 2 Nonlinear |R| = [32m2.285479e-09[39m
+      0 Linear |R| = [32m2.285479e-09[39m
+      1 Linear |R| = [32m2.963836e-39[39m
+ 3 Nonlinear |R| = [32m1.942430e-12[39m
+Nonlinear solve converged due to CONVERGED_FNORM_RELATIVE iterations 3
+[32m Solve Converged![39m
+
+Time Step  3, time = 3e+08
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m9.584643e-07[39m
+      0 Linear |R| = [32m9.584643e-07[39m
+      1 Linear |R| = [32m3.677780e-35[39m
+ 1 Nonlinear |R| = [32m2.008480e-07[39m
+      0 Linear |R| = [32m2.008480e-07[39m
+      1 Linear |R| = [32m2.554147e-36[39m
+ 2 Nonlinear |R| = [32m7.514998e-09[39m
+      0 Linear |R| = [32m7.514998e-09[39m
+      1 Linear |R| = [32m2.857554e-37[39m
+ 3 Nonlinear |R| = [32m2.095271e-11[39m
+      0 Linear |R| = [32m2.095271e-11[39m
+      1 Linear |R| = [32m5.508472e-40[39m
+ 4 Nonlinear |R| = [32m1.816086e-16[39m
+Nonlinear solve converged due to CONVERGED_FNORM_ABS iterations 4
+[32m Solve Converged![39m
+
+Time Step  4, time = 4e+08
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m9.211264e-07[39m
+      0 Linear |R| = [32m9.211264e-07[39m
+      1 Linear |R| = [32m2.186994e-35[39m
+ 1 Nonlinear |R| = [32m3.345310e-07[39m
+      0 Linear |R| = [32m3.345310e-07[39m
+      1 Linear |R| = [32m3.274959e-35[39m
+ 2 Nonlinear |R| = [32m7.278920e-08[39m
+      0 Linear |R| = [32m7.278920e-08[39m
+      1 Linear |R| = [32m3.875169e-36[39m
+ 3 Nonlinear |R| = [32m5.440062e-09[39m
+      0 Linear |R| = [32m5.440062e-09[39m
+      1 Linear |R| = [32m9.502789e-37[39m
+ 4 Nonlinear |R| = [32m2.393035e-11[39m
+      0 Linear |R| = [32m2.393035e-11[39m
+      1 Linear |R| = [32m1.026447e-38[39m
+ 5 Nonlinear |R| = [32m4.474814e-16[39m
+Nonlinear solve converged due to CONVERGED_FNORM_ABS iterations 5
+[32m Solve Converged![39m
+
+Time Step  5, time = 5e+08
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m8.290127e-07[39m
+      0 Linear |R| = [32m8.290127e-07[39m
+      1 Linear |R| = [32m8.782670e-35[39m
+ 1 Nonlinear |R| = [32m2.134092e-07[39m
+      0 Linear |R| = [32m2.134092e-07[39m
+      1 Linear |R| = [32m4.044782e-36[39m
+ 2 Nonlinear |R| = [32m3.831492e-09[39m
+      0 Linear |R| = [32m3.831492e-09[39m
+      1 Linear |R| = [32m1.334198e-38[39m
+ 3 Nonlinear |R| = [32m1.449111e-11[39m
+      0 Linear |R| = [32m1.449111e-11[39m
+      1 Linear |R| = [32m4.667595e-41[39m
+ 4 Nonlinear |R| = [32m2.521424e-16[39m
+Nonlinear solve converged due to CONVERGED_FNORM_ABS iterations 4
+[32m Solve Converged![39m
+
+Time Step  6, time = 6e+08
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m9.583216e-07[39m
+      0 Linear |R| = [32m9.583216e-07[39m
+      1 Linear |R| = [32m6.723804e-35[39m
+ 1 Nonlinear |R| = [32m1.103690e-07[39m
+      0 Linear |R| = [32m1.103690e-07[39m
+      1 Linear |R| = [32m3.167458e-36[39m
+ 2 Nonlinear |R| = [32m5.439791e-09[39m
+      0 Linear |R| = [32m5.439791e-09[39m
+      1 Linear |R| = [32m2.565741e-38[39m
+ 3 Nonlinear |R| = [32m2.260099e-11[39m
+      0 Linear |R| = [32m2.260099e-11[39m
+      1 Linear |R| = [32m5.934092e-41[39m
+ 4 Nonlinear |R| = [32m3.973735e-16[39m
+Nonlinear solve converged due to CONVERGED_FNORM_ABS iterations 4
+[32m Solve Converged![39m
+
+Time Step  7, time = 7e+08
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m9.480853e-07[39m
+      0 Linear |R| = [32m9.480853e-07[39m
+      1 Linear |R| = [32m1.740832e-35[39m
+ 1 Nonlinear |R| = [32m9.281365e-08[39m
+      0 Linear |R| = [32m9.281365e-08[39m
+      1 Linear |R| = [32m3.318261e-37[39m
+ 2 Nonlinear |R| = [32m4.039415e-09[39m
+      0 Linear |R| = [32m4.039415e-09[39m
+      1 Linear |R| = [32m1.314437e-38[39m
+ 3 Nonlinear |R| = [32m8.687607e-12[39m
+Nonlinear solve converged due to CONVERGED_FNORM_RELATIVE iterations 3
+[32m Solve Converged![39m
+
+Time Step  8, time = 8e+08
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m9.000625e-07[39m
+      0 Linear |R| = [32m9.000625e-07[39m
+      1 Linear |R| = [32m1.925679e-35[39m
+ 1 Nonlinear |R| = [32m1.136572e-07[39m
+      0 Linear |R| = [32m1.136572e-07[39m
+      1 Linear |R| = [32m9.197510e-37[39m
+ 2 Nonlinear |R| = [32m2.370906e-09[39m
+      0 Linear |R| = [32m2.370906e-09[39m
+      1 Linear |R| = [32m1.151957e-38[39m
+ 3 Nonlinear |R| = [32m2.193445e-12[39m
+Nonlinear solve converged due to CONVERGED_FNORM_RELATIVE iterations 3
+[32m Solve Converged![39m
+
+Time Step  9, time = 9e+08
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m8.450408e-07[39m
+      0 Linear |R| = [32m8.450408e-07[39m
+      1 Linear |R| = [32m9.434118e-35[39m
+ 1 Nonlinear |R| = [32m1.516027e-07[39m
+      0 Linear |R| = [32m1.516027e-07[39m
+      1 Linear |R| = [32m3.259009e-36[39m
+ 2 Nonlinear |R| = [32m3.313840e-09[39m
+      0 Linear |R| = [32m3.313840e-09[39m
+      1 Linear |R| = [32m1.176695e-37[39m
+ 3 Nonlinear |R| = [32m4.073014e-12[39m
+Nonlinear solve converged due to CONVERGED_FNORM_RELATIVE iterations 3
+[32m Solve Converged![39m
+
+Time Step 10, time = 1e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m7.873214e-07[39m
+      0 Linear |R| = [32m7.873214e-07[39m
+      1 Linear |R| = [32m4.918761e-35[39m
+ 1 Nonlinear |R| = [32m2.134787e-07[39m
+      0 Linear |R| = [32m2.134787e-07[39m
+      1 Linear |R| = [32m2.183067e-36[39m
+ 2 Nonlinear |R| = [32m2.227203e-08[39m
+      0 Linear |R| = [32m2.227203e-08[39m
+      1 Linear |R| = [32m1.819055e-36[39m
+ 3 Nonlinear |R| = [32m5.166171e-10[39m
+      0 Linear |R| = [32m5.166171e-10[39m
+      1 Linear |R| = [32m3.581455e-38[39m
+ 4 Nonlinear |R| = [32m2.931082e-13[39m
+Nonlinear solve converged due to CONVERGED_FNORM_ABS iterations 4
+[32m Solve Converged![39m
+
+Time Step 11, time = 1.1e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m7.269017e-07[39m
+      0 Linear |R| = [32m7.269017e-07[39m
+      1 Linear |R| = [32m2.974407e-35[39m
+ 1 Nonlinear |R| = [32m2.729103e-07[39m
+      0 Linear |R| = [32m2.729103e-07[39m
+      1 Linear |R| = [32m3.541286e-35[39m
+ 2 Nonlinear |R| = [32m6.153626e-09[39m
+      0 Linear |R| = [32m6.153626e-09[39m
+      1 Linear |R| = [32m2.198565e-36[39m
+ 3 Nonlinear |R| = [32m1.717621e-12[39m
+Nonlinear solve converged due to CONVERGED_FNORM_RELATIVE iterations 3
+[32m Solve Converged![39m
+
+Time Step 12, time = 1.2e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m7.763038e-07[39m
+      0 Linear |R| = [32m7.763038e-07[39m
+      1 Linear |R| = [32m5.536489e-35[39m
+ 1 Nonlinear |R| = [32m1.069252e-07[39m
+      0 Linear |R| = [32m1.069252e-07[39m
+      1 Linear |R| = [32m2.054200e-36[39m
+ 2 Nonlinear |R| = [32m4.130657e-09[39m
+      0 Linear |R| = [32m4.130657e-09[39m
+      1 Linear |R| = [32m1.142019e-38[39m
+ 3 Nonlinear |R| = [32m1.612505e-11[39m
+      0 Linear |R| = [32m1.612505e-11[39m
+      1 Linear |R| = [32m3.328563e-41[39m
+ 4 Nonlinear |R| = [32m2.459760e-16[39m
+Nonlinear solve converged due to CONVERGED_FNORM_ABS iterations 4
+[32m Solve Converged![39m
+
+Time Step 13, time = 1.3e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m8.265433e-07[39m
+      0 Linear |R| = [32m8.265433e-07[39m
+      1 Linear |R| = [32m3.616577e-35[39m
+ 1 Nonlinear |R| = [32m7.620258e-08[39m
+      0 Linear |R| = [32m7.620258e-08[39m
+      1 Linear |R| = [32m5.119445e-37[39m
+ 2 Nonlinear |R| = [32m3.298108e-09[39m
+      0 Linear |R| = [32m3.298108e-09[39m
+      1 Linear |R| = [32m1.256363e-38[39m
+ 3 Nonlinear |R| = [32m7.316132e-12[39m
+Nonlinear solve converged due to CONVERGED_FNORM_RELATIVE iterations 3
+[32m Solve Converged![39m
+
+Time Step 14, time = 1.4e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m7.993679e-07[39m
+      0 Linear |R| = [32m7.993679e-07[39m
+      1 Linear |R| = [32m1.501521e-35[39m
+ 1 Nonlinear |R| = [32m7.573240e-08[39m
+      0 Linear |R| = [32m7.573240e-08[39m
+      1 Linear |R| = [32m9.420739e-38[39m
+ 2 Nonlinear |R| = [32m2.238450e-09[39m
+      0 Linear |R| = [32m2.238450e-09[39m
+      1 Linear |R| = [32m5.620315e-39[39m
+ 3 Nonlinear |R| = [32m6.242466e-12[39m
+Nonlinear solve converged due to CONVERGED_FNORM_RELATIVE iterations 3
+[32m Solve Converged![39m
+
+Time Step 15, time = 1.5e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m7.610942e-07[39m
+      0 Linear |R| = [32m7.610942e-07[39m
+      1 Linear |R| = [32m5.393588e-35[39m
+ 1 Nonlinear |R| = [32m8.895587e-08[39m
+      0 Linear |R| = [32m8.895587e-08[39m
+      1 Linear |R| = [32m7.431150e-37[39m
+ 2 Nonlinear |R| = [32m1.524531e-09[39m
+      0 Linear |R| = [32m1.524531e-09[39m
+      1 Linear |R| = [32m4.967724e-39[39m
+ 3 Nonlinear |R| = [32m5.448193e-12[39m
+Nonlinear solve converged due to CONVERGED_FNORM_RELATIVE iterations 3
+[32m Solve Converged![39m
+
+Time Step 16, time = 1.6e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m7.215068e-07[39m
+      0 Linear |R| = [32m7.215068e-07[39m
+      1 Linear |R| = [32m8.784399e-36[39m
+ 1 Nonlinear |R| = [32m1.105962e-07[39m
+      0 Linear |R| = [32m1.105962e-07[39m
+      1 Linear |R| = [32m2.041974e-36[39m
+ 2 Nonlinear |R| = [32m1.741097e-09[39m
+      0 Linear |R| = [32m1.741097e-09[39m
+      1 Linear |R| = [32m6.711661e-38[39m
+ 3 Nonlinear |R| = [32m3.753331e-12[39m
+Nonlinear solve converged due to CONVERGED_FNORM_RELATIVE iterations 3
+[32m Solve Converged![39m
+
+Time Step 17, time = 1.7e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m6.826609e-07[39m
+      0 Linear |R| = [32m6.826609e-07[39m
+      1 Linear |R| = [32m8.864241e-36[39m
+ 1 Nonlinear |R| = [32m1.436762e-07[39m
+      0 Linear |R| = [32m1.436762e-07[39m
+      1 Linear |R| = [32m1.111745e-36[39m
+ 2 Nonlinear |R| = [32m7.417835e-09[39m
+      0 Linear |R| = [32m7.417835e-09[39m
+      1 Linear |R| = [32m9.532100e-37[39m
+ 3 Nonlinear |R| = [32m3.816063e-11[39m
+      0 Linear |R| = [32m3.816063e-11[39m
+      1 Linear |R| = [32m1.949854e-39[39m
+ 4 Nonlinear |R| = [32m1.044009e-15[39m
+Nonlinear solve converged due to CONVERGED_FNORM_ABS iterations 4
+[32m Solve Converged![39m
+
+Time Step 18, time = 1.8e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m6.465621e-07[39m
+      0 Linear |R| = [32m6.465621e-07[39m
+      1 Linear |R| = [32m3.781756e-35[39m
+ 1 Nonlinear |R| = [32m1.905122e-07[39m
+      0 Linear |R| = [32m1.905122e-07[39m
+      1 Linear |R| = [32m1.689662e-35[39m
+ 2 Nonlinear |R| = [32m2.741597e-08[39m
+      0 Linear |R| = [32m2.741597e-08[39m
+      1 Linear |R| = [32m4.611177e-36[39m
+ 3 Nonlinear |R| = [32m7.037845e-10[39m
+      0 Linear |R| = [32m7.037845e-10[39m
+      1 Linear |R| = [32m2.932595e-37[39m
+ 4 Nonlinear |R| = [32m4.057581e-13[39m
+Nonlinear solve converged due to CONVERGED_FNORM_ABS iterations 4
+[32m Solve Converged![39m
+
+Time Step 19, time = 1.9e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m6.469241e-07[39m
+      0 Linear |R| = [32m6.469241e-07[39m
+      1 Linear |R| = [32m2.293990e-35[39m
+ 1 Nonlinear |R| = [32m9.479255e-08[39m
+      0 Linear |R| = [32m9.479255e-08[39m
+      1 Linear |R| = [32m1.388557e-35[39m
+ 2 Nonlinear |R| = [32m1.642189e-09[39m
+      0 Linear |R| = [32m1.642189e-09[39m
+      1 Linear |R| = [32m5.443396e-39[39m
+ 3 Nonlinear |R| = [32m3.254643e-12[39m
+Nonlinear solve converged due to CONVERGED_FNORM_RELATIVE iterations 3
+[32m Solve Converged![39m
+
+Time Step 20, time = 2e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m7.446788e-07[39m
+      0 Linear |R| = [32m7.446788e-07[39m
+      1 Linear |R| = [32m4.993450e-35[39m
+ 1 Nonlinear |R| = [32m5.551772e-08[39m
+      0 Linear |R| = [32m5.551772e-08[39m
+      1 Linear |R| = [32m4.532670e-37[39m
+ 2 Nonlinear |R| = [32m1.649970e-09[39m
+      0 Linear |R| = [32m1.649970e-09[39m
+      1 Linear |R| = [32m2.451107e-39[39m
+ 3 Nonlinear |R| = [32m2.211768e-12[39m
+Nonlinear solve converged due to CONVERGED_FNORM_RELATIVE iterations 3
+[32m Solve Converged![39m
+
+Time Step 21, time = 2.1e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m7.421369e-07[39m
+      0 Linear |R| = [32m7.421369e-07[39m
+      1 Linear |R| = [32m5.613076e-35[39m
+ 1 Nonlinear |R| = [32m4.590989e-08[39m
+      0 Linear |R| = [32m4.590989e-08[39m
+      1 Linear |R| = [32m1.857127e-37[39m
+ 2 Nonlinear |R| = [32m1.147614e-09[39m
+      0 Linear |R| = [32m1.147614e-09[39m
+      1 Linear |R| = [32m7.132949e-39[39m
+ 3 Nonlinear |R| = [32m7.672209e-13[39m
+Nonlinear solve converged due to CONVERGED_FNORM_ABS iterations 3
+[32m Solve Converged![39m
+
+Time Step 22, time = 2.2e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m7.185894e-07[39m
+      0 Linear |R| = [32m7.185894e-07[39m
+      1 Linear |R| = [32m5.393813e-35[39m
+ 1 Nonlinear |R| = [32m5.632290e-08[39m
+      0 Linear |R| = [32m5.632290e-08[39m
+      1 Linear |R| = [32m2.790684e-37[39m
+ 2 Nonlinear |R| = [32m6.555723e-10[39m
+      0 Linear |R| = [32m6.555723e-10[39m
+      1 Linear |R| = [32m1.852393e-39[39m
+ 3 Nonlinear |R| = [32m1.803550e-13[39m
+Nonlinear solve converged due to CONVERGED_FNORM_ABS iterations 3
+[32m Solve Converged![39m
+
+Time Step 23, time = 2.3e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m6.901411e-07[39m
+      0 Linear |R| = [32m6.901411e-07[39m
+      1 Linear |R| = [32m6.416117e-36[39m
+ 1 Nonlinear |R| = [32m7.779137e-08[39m
+      0 Linear |R| = [32m7.779137e-08[39m
+      1 Linear |R| = [32m1.312880e-36[39m
+ 2 Nonlinear |R| = [32m5.833048e-10[39m
+      0 Linear |R| = [32m5.833048e-10[39m
+      1 Linear |R| = [32m8.945679e-39[39m
+ 3 Nonlinear |R| = [32m4.387711e-14[39m
+Nonlinear solve converged due to CONVERGED_FNORM_ABS iterations 3
+[32m Solve Converged![39m
+
+Time Step 24, time = 2.4e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m6.590497e-07[39m
+      0 Linear |R| = [32m6.590497e-07[39m
+      1 Linear |R| = [32m2.298151e-35[39m
+ 1 Nonlinear |R| = [32m1.109343e-07[39m
+      0 Linear |R| = [32m1.109343e-07[39m
+      1 Linear |R| = [32m5.219053e-36[39m
+ 2 Nonlinear |R| = [32m3.675723e-09[39m
+      0 Linear |R| = [32m3.675723e-09[39m
+      1 Linear |R| = [32m2.059108e-37[39m
+ 3 Nonlinear |R| = [32m6.586997e-12[39m
+Nonlinear solve converged due to CONVERGED_FNORM_RELATIVE iterations 3
+[32m Solve Converged![39m
+
+Time Step 25, time = 2.5e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m6.243432e-07[39m
+      0 Linear |R| = [32m6.243432e-07[39m
+      1 Linear |R| = [32m5.804550e-35[39m
+ 1 Nonlinear |R| = [32m1.650962e-07[39m
+      0 Linear |R| = [32m1.650962e-07[39m
+      1 Linear |R| = [32m6.494754e-36[39m
+ 2 Nonlinear |R| = [32m2.250820e-08[39m
+      0 Linear |R| = [32m2.250820e-08[39m
+      1 Linear |R| = [32m1.892064e-36[39m
+ 3 Nonlinear |R| = [32m6.714760e-10[39m
+      0 Linear |R| = [32m6.714760e-10[39m
+      1 Linear |R| = [32m8.896266e-38[39m
+ 4 Nonlinear |R| = [32m6.251459e-13[39m
+Nonlinear solve converged due to CONVERGED_FNORM_ABS iterations 4
+[32m Solve Converged![39m
+
+Time Step 26, time = 2.6e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m5.879137e-07[39m
+      0 Linear |R| = [32m5.879137e-07[39m
+      1 Linear |R| = [32m7.838005e-35[39m
+ 1 Nonlinear |R| = [32m1.605784e-07[39m
+      0 Linear |R| = [32m1.605784e-07[39m
+      1 Linear |R| = [32m6.316462e-35[39m
+ 2 Nonlinear |R| = [32m1.385940e-09[39m
+      0 Linear |R| = [32m1.385940e-09[39m
+      1 Linear |R| = [32m9.471693e-38[39m
+ 3 Nonlinear |R| = [32m3.110184e-13[39m
+Nonlinear solve converged due to CONVERGED_FNORM_ABS iterations 3
+[32m Solve Converged![39m
+
+Time Step 27, time = 2.7e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m6.796082e-07[39m
+      0 Linear |R| = [32m6.796082e-07[39m
+      1 Linear |R| = [32m1.248908e-34[39m
+ 1 Nonlinear |R| = [32m1.438125e-07[39m
+      0 Linear |R| = [32m1.438125e-07[39m
+      1 Linear |R| = [32m5.701568e-36[39m
+ 2 Nonlinear |R| = [32m1.762509e-08[39m
+      0 Linear |R| = [32m1.762509e-08[39m
+      1 Linear |R| = [32m8.813224e-37[39m
+ 3 Nonlinear |R| = [32m4.235336e-10[39m
+      0 Linear |R| = [32m4.235336e-10[39m
+      1 Linear |R| = [32m5.133538e-38[39m
+ 4 Nonlinear |R| = [32m2.650722e-13[39m
+Nonlinear solve converged due to CONVERGED_FNORM_ABS iterations 4
+[32m Solve Converged![39m
+
+Time Step 28, time = 2.8e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m7.168416e-07[39m
+      0 Linear |R| = [32m7.168416e-07[39m
+      1 Linear |R| = [32m3.130434e-34[39m
+ 1 Nonlinear |R| = [32m4.745371e-07[39m
+      0 Linear |R| = [32m4.745371e-07[39m
+      1 Linear |R| = [32m3.153309e-34[39m
+ 2 Nonlinear |R| = [32m4.751734e-09[39m
+      0 Linear |R| = [32m4.751734e-09[39m
+      1 Linear |R| = [32m8.229356e-36[39m
+ 3 Nonlinear |R| = [32m9.024134e-13[39m
+Nonlinear solve converged due to CONVERGED_FNORM_ABS iterations 3
+[32m Solve Converged![39m
+
+Time Step 29, time = 2.9e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m3.405711e-07[39m
+      0 Linear |R| = [32m3.405711e-07[39m
+      1 Linear |R| = [32m8.540867e-34[39m
+ 1 Nonlinear |R| = [32m4.539131e-09[39m
+      0 Linear |R| = [32m4.539131e-09[39m
+      1 Linear |R| = [32m4.396087e-36[39m
+ 2 Nonlinear |R| = [32m6.893854e-13[39m
+Nonlinear solve converged due to CONVERGED_FNORM_ABS iterations 2
+[32m Solve Converged![39m
+
+Time Step 30, time = 3e+09
+                dt = 1e+08
+ 0 Nonlinear |R| = [32m2.388851e-07[39m
+      0 Linear |R| = [32m2.388851e-07[39m
+      1 Linear |R| = [32m3.464060e-34[39m
+ 1 Nonlinear |R| = [32m1.507454e-09[39m
+      0 Linear |R| = [32m1.507454e-09[39m
+      1 Linear |R| = [32m2.777492e-36[39m
+ 2 Nonlinear |R| = [32m6.793338e-14[39m
+Nonlinear solve converged due to CONVERGED_FNORM_ABS iterations 2
+[32m Solve Converged![39m
+
+ -------------------------------------------------------------------------------------------------------------------------
+| PorousFlow Performance: Alive time=0.61631, Active time=0.594607                                                        |
+ -------------------------------------------------------------------------------------------------------------------------
+| Event                                      nCalls     Total Time  Avg Time    Total Time  Avg Time    % of Active Time  |
+|                                                       w/o Sub     w/o Sub     With Sub    With Sub    w/o S    With S   |
+|-------------------------------------------------------------------------------------------------------------------------|
+|                                                                                                                         |
+|                                                                                                                         |
+| Application                                                                                                             |
+|   Full Runtime                             1          0.0144      0.014371    0.5948      0.594804    2.42     100.03   |
+|                                                                                                                         |
+| Execution                                                                                                               |
+|   computeAuxiliaryKernels()                60         0.0001      0.000002    0.0001      0.000002    0.02     0.02     |
+|   computeControls()                        60         0.0001      0.000002    0.0001      0.000002    0.02     0.02     |
+|   computeDiracContributions()              254        0.0022      0.000009    0.0022      0.000009    0.37     0.37     |
+|   computeUserObjects()                     120        0.0223      0.000186    0.0223      0.000186    3.74     3.74     |
+|   compute_jacobian()                       97         0.1664      0.001715    0.1667      0.001719    27.98    28.04    |
+|   compute_residual()                       157        0.1341      0.000854    0.1360      0.000866    22.56    22.88    |
+|   solve()                                  30         0.0438      0.001458    0.3466      0.011552    7.36     58.28    |
+|                                                                                                                         |
+| Output                                                                                                                  |
+|   CSV::output()                            62         0.0011      0.000017    0.0011      0.000017    0.18     0.18     |
+|   Exodus::output()                         31         0.0410      0.001322    0.0410      0.001322    6.89     6.89     |
+|                                                                                                                         |
+| Setup                                                                                                                   |
+|   Application Setup                        1          0.1494      0.149449    0.1519      0.151893    25.13    25.55    |
+|   FEProblem::init::meshChanged()           1          0.0003      0.000328    0.0003      0.000328    0.06     0.06     |
+|   Initial updateActiveSemiLocalNodeRange() 1          0.0000      0.000041    0.0000      0.000041    0.01     0.01     |
+|   Initial updateGeomSearch()               2          0.0000      0.000008    0.0000      0.000008    0.00     0.00     |
+|   NonlinearSystem::update()                1          0.0000      0.000046    0.0000      0.000046    0.01     0.01     |
+|   eq.init()                                1          0.0021      0.002070    0.0021      0.002070    0.35     0.35     |
+|   execMultiApps()                          1          0.0000      0.000013    0.0000      0.000013    0.00     0.00     |
+|   execTransfers()                          1          0.0000      0.000007    0.0000      0.000007    0.00     0.00     |
+|   initial adaptivity                       1          0.0000      0.000009    0.0000      0.000009    0.00     0.00     |
+|   initialSetup()                           1          0.0167      0.016676    0.0174      0.017383    2.80     2.92     |
+|   reinit() after updateGeomSearch()        1          0.0000      0.000007    0.0000      0.000007    0.00     0.00     |
+|                                                                                                                         |
+| Utility                                                                                                                 |
+|   projectSolution()                        1          0.0006      0.000610    0.0006      0.000610    0.10     0.10     |
+ -------------------------------------------------------------------------------------------------------------------------
+| Totals:                                    885        0.5946                                          100.00            |
+ -------------------------------------------------------------------------------------------------------------------------
+
+ ---------------------------------------------------------------------------- 
+| Reference count information                                                |
+ ---------------------------------------------------------------------------- 
+| N7libMesh10FEAbstractE reference count information:
+|  Creations:    24
+|  Destructions: 24
+| N7libMesh10Parameters5ValueE reference count information:
+|  Creations:    12887
+|  Destructions: 12887
+| N7libMesh12SparseMatrixIdEE reference count information:
+|  Creations:    195
+|  Destructions: 195
+| N7libMesh13NumericVectorIdEE reference count information:
+|  Creations:    437
+|  Destructions: 437
+| N7libMesh15EquationSystemsE reference count information:
+|  Creations:    1
+|  Destructions: 1
+| N7libMesh15GhostingFunctorE reference count information:
+|  Creations:    1
+|  Destructions: 1
+| N7libMesh15NonlinearSolverIdEE reference count information:
+|  Creations:    1
+|  Destructions: 1
+| N7libMesh16PointLocatorBaseE reference count information:
+|  Creations:    31
+|  Destructions: 31
+| N7libMesh4ElemE reference count information:
+|  Creations:    118
+|  Destructions: 118
+| N7libMesh4NodeE reference count information:
+|  Creations:    22
+|  Destructions: 22
+| N7libMesh5QBaseE reference count information:
+|  Creations:    46
+|  Destructions: 46
+| N7libMesh6DofMapE reference count information:
+|  Creations:    2
+|  Destructions: 2
+| N7libMesh6SystemE reference count information:
+|  Creations:    2
+|  Destructions: 2
+| N7libMesh8TreeBaseE reference count information:
+|  Creations:    1
+|  Destructions: 1
+| N7libMesh9DofObjectE reference count information:
+|  Creations:    140
+|  Destructions: 140
+ ---------------------------------------------------------------------------- 
