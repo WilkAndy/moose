@@ -23,6 +23,8 @@ For better or worse, `PorousFlow` currently uses "nodal Materials", based on `Po
 
 - The usual `Material` data structures are used, with properties indexed by `_qp`.  However, `_qp` actually refers to a node number.  For example, the code for [PorousFlowSingleComponentFluid.md] contains `_qp` throughout the code, but note that if `_nodal_material==true` the `_porepressure` is actually the `MaterialProperty` called "PorousFlow_porepressure_nodal" that was created by [PorousFlow1PhaseP.md] (for instance) that used `coupledDofValues("porepressure")` and *not* `coupledValue("porepressure")`.
 
+- In nearly all cases, the choice of whether a nodal or (normal) quadpoint material is made automatically by PorousFlow, so that the end user does not need to set the 'at_nodes' parameter for each material. When the input file is parsed, the `PorousFlowAddMaterialAction` checks which type of PorousFlow material (nodal, quadpoint or even both) is required by the other objects (Kernels, BCs, Postprocessors etc), and ensures that the `at_nodes` parameter is set appropriately. This action determines which form of each material is required by checking `PorousFlowDependencies`. This class contains a static list of dependencies for each object that must be manually maintained. 
+
 - Because `Materials` are used, a single class can store multiple properties.  Usually the properties stored are a physical property, such as permeability, which need not be a single real value (permeability is a 2-tensor) as well as its derivatives with respect to the arbitrary `Variables`.
 
 - Usually `_qp=i` corresponds to nodenumber=i, which is fine even if nodenumber=0 is not the nearest node to `_qp=0` (for instance) because this holds consistently throughout the code.
@@ -47,7 +49,8 @@ Properties such as fluid density, fluid viscosity and relative permeability are 
 
 For instance, the user might define relative permeability for phase 0 using [PorousFlowRelativePermeabilityVG.md] that will result in Property `PorousFlow_relative_permeability_nodal0`, and for phase 1 using [PorousFlowRelativePermeabilityConst.md] that will result in Property `PorousFlow_relative_permeability_nodal1`.  However, the [PorousFlowAdvectiveFlux.md] Kernel asks for `getMaterialProperty<std::vector<Real>>("PorousFlow_relative_permeability_nodal")`, so the two phase relative permeabilities have to be joined into a `std::vector`.
 
-CHRIS TO SUPPLY DETAILS
+The individual phase properties are automatically combined into a `std::vector` material property by `PorousFlowJoiner` materials that are added by the action system. This happens in the background, so that the user does not have to worry about this step. When this input file is parsed, the `PorousFlowAddMaterialJoiner` action checks if
+any phase-specific materials (such as fluid properties or relative permeability) are present. If they are, then this action adds the appropriate `PorousFlowJoiner` material to ensure that the correctly sized `std::vector` of properties is formed for use by other objects.
 
 ### Kernels and BCs
 
@@ -114,8 +117,9 @@ The method used in PorousFlow is:
 
 All derivatives of total concentrations, precipitation/dissolution reaction rates, and mineral concentrations with respect to the `Variables` (primary species and temperature) are computed, and fed through the usual chain-rule procedure to compute the Jacobian entries.
 
+## Enhancements
 
-
+In addition to capability enhancements, effort should be put into simplifying the input file syntax for the end users. Suggestions from users would be most welcome to help guide this work.
 
 ## Current `ChemicalReactions`
 
