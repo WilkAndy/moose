@@ -144,7 +144,7 @@ The terms are as follows.
 
 2. $\nabla\cdot ({\mathbf{v}}\Psi_{j})$ is computed by [PrimaryConvection.md] (the $C_{j}$ part of $\Psi_{j}$) and [CoupledConvectionReactionSub.md] (the $C_{i}$ part of $\Psi_{j}$).  Here ${\mathbf{v}}$ is the Darcy velocity, which is defined in terms of a coupled pressure `Variable` or `AuxVariable`.  The hydraulic conductivity in the Darcy velocity is assumed to be constant, and no numerical stabilization is performed.  $C_{i}$ is computed inside the Kernel.  Derivatives of the residual with respect to all $C_{j}$ and the pressure are computed.
 
-3. $\nabla\cdot (\phi D\nabla \Psi_{j})$ is computed by [PrimaryDiffusion.md] (the $C_{j}$ part of $\Psi_{j}$) and [CoupledDiffusionReactionSub.md] (the $C_{i}$ part of $\Psi_{j}$).  The product $\phi D$ is assumed to be contant and no numerical stabilization is performed.  $C_{i}$ is computed inside the Kernel.  Derivatives of the residual with respect to all $C_{j}$ are computed.
+3. $\nabla\cdot (\phi D\nabla \Psi_{j})$ is computed by [PrimaryDiffusion.md] (the $C_{j}$ part of $\Psi_{j}$) and [CoupledDiffusionReactionSub.md] (the $C_{i}$ part of $\Psi_{j}$).  The product $\phi D$ is assumed to be contant and no numerical stabilization is performed.  $C_{i}$ is computed inside the Kernel.  Derivatives of the residual with respect to all $C_{j}$ are computed.  [!style color=red](*IS $\phi$ REALLY HERE?!*)
 
 4. $\mathrm{P}_{j}$ is the rate of mineral precipitation.  It is included in the continuity equation by the [CoupledBEKinetic.md] Kernel.  This requires a coupled `AuxVariable` that is the mineral concentration, computed by [KineticDisPreConcAux.md] (and the time rate-of-change of this is used in the Kernel's residual).  The mineral concentration is performed at the nodes, and the [CoupledBEKinertic.md] uses quadpoint values.  No derivatives of the residual are computed.
 
@@ -188,3 +188,47 @@ A refactor of `ChemicalReactions` will probably have limited impact:
 A refactor of `PorousFlow` will have to be handled carefully, with backwards compatibility.
 
 ## Proposed new design 1
+
+1. Need to be able to send porosity, dispersion/diffusion and Darcy velocity from PorousFlow to ChemicalReactions in a MultiApp situation.  Similarly, need to be able to send total concentrations from ChemicalReactions to PorousFlow in order that things like viscosity can depend on mass fraction.
+
+2. Use a `NodalUserObject` to compute the total concentrations (mol.litre$^{-1}$) at the nodes, given
+
+- primary species concentrations
+- stoichiometric coefficients (assumed constant)
+- activity coefficients (assumed constant?)
+- equilibrium constants (assumed to depend on $T$ only)
+
+Derivatives of the total concentrations with respect to the primary concentrations and temperature are also computed.  [!style color=red](Will this ever be different for different blocks?)
+
+3. Also need to compute $\nabla\Psi_{j}$, at the quadpoints, for use in diffusion/dispersion.  Presumably this can be a Material, or perhaps we can compute it in an `ElementUserObject`, based on the `NodalUserObject` information (assuming no block-dependence).  It is super annoying that we need both nodal and quadpoint total concentrations!
+
+4. Write a `NodalUserObject` that computes the mineral reaction rates at the nodes, given
+
+- primary species concentrations
+- stoichiometric coefficients (assumed constant)
+- activity coefficients (assumed constant?)
+- equilibrium constants (assumed to depend on $T$ only)
+- rate constants (assumed to depend on $T$, and maybe pH and primary species concentrations)
+- reactive surface areas (assumed constant?)
+
+Derivatives of the reaction rate with respect to the primary concentrations and temperature are also computed.  [!style color=red](Will this ever be different for different blocks?)
+
+4. Write a `NodalUserObject` to take these mineral reaction rates, and their derivatives, and compute mineral concentrations (and their derivatives).
+
+5. Also need the mineral concentrations (and derivatives) at the quadpoints, to compute porosity at the quadpoints, which is needed in PorousFlow (but possibly not in ChemicalReactions: see [!style color=red](red) text above).  An `ElementUserObject` or `Material` or something else?
+
+6. The mineral concentrations need to feed into [PorousFlowPorosity.md] to compute porosity both at the nodes and quadpoints in a PorousFlow-only simulation, a MultiApp simulation, or a strongly coupled simulation.
+
+7. The mineral concentration needs to feed into a new ChemicalReactions porosity object.  This needs to be a "nodal" Material, because it needs to be evaluated at the nodes (assuming we're doing mass lumping), but in-situ porosity is block dependent, so the nodal porosity depends on which element we're in.  If $\phi$ doesn't appear in the diffusion term (above - see [!style color=red](red) text) then this porosity only needs to be evaluated at the nodes (assuming we're doing lumping to the nodes).  In a standalone ChemicalReactions situation, $\phi$, and its derivatives with respect to mineral concentrations (and hence temperature and primary concentrations) can be computed directly using the initial porosity and the mineral concentrations.  In MultiApp simulations, $\phi$ will need to come from PorousFlow at the start of the timestep, and be modified by the mineralization.  In fully-coupled simulations, we just need to use [PorousFlowPorosity.md], and not this new ChemicalReactions porosity object.
+
+8. Write new Kernels for ChemicalReactions that solve for the primary concentrations, by evolving the total concentrations (computed using the NodalUserObjects), using prescribed values of porosity, dispersion/diffusion and Darcy velocity, and also using the mineral reaction rates computed by the `NodalUserObject`.  Porosity comes from the new ChemicalReactions porosity class when using MultiApps or in a standalone ChemicalReactions simulation (in a strongly-coupled situation we use the PorousFlow Kernels instead).  Porosity can change during this step in the solution problem.  Almost definitely mass lumping and full upwinding should be used.  This transport can be used stand-alone (without PorousFlow) or as part of a MultiApp situation.  It's a bit of a bummer that we can't use the PorousFlow Kernels instead, since they essentially do the same thing, but that would preclude us from running ChemicalReaction-only simulations.
+
+9. Use the NodalUserObject for total concentration in computations in [PorousFlowMassFractionAqueousEquilibriumChemistry.md] instead of the current code.
+
+10. Use the NodalUserObject for reaction rate in the [PorousFlowPreDis.md] Kernel instead of the current code.
+
+11. Use the NodalUserObject for total concentration in [TotalConcentrationAux.md]
+
+
+
+## Proposed new design 2
