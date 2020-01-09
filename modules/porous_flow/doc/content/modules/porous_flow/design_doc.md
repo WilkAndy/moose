@@ -10,7 +10,7 @@ There are three pecularities, which are largely unique to `PorousFlow`, that fun
 
 1. `PorousFlow` is [solving](governing_equations.md) versions of the advection equation: $\dot{u} + \nabla\cdot({\mathbf{v}} w) = 0$.  In this equation, $u$, $\mathbf{v}$ and $w$ are all functions of the independent variables, which may be pressure and temperature, for example.  The equations of `PorousFlow` also contain other terms, such as couplings with solid mechanics and sources, but because advection is part of the physics, [numerical stabilization](stabilization.md) is necessary.  The types of stabilization used require that $u$, $\mathbf{v}$, etc, be evaluated at the nodes, not just the quadpoints.
 
-2. Most of `PorousFlow` works for any choice of independent `Variables`.  For instance, the Kernels for advection, such as [PorousFlowAdvectiveFlux.md] are the same for (pressure, temperature) `Variables` as they are for (pressure, saturation, enthalpy) `Variables`, etc.  The reason for this design is that:
+2. Most of `PorousFlow` works for any choice of independent `Variables`.  For instance, the Kernels for advection, such as [PorousFlowAdvectiveFlux.md] are the same for (pressure, temperature) `Variables` as they are for (pressure, saturation, enthalpy, primary concentration) `Variables`, etc.  The reason for this design is that:
 
 - `PorousFlow` is very flexible and can simulate many different scenarios - with arbitrary number of phases, fluid components, isothermal or temperature-dependent, etc - and it makes no sense to create separate classes for every conceivable scenario;
 - the choice of `Variables` can greatly impact the speed of numerical convergence in certain simulations.
@@ -29,7 +29,7 @@ For better or worse, `PorousFlow` currently uses "nodal Materials", based on `Po
 
 - Usually `_qp=i` corresponds to nodenumber=i, which is fine even if nodenumber=0 is not the nearest node to `_qp=0` (for instance) because this holds consistently throughout the code.
 
-As an aside, there are cases where the nearest quadpoint to each node is used to store properties at that node:
+As an aside, there are cases where it is appropriate to demand that the *nearest* quadpoint to each node is used to store properties at that node:
 
 - [PorousFlowPorosity.md] can depend on volumetric strain.  The volumetric strain will be evaluated correctly at the quadpoints (it is not a nodal Material), so the Porosity Material should use the correct strain.  This is mostly important for finite elements where the number of quadpoints do not equal the number of nodes (3D hexahedra on boundaries have 8 nodes, but their boundaries (used in BCs) only have 4 quadpoints; 3D hexahedra involved in DiracKernels have 8 nodes, but can contain any number of quadpoints).
 - This impacts Kernels, such as [PorousFlowMassTimeDerivative.md] that has to compute derivatives with respect to strain (gradients of displacement).
@@ -37,7 +37,7 @@ As an aside, there are cases where the nearest quadpoint to each node is used to
 
 ### Implementation of PorousFlow Materials
 
-- The input file contains a set of "start" Materials.  These are special because they work for only *one* choice of Variables.  Their purpose is to compute porepressure, temperature, saturation and mass fractions given the `Variables`.  Most commonly, they simply take the `Variables` and store their values (nodal values for nodal Materials, quadpoint values for ordinary Materials) in the Material data structures at `_qp`, along with their (rather trivial) derivatives with repect to the `Variables`.  A good example of this is [PorousFlowTemperature.md].  Less trivial cases include [PorousFlow1PhaseP.md] which computes a saturation (and its derivatives) along with passing through the user-supplied porepressure.
+- The input file contains a set of "start" Materials.  These are special because they work for only *one* choice of Variables.  Their purpose is to compute porepressure, temperature, saturation and mass fractions given the `Variables`.  Most commonly, because the `Variables` are indeed porepressure, temperature, etc, they simply take the `Variables` and store their values (nodal values for nodal Materials, quadpoint values for ordinary Materials) in the Material data structures at `_qp`, along with their (rather trivial) derivatives with repect to the `Variables`.  A good example of this is [PorousFlowTemperature.md].  Less trivial cases include [PorousFlow1PhaseP.md] which computes a saturation (and its derivatives) along with passing through the user-supplied porepressure.
 
 - The remaining Materials (relative permeability, fluid density, etc) assume that porepressure, etc, have been computed and recorded in Properties such as `PorousFlow_porepressure_nodal`.  Derivatives with respect to the `Variables` are computed using the chain rule and the derivatives computed by the "start" Materials.
 
@@ -107,7 +107,7 @@ The method used in PorousFlow is:
 
 - A [PorousFlowMassFractionAqueousEquilibriumChemistry.md] Material computes the `PorousFlow` mass-fractions.  Physically, these are total concentrations of the primary species of the aqueous equilibrium chemical reactions, along with a final mass fraction of the final component, which is assumed to be pure water.
 
-- Advection of the `PorousFlow` mass-fractions (total concentrations) is performed by a [PorousFlowAdvectiveFlux.md] Kernel.
+- Advection of the `PorousFlow` mass-fractions (total concentrations) is performed by a [PorousFlowAdvectiveFlux.md] Kernel.  Dispeersion is performed by a [PorousFlowDispersiveFlux.md] Kernel.
 
 - A [PorousFlowAqueousPreDisChemistry.md] Material computes the reaction rate for each precipitation/dissolution reaction.
 
@@ -117,14 +117,51 @@ The method used in PorousFlow is:
 
 All derivatives of total concentrations, precipitation/dissolution reaction rates, and mineral concentrations with respect to the `Variables` (primary species and temperature) are computed, and fed through the usual chain-rule procedure to compute the Jacobian entries.
 
-## Enhancements
-
-In addition to capability enhancements, effort should be put into simplifying the input file syntax for the end users. Suggestions from users would be most welcome to help guide this work.
-
 ## Current `ChemicalReactions`
 
+The `ChemicalReactions` module is documented [here](chemical_reactions/index.md).  Most of the internal workings of `ChemicalReactions` is hidden from the user because it relies heavily on Actions that add the required Kernels, etc.  Here we describe the internal workings.
+
+`ChemicalReactions` describes aqueous equilibrium and precipitation/dissolution chemistry.  Temperature is assumed to be prescribed (either by some dynamics, or being constant, or an AuxVariable, etc).  Parameters such as equilibrium constants may depend on temperature, since they can be `AuxVariables` (for instance, computed using [EquilibriumConstantAux.md]), but no derivatives of residuals with respect to temperature are computed.  The kinetic rate constant for the precipitation/dissolution is assumed to follow a temperature-dependent Arrhenius relation (and its derivatives are not used).
+
+In terms of the concentration of primary species, $C_{j}$, and the concentration of the secondary species, $C_{i}$, the total concentration of the $j^{\mathrm{th}}$ primary species, $\Psi_{j}$, is
+\begin{equation}
+\Psi_{j} = C_{j} + \sum_{i}\nu_{ji}C_{i} \ .
+\end{equation}
+(Note here the conventional, but mathematically unusualy, notation where subscript $j$ indicates "primary" and subscript $i$ indicates "secondary".  That is, subscripts give special meaning to the quantity they are subscripting.)  The concentration of secondary species, $C_{i}$ is a complicated function of all the $C_{j}$.
+
+In `ChemicalReactions` the concentrations of primary species are:
+
+- measured in mol.litre$^{-1}$ (question: or is it mol.m$^{-3}$?);
+- always `Variables`.
+
+The continuity equation reads:
+\begin{equation}
+0 = \phi \frac{\partial}{\partial t}\Psi_{j} + \nabla\cdot ({\mathbf{v}}\Psi_{j}) - \nabla\cdot (\phi D\nabla \Psi_{j}) + \mathrm{P}_{j} - Q_{j} \ .
+\end{equation}
+The terms are as follows.
+
+1. $\phi \frac{\partial}{\partial t}\Psi_{j}$ is computed by [PrimaryTimeDerivative.md] (the time-derivative of $C_{j}$) and a number of [CoupledBEEquilibriumSub.md] (corresponding to the time derivatives of all the $C_{i}$).  The porosity, $\phi$, is assumed to be constant and no lumping is performed.  $C_{i}$ are computed inside the Kernel.  Derivatives of the residual with respect to all $C_{j}$ are worked out.
+
+2. $\nabla\cdot ({\mathbf{v}}\Psi_{j})$ is computed by [PrimaryConvection.md] (the $C_{j}$ part of $\Psi_{j}$) and [CoupledConvectionReactionSub.md] (the $C_{i}$ part of $\Psi_{j}$).  Here ${\mathbf{v}}$ is the Darcy velocity, which is defined in terms of a coupled pressure `Variable` or `AuxVariable`.  The hydraulic conductivity in the Darcy velocity is assumed to be constant, and no numerical stabilization is performed.  $C_{i}$ is computed inside the Kernel.  Derivatives of the residual with respect to all $C_{j}$ and the pressure are computed.
+
+3. $\nabla\cdot (\phi D\nabla \Psi_{j})$ is computed by [PrimaryDiffusion.md] (the $C_{j}$ part of $\Psi_{j}$) and [CoupledDiffusionReactionSub.md] (the $C_{i}$ part of $\Psi_{j}$).  The product $\phi D$ is assumed to be contant and no numerical stabilization is performed.  $C_{i}$ is computed inside the Kernel.  Derivatives of the residual with respect to all $C_{j}$ are computed.
+
+4. $\mathrm{P}_{j}$ is the rate of mineral precipitation.  It is included in the continuity equation by the [CoupledBEKinetic.md] Kernel.  This requires a coupled `AuxVariable` that is the mineral concentration, computed by [KineticDisPreConcAux.md] (and the time rate-of-change of this is used in the Kernel's residual).  The mineral concentration is performed at the nodes, and the [CoupledBEKinertic.md] uses quadpoint values.  No derivatives of the residual are computed.
+
+5. $Q_{j}$ is a source.
+
+If pressure is a `Variable` then it is solved in a quasi-static fashion (solving $\nabla\cdot(\nabla P - \rho {\mathbf{g}}) = 0$) using the [DarcyFluxPressure.md] Kernel.
+
+`ChemicalReactions` contains a number of `AuxKernels`. to compute secondary concentrations, mineral concentrations and mineralization rates.  [EquilibriumConstantAux.md] can compute temperature-dependent equilibrium constants that can then be used in the Kernels.  [KineticDisPreConcAux.md] has already been mentioned: it computes the mineral concentrations.  The following are used for visualisation purposes only: [AqueousEquilibriumRxnAux.md] computes the concentration of secondary species; [KineticDisPreRateAux.md] computes the precipitation rate; [PHAux.md] computes the pH; [TotalConcentrationAux.md] computes the total concentration.
+
+The [ChemicalOutFlowBC.md] sets the normal derivative of a variable, which can be used to remove primary species from a boundary to which they are flowing.
+
+
+
+
 ## Enhancements
 
+- Effort should be put into simplifying the input file syntax for the end users. Suggestions from users would be most welcome to help guide this work.
 - Ability to decouple the physics, via operator splitting and implemented via MultiApps, to solve reactions and then transport, or other approaches.  Need to look at PFLOTRAN in detail for an example.
 - ChemicalReactions database reader
 - Chemical reactions of GeoTES (not sure what this is)
