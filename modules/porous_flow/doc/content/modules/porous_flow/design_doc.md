@@ -162,11 +162,19 @@ The [ChemicalOutFlowBC.md] sets the normal derivative of a variable, which can b
 ## Enhancements
 
 - Effort should be put into simplifying the input file syntax for the end users. Suggestions from users would be most welcome to help guide this work.
-- Ability to decouple the physics, via operator splitting and implemented via MultiApps, to solve reactions and then transport, or other approaches.  Need to look at PFLOTRAN in detail for an example.
-- ChemicalReactions database reader
+- Ability to decouple the physics, via operator splitting and implemented via MultiApps, to solve reactions and then transport, or other approaches.  For example, TOUGHREACT solves fluid+heat equations to get temperature distributions, phase saturations and flow velocities.  It then uses these to transport the components.  Then it solves the chemistry.  The transport-reaction process can be iterated until convergence.  Finally, it updates porosity, permeability and capillary pressure due to changes in minerals; and water/gas liberated act as sources for the fluid+heat equations in the next timestep.  Need to look at PFLOTRAN in detail for another example.
+- ChemicalReactions database reader.  One fundamental thing Andy doesn't understand is whether $K=K(P,T)$, or $K=K(T)$, where $K$ is the equilibrium constant.  Andy thinks the databases only have $K=K(T)$, but somewhere in the ToughReact manual it mentions $P$ dependence.
+- Different possibilities for reaction rate of mineralisation that depends on a different functional form of $\Omega$ (see ToughReact Eqns B.9)
+- Different possibilities for reaction rate-"constant" of mineralisation, which depends on pH or other species instead of just Arrhenius (see ToughReact Eqns B.10-B.13).
 - Chemical reactions of GeoTES (not sure what this is)
-- PorousFlow hysteresis
-- ChemicalReactions gas chemistry
+- ChemicalReactions gas chemistry (see ToughReact section B.5 - i'm not sure whether this is actually quite simple or hard!)
+- ChemicalReactions cation exchange and surface complexation (See ToughReact Appendix B).  Do we need these?  I think this just modifies the total concentration equations.
+- Include numerical stabilization in ChemicalReactions.
+- Include the PorousFlow checks on negative mineral concentration (etc) into ChemicalReactions.
+- Presumably use PorousFlow's porosity and permeability classes.
+- Reactive surface area a function of mineral volume fraction, water saturation and density (ToughReact Appendix G).
+- Activity coefficients functions of molality and temperature (ToughReact Appendix H).
+- PorousFlow hysteresis.
 - Perhaps put all the transport of ChemicalReactions into PorousFlow, so ChemicalReactions only does ODEs, in which case PorousFlow needs to be able to easily solve the current type of transport that's in ChemicalReactions (fullly saturated, etc).
 
 ## Impact minimization
