@@ -29,17 +29,33 @@ After choosing which redox pairs are decoupled, and adding the non-kinetically-c
 \end{equation}
 The $A_{i}$ contains the original basis species and the decoupled redox pairs that are not controlled by a kinetic law.
 
-## Minerals and gases
+## Minerals
 
-The [database](database.md) also contains information concerning mineralisation reactions and reactions involving gases.  It may be convenient to remove a number of the $A_{i}$ in favour of an equal number of minerals or gases.  This is performed via a [swap](swap.md).
+The [database](database.md) also contains information concerning mineralisation reactions.  It may be convenient to remove a number of the $A_{i}$ in favour of an equal number of minerals.  This is performed via a [swap](swap.md).  This is the only way of specifying a particular concentration for a mineral.
 
-Of course, the basis species Pb$^{2+}$ cannot be sensibly replaced by the gas CO$_{2}$(g), but the mineral Anglesite, PbSO$_{4}$ would be appropriate.
+Of course, the basis species Pb$^{2+}$ cannot be sensibly replaced by the mineral Acanthite (Ag$_{2}$S), but Anglesite, PbSO$_{4}$ would be appropriate.
 
-After including the desirable minerals and gases, the basis is
+After including the desirable minerals, the basis is
+\begin{equation}
+\mathrm{basis} = (A_{w}, A_{i}, A_{k}) \ .
+\end{equation}
+The $A_{i}$ contains the original basis species and the decoupled redox pairs that are not controlled by a kinetic law, minus those removed by inclusion of minerals.  The $A_{k}$ are the included minerals.
+
+## Gases
+
+The [database](database.md) also contains reactions involving gases.  It may be convenient to remove a number of the $A_{i}$ in favour of an equal number of gases, because the [fugacities](fugacity.md) of the gases are known.  This is performed via a [swap](swap.md).  This is the only way of specifying a particular fugacity for a gas.
+
+Of course, the basis species Pb$^{2+}$ cannot be sensibly replaced by the gas CO$_{2}$(g), but, given the reaction
+\begin{equation}
+\mathrm{CO}_{2}\mathrm{(g)} \rightleftharpoons -\mathrm{H}_{2}\mathrm{O} + \mathrm{H}^{+} + \mathrm{HCO}_{3}^{-} \ ,
+\end{equation}
+the gas CO$_{2}$(g) could replace either H$^{+}$ or HCO$_{3}^{-}$.
+
+After including the desirable gases, the basis is
 \begin{equation}
 \mathrm{basis} = (A_{w}, A_{i}, A_{k}, A_{m}) \ .
 \end{equation}
-The $A_{i}$ contains the original basis species and the decoupled redox pairs that are not controlled by a kinetic law, minus those removed by inclusion of minerals and gases.  The $A_{k}$ are the included minerals, while the $A_{m}$ are th eincluded gases.
+The $A_{i}$ contains the original basis species and the decoupled redox pairs that are not controlled by a kinetic law, minus those removed by inclusion of minerals and gases.  The $A_{k}$ are the included minerals, while the $A_{m}$ are the included gases.
 
 
 ## Sorbing sites

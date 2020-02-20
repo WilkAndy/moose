@@ -51,9 +51,8 @@ where $\gamma$ is the activity coefficient, $m$ is the molality, and $m_{\mathrm
 
 For minerals in mineralisation reactions, $a=1$.
 
+For gases, the activity is proportional to the [fugacity](fugacity.md).
 
-
-\end{equation}
 
 ## Notation
 
@@ -61,14 +60,32 @@ For minerals in mineralisation reactions, $a=1$.
 | Symbol | Units | Physical description |
 | --- | --- | --- |
 | $\rightleftharpoons$ | - | Denotes an equilibrium reaction, for instance $B \rightleftharpoons 3C + 2D$ |
+| $A_{w}$ | - | Label for water.
+| $A_{i}$ | - | Label for aqueous [basis species](basis.md).  This is a label, not a quantity.  For example, one of the $A_{i}$ might be Na$^{+}$.
+| $A_{j}$ | - | Label for other aqueous species, which are called the "secondary" species.
+| $A_{k}$ | - | Label for minerals in the equilibrium system of reactions that appear in the [basis](basis.md).
+| $A_{l}$ | - | Label for all minerals, even those that do not exist in the equilibrium system.  This might include minerals whose reactions are kinetically controlled.
+| $A_{m}$ | - | Label for gases of known fugacity that appear in the [basis](basis.md).
+| $A_{n}$ | - | Label for all gases.
+| $A_{q}$ | - | Label for sorbed species.  These do not get transported --- they are surface complexes.
+| $A_{p}$ | - | Label for sorbing sites.
 | $a$ | - | Activity.  For species in equilibrium reactions $a = \gamma m/m_{\mathrm{ref}}$, where $\gamma$ is the activity coefficient, $m$ is the molality, and $m_{\mathrm{ref}}=1\,$mol.kg$^{-1}$. |
 | $\gamma$ | - | Activity coefficient |
 | $I$ | mol.kg$^{-1}$ | Ionic strength: $I = \frac{1}{2}\sum_{i}m_{i}z_{i}^{2}$, where the sum runs over the free ions in the solution, so neutral complexes are not counted. |
 | $I_{s}$ | mol.kg$^{-1}$ | Stiochiometric ionic strength: $I_{s} = \frac{1}{2}\sum_{i}m_{i}z_{i}^{2}$.  Here, complete dissociation of complexes is assumed, and then the sum runs over all ions in the hypothetical solution. |
 | $K$ | - | Equilibrium constant for a reaction |
 | $m$ | mol.kg$^{-1}$ | Molality |
+| $M$ | mol | Moles of a component |
 | $\mu$ | J.mol$^{-1}$ | Chemical potential: $\mu = \partial G/\partial n$ --- the derivative of the free energy, $G$, with respect to the number of moles of that species, with all other things (temperature, number of moles of other species) held constant |
+| $n$ | kg | Mass of a component.  For instance, $n_{w}$ is the mass of solvent water |
+| $n_{k}$ | mol | Mole number of mineral $k$.
 | $N_{A}$ | mol$^{-1}$ | Avogadro constant: $N_{A} = 6.02214076\times 10^{23}\,$mol$^{-1}$ |
 | $\mathcal{N}_{A}$ | - | Avogadro number: $\mathcal{N}_{A} = 6.02214076\times 10^{23}$ |
+| $N_{i}$ | - | Number of basis species $A_{i}$ |
+| $N_{k}$ | - | Number of basis minerals $A_{k}$ |
+| $N_{m}$ | - | Number of basis gases $A_{m}$ |
+| $\nu$ | - | Stoichiometric coefficient |
+| $Q_{l}$ | - | [Activity product](equilibrium.md) for mineral $l$.  This is used to construct the saturation index for the mineral |
+| SI$_{l}$ | - | [Saturation index](equilibrium.md) for mineral $l$.  The mineral is supersaturated if this is positive, and undersaturated if it is negative |
 | $z$ | - | Charge number of a substance |
 

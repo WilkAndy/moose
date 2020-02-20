@@ -72,7 +72,7 @@ If so, the [chemical database](database.md) should contain a keyword $\mathring{
 The activity of water is (Eqns(8.7) and (8.8) of [!cite](bethke_2007))
 \begin{equation}
 \log a_{w} = -\frac{2I_{s}}{55.51} \left(
-1 - \frac{2.303 A}{\tilde{a}^{3}I_{s}}\left[ \hat{b}-2\log\hat{b} - \frac{1}{\hat{b}}\right] + \frac{\tilde{b}I_{s}}{2} + \frac{2\tilde{c}I_{s}^{2}}{3} + \frac{3\tilde{d}I_{s}^{3}}{4}
+1 - \frac{A\log 10}{\tilde{a}^{3}I_{s}}\left[ \hat{b}-2\log\hat{b} - \frac{1}{\hat{b}}\right] + \frac{\tilde{b}I_{s}}{2} + \frac{2\tilde{c}I_{s}^{2}}{3} + \frac{3\tilde{d}I_{s}^{3}}{4}
 \right) \ ,
 \end{equation}
 with
@@ -85,7 +85,6 @@ In these expression
 - $I_{s}$ \[mol.kg$^{-1}$\] is the stoichiometric ionic strength
 - $55.51\,$mol.kg$^{-1}$ is the number of moles in a kg of water
 - $A$ \[kg$^{1/2}$.mol$^{-1/2}$\] is the standard Debye-Huckel $A$ parameter
-- 2.303 is a numerical factor
 - $\tilde{a}$, $\tilde{b}$, $\tilde{d}$ and $\tilde{d}$ are temperature-dependent coefficients.
 
 The values of $\tilde{a}$, $\tilde{b}$, $\tilde{d}$ and $\tilde{d}$ are given in the [chemical database](database.md), assuming units of molality.  At 25$^{\circ}$C
