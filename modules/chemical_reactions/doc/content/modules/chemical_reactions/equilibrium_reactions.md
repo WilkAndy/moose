@@ -8,7 +8,7 @@ Consider the hypothetical reactions
 \begin{equation}
 b\mathrm{B} \rightleftharpoons c\mathrm{C} + d\mathrm{D}
 \end{equation}
-among species B, C and D, where $b$, $c$ and $d$ are the reaction coefficients.  This means that $b$ moles of B can be created by removing $c$ moles of C and $d$ moles of D, and vice versa.
+among species B, C and D, where $b$, $c$ and $d$ are the reaction coefficients.  This means that $b$ [moles](nomenclature.md) of B can be created by removing $c$ moles of C and $d$ moles of D, and vice versa.
 
 ## The free energy
 
@@ -19,7 +19,7 @@ Now consider the change of free energy, $G$, corresponding to an increase in the
 = & \frac{\partial G}{\partial n_{B}} - \frac{\partial G}{\partial n_{C}}\frac{c}{b} - \frac{\partial G}{\partial n_{D}}\frac{d}{b} \ .
 \end{aligned}
 \end{equation}
-The first line expresses that when the number of moles of B is changed, the number of moles of C and D must change too, by the equilibrium reaction (the partial derivatives indicated "keep everything else fixed").  The second line introduces the correct stoichiometry.  That is: an increase in $n_{B}$ must be accompanied by a corresponding decrase in $n_{C}$ and $n_{D}$.
+The first line expresses that when the number of moles of B is changed, the number of moles of C and D must change too, by the equilibrium reaction (the partial derivatives indicated "keep everything else fixed").  The second line introduces the correct stoichiometry.  That is: an increase in $n_{B}$ must be accompanied by a corresponding decrease in $n_{C}$ and $n_{D}$.
 
 "Equilibrium" means a minimum in the free energy, so the above derivative must be zero.  Also, the total derivatives with respect to $n_{C}$ and $n_{D}$ must be zero, but they give the same result.  The partial derivatives, e.g. $\partial G/\partial n_{B}$, themselves shouldn't be zero, as the system cannot ever evolve along the direction of changing $n_{B}$ while keeping $n_{C}$ and $n_{D}$ fixed.
 
@@ -48,7 +48,7 @@ where
 - $R = 8.314\ldots\,$J.K$^{-1}$.mol$^{-1}$ is the gas constant
 - $T$ \[K\] is temperature
 - $\log$ is the natural logarithm
-- $X$ is the mole fraction of the constituent
+- $X$ is the [mole fraction](nomenclature.md) of the constituent
 
 ## Mass action for ideal solutions
 
@@ -81,7 +81,7 @@ where
 - $R = 8.314\ldots\,$J.K$^{-1}$.mol$^{-1}$ is the gas constant
 - $T$ \[K\] is temperature
 - $\log$ is the natural logarithm
-- $a$ is the constituent's activity, which depends on temperature and potentially other things (e.g., see Debye-Huckel theory)
+- $a$ is the constituent's [activity](activity_coefficients.md), which depends on temperature and potentially other things.
 
 ## Mass action for non-ideal solutions
 

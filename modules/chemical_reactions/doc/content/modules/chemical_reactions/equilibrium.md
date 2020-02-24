@@ -205,6 +205,70 @@ M_{p} & = n_{w} \left(m_{p} + \sum_{q}\nu_{pq}m_{q} \right)
 \end{equation}
 The problem becomes: given $(M_{w}, M_{i}, M_{p})$, find $n_{w}$, $m_{i}$ and $m_{p}$.  The Newton-Raphson (NR) procedure (below) is used.  If $n_{w}$ is known, the first equation is trivial, and needn't appear in the NR.  Similarly, if any $m_{i}$ or $m_{p}$ are known (e.g. pH is fixed by the user) then that equation needn't appear in the NR.
 
+## Solution method
+
+The NR procedure is used to find the $(n_{w}, m_{i}, m_{p})$ in terms of the $(M_{w}, M_{i}, M_{p})$.  [!cite](bethke_2007) describes some detail and some useful procedures that help convergence.  
+
+### Initial configuration
+
+The initial configuration for the $(n_{w}, m_{i}, m_{p})$ is whichever is the most appropriate of:
+
+- set by the user;
+- 90% of the specified values for $(M_{w}, M_{i}, M_{p})$;
+- the result of the previous time step;
+- if the residual for basis species $i$ is extremely large, then the starting $m_{i}$ are repeatedly halved until the residual reaches a manageable size of less than $10^{3}$.
+
+### Activity
+
+At every step in the NR procedure, activity coefficients $\gamma_{i}$ and $\gamma_{j}$ as well as the activity of water, $a_{w}$, are computed based on the current values of $m_{i}$ and $m_{j}$.  The derivatives of the activity coefficients with respect to $m$ are not included in the NR Jacobian.
+
+### Under-relaxation
+
+Because the quantities $(n_{w}, m_{i}, m_{p})$ can never be negative, the NR iteration is under-relaxed.  At iteration number $q$, define
+\begin{equation}
+\frac{1}{\delta} = \mathrm{max}\left(1, -\frac{\Delta n_{w}}{n_{w}^{(q)}/2}, -\frac{\Delta m_{i}}{m_{i}^{(q)}/2}, -\frac{\Delta m_{p}}{m_{p}^{(q)}/2} \right) \ ,
+\end{equation}
+then the NR update takes the form
+\begin{equation}
+\begin{aligned}
+n_{w}^{(q+1)} & = n_{w}^{(q)} + \delta\, \Delta n_{w} \\
+m_{i}^{(q+1)} & = m_{i}^{(q)} + \delta\, \Delta m_{i} \\
+m_{p}^{(q+1)} & = m_{p}^{(q)} + \delta\, \Delta m_{p}
+\end{aligned}
+\end{equation}
+
+### Charge balance
+
+If a basis-species free molality is specified (such as $m_{\mathrm{H}^{+}}$) then charge balance cannot be assured until NR has converged.  To force electrical neutrality at the end of each NR iteration, the equation
+\begin{equation}
+\sum_{i}z_{i}M_{i} = 0 \ ,
+\end{equation}
+(where $z_{i}$ is the charge of basis species $A_{i}$) is used to set the bulk concentration of one of the basis species.  That is, one of the equations
+\begin{equation}
+M_{i} = n_{w}\left(m_{i} + \sum_{j}\nu_{ij}m_{j} + \sum_{q}\nu_{iq}m_{q}\right) \ ,
+\end{equation}
+is replaced by this charge-balance equation, to set the bulk concentration, $M$, of a basis species in abundant concentration for which the greatest analytic uncertainty exists.  This is generally Cl$^{-}$, but can be set by the user.  See Section 4.3 and 14.2 of [!cite](bethke_2007).
+
+### Mineral undersaturation and supersaturation
+
+After NR convergence, and substituting the result to find $n_{k}$ and $M_{k}$, it may be found that $n_{k}<0$, meaning the mineral was completely consumed (and more).  Similarly, computing the saturation index of minerals not in the basis may reveal a supersaturated mineral that should be allowed to precipitate.  Therefore, after NR convergence, the following procedure involving [basis swaps](swap.md) is used.
+
+- All $n_{k}$ are computed.  If one or more a negative, then the one that is the most negative is removed from the basis.  It is replaced by secondary species $A_{j}$ that satisfies $\mathrm{max}_{j}(m_{j}|\nu_{kj}|)$.  The NR procedure is resolved.
+
+- The sauration index of each mineral, $A_{l}$, that can form in a reaction model is checked for supersaturation.  If one or more are supersaturated, the one with the largest saturation index is added into the basis, and something removed from the basis.  This "something is": preferably, a primary species satisfying $\mathrm{max}_{i}(|\nu_{il}|/m_{i})$; if no primary species appears in the reaction for $A_{l}$ then the mineral in the reaction for $A_{l}$ that satisfies $\mathrm{min}_{k}(n_{k}/\nu_{kl})$.  The NR procedure is re-solved (and checked for undersaturation and supersaturation, etc).  Finally, due to a multitute of complexities, this procedure involving supersaturation is undesirable --- the supersaturated mineral is ignored because the modeller knows it doesn't occur in reality.
+
+### Primary species with low concentration
+
+Sometimes a species in the basis can occur at very small concentration, leading to numerical instability because making small corrections to its molality leads to large deviations in the molalities of the secondary species.  In this case, it may be [swapped](swap.md) for an abundant secondary species.  [!cite](bethke_2007) doesn't give conditions for when this type of swap should occur, or whether it's supposed to be an automatic or user-controlled process
+
+### Final check
+
+After NR convergence, and all the other checks above have been satisfied, the following checks are made:
+
+- the masses of each component are conserved
+- the activity product is equal to the equilibrium constant for each reaction
+
+
 
 
 

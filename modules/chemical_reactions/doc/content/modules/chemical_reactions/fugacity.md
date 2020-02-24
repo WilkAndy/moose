@@ -14,7 +14,7 @@ Here
 
 - $\mu$ \[J.mol$^{-1}$\] is the chemical potential
 - $\mu^{0}$ \[J.mol$^{-1}$\] is a constant
-- $f^{0}$ is the gas fugacity at 1$\,$atm (or it might be $1\,\mathrm{bar}=10^{5}\,\mathrm{Pa}$ but I think the fugacity is not so precisely known that this small difference matters) and the temperature of interest
+- $f^{0}$ \[Pa\]is the gas fugacity at 1$\,$atm (or it might be $1\,\mathrm{bar}=10^{5}\,\mathrm{Pa}$ but I think the fugacity is not so precisely known that this small difference matters) and the temperature of interest
 - $R = 8.314\ldots\,$J.K$^{-1}$.mol$^{-1}$ is the gas constant
 - $T$ \[K\] is temperature
 - $\log$ is the natural logarithm

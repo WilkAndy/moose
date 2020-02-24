@@ -185,8 +185,8 @@ Am++++
 In these entries:
 
 - The first line defines the name ((O-phth)--, Am++++, etc)
-- The second line provides the charge, $z$, and ion size, $\mathring{a}$ and the molecular weight.  The former two are used to compute the (activity)[activity_coefficients.md] for ("decoupled" redox pairs)[basis.md].
-- The remaining data provides the equilibrium reaction (in terms of the basis species, or any redox species that have been defined so far), along with its temperature-dependent equilibrium constant, which are used when the redox pair is ("coupled")[basis.md], for two purposes: (a) to eliminate the alternative oxidataion state ((O-phth)--, Am++++, etc) from all reactions in favour of the basis species; (b) to form another secondary-species reaction.
+- The second line provides the charge, $z$, and ion size, $\mathring{a}$ and the molecular weight.  The former two are used to compute the [activity](activity_coefficients.md) for ["decoupled" redox pairs](basis.md).
+- The remaining data provides the equilibrium reaction (in terms of the basis species, or any redox species that have been defined so far), along with its temperature-dependent equilibrium constant, which are used when the redox pair is ["coupled"](basis.md), for two purposes: (a) to eliminate the alternative oxidataion state ((O-phth)--, Am++++, etc) from all reactions in favour of the basis species; (b) to form another secondary-species reaction.
 
 ## Aqueous species
 
@@ -214,7 +214,7 @@ Much of the database concerns equilibrium reactions to produce secondary species
 
 In these entries:
 
-- The first line defines the name ((O-phth)--, Am++++, etc)
+- The first line defines the name ((NpO2)2(OH)2$++$, etc)
 - The second line provides the charge, $z$, and ion size, $\mathring{a}$ and the molecular weight.  The first two are used to compute the activity coefficient for the species.
 - The remaining data provides the equilibrium reaction (in terms of basis species and redox couples) along with its temperature-dependent equilibrium constant.
 

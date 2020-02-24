@@ -4,6 +4,20 @@ Author: Andy Wilkins
 
 ## Terminology
 
+### Species
+
+Species are real things that exist in solution, for instance HCO$_{3}^{-}$, CO$_{2}$(aq), CaHCO$_{3}^{+}$.  They never have negative mass.
+
+### Components
+
+Components are useful abstractions.  They might or might not be real things, so can even have negative mass.  For instance, consider an alkaline solution (more OH$^{-}$ than H$^{+}$).  Choose H$_{2}$O and H$^{+}$ to be the component basis set.  Each hydroxyl ion, $\mathrm{H}_{2}\mathrm{O} - \mathrm{H}^{+} \rightarrow \mathrm{OH}^{-}$, is made up of a water molecule less a hydrogen ion.  Since this is an alkaline solution, the overall composition has a positive amount of water and a negative amount of H$^{+}$.  The molality of the the H$^{+}$ speices is positive, however.
+
+A complete set of components forms a basis for the reaction system.
+
+### Basis
+
+A linearly-independent complete set of components: every other chemical in the system is composed of these components, and none of these components can be composed from the others.
+
 ### Moles
 
 A measure of the amount of a substance.
@@ -27,6 +41,10 @@ A measure of concentration of a constituent.
 \begin{equation}
 \mathrm{molality} = \frac{\mathrm{number\ of\ moles\ of\ constituent}}{\mathrm{mass\ (kg)\ of\ solvent\ (water)}}
 \end{equation}
+
+### Chemical potential
+
+The partial derivative of the free energy, $G$, with respect to the number of moles of that species: $\mu = \partial G/\partial n$, where temperature, pressure and the number of moles of other species are held fixed.
 
 ### Activity
 
@@ -53,6 +71,26 @@ For minerals in mineralisation reactions, $a=1$.
 
 For gases, the activity is proportional to the [fugacity](fugacity.md).
 
+### Mass action
+
+This is an equation for the equilibrium constant of a reaction in terms of the activities of the reaction's components.
+
+### Saturation index
+
+$\mathrm{SI} = \log_{10}(Q/K)$, where $Q$ is the activity product and $K$ is the equilibrium constant of the reaction.  If $\mathrm{SI}>0$, the mineral is supersaturated, which means the system will try to precipitate the mineral.
+
+### Redox reaction
+
+This involves the transfer of electrons.  For instance $\mathrm{Na} + \mathrm{Cl} \rightarrow \mathrm{Na}^{+} + \mathrm{Cl}^{-} \rightarrow \mathrm{NaCl}$, where an electron is transfered from Na to Cl.  The electron donor and electron receptor are called a *redox couple*.  Often these reactions are split into *half reactions* that show the release/gain of an electron, eg $\mathrm{Na}\rightarrow \mathrm{Na}^{+} + \mathrm{e}^{-}$.
+
+### Nernst potential
+
+Quantifies the redox potential for a redox half-reaction with activity product $Q$ and equilibrium constant $K$:
+\begin{equation}
+\mathrm{Eh} = -\frac{RT}{nF}\log(Q/K) \ .
+\end{equation}
+Here $R$ is the gas constant, $T$ is the temperature (in Kelvin), $F$ is the Faraday constant, $n$ is the number of electrons consumed in the half reaction, and $\log$ has base e.
+
 
 ## Notation
 
@@ -70,7 +108,8 @@ For gases, the activity is proportional to the [fugacity](fugacity.md).
 | $A_{q}$ | - | Label for sorbed species.  These do not get transported --- they are surface complexes.
 | $A_{p}$ | - | Label for sorbing sites.
 | $a$ | - | Activity.  For species in equilibrium reactions $a = \gamma m/m_{\mathrm{ref}}$, where $\gamma$ is the activity coefficient, $m$ is the molality, and $m_{\mathrm{ref}}=1\,$mol.kg$^{-1}$. |
-| $\gamma$ | - | Activity coefficient |
+| $f$ | Pa | Gas [fugacity](fugacity.md) |
+| $\gamma$ | - | [Activity coefficient](activity_coefficients.md) |
 | $I$ | mol.kg$^{-1}$ | Ionic strength: $I = \frac{1}{2}\sum_{i}m_{i}z_{i}^{2}$, where the sum runs over the free ions in the solution, so neutral complexes are not counted. |
 | $I_{s}$ | mol.kg$^{-1}$ | Stiochiometric ionic strength: $I_{s} = \frac{1}{2}\sum_{i}m_{i}z_{i}^{2}$.  Here, complete dissociation of complexes is assumed, and then the sum runs over all ions in the hypothetical solution. |
 | $K$ | - | Equilibrium constant for a reaction |
