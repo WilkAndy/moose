@@ -102,6 +102,7 @@ Here $R$ is the gas constant, $T$ is the temperature (in Kelvin), $F$ is the Far
 | $A_{i}$ | - | Label for aqueous [basis species](basis.md).  This is a label, not a quantity.  For example, one of the $A_{i}$ might be Na$^{+}$.
 | $A_{j}$ | - | Label for other aqueous species, which are called the "secondary" species.
 | $A_{k}$ | - | Label for minerals in the equilibrium system of reactions that appear in the [basis](basis.md).
+| $A_{\bar{k}}$ | - | Labels for components that are governed by a [kinetic rate](kinetics.md).  These are a subset of the $A_{l}$. |
 | $A_{l}$ | - | Label for all minerals, even those that do not exist in the equilibrium system.  This might include minerals whose reactions are kinetically controlled.
 | $A_{m}$ | - | Label for gases of known fugacity that appear in the [basis](basis.md).
 | $A_{n}$ | - | Label for all gases.
