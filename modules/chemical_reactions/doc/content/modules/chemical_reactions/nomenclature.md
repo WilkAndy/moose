@@ -109,6 +109,8 @@ Here $R$ is the gas constant, $T$ is the temperature (in Kelvin), $F$ is the Far
 | $A_{q}$ | - | Label for sorbed species.  These do not get transported --- they are surface complexes.
 | $A_{p}$ | - | Label for sorbing sites.
 | $a$ | - | Activity.  For species in equilibrium reactions $a = \gamma m/m_{\mathrm{ref}}$, where $\gamma$ is the activity coefficient, $m$ is the molality, and $m_{\mathrm{ref}}=1\,$mol.kg$^{-1}$. |
+| $C$ | mol.m$^{-3}$ | Concentration |
+| $C_{r}$ | mol.m$^{-3}$ | Concentration of mobile species $r$ |
 | $f$ | Pa | Gas [fugacity](fugacity.md) |
 | $\gamma$ | - | [Activity coefficient](activity_coefficients.md) |
 | $I$ | mol.kg$^{-1}$ | Ionic strength: $I = \frac{1}{2}\sum_{i}m_{i}z_{i}^{2}$, where the sum runs over the free ions in the solution, so neutral complexes are not counted. |

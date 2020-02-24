@@ -31,7 +31,7 @@ The $A_{i}$ contains the original basis species and the decoupled redox pairs th
 
 ## Minerals
 
-The [database](database.md) also contains information concerning mineralisation reactions.  It may be convenient to remove a number of the $A_{i}$ in favour of an equal number of minerals.  This is performed via a [swap](swap.md).  This is the only way of specifying a particular concentration for a mineral.
+The [database](database.md) also contains information concerning mineralisation reactions.  It may be convenient to remove a number of the $A_{i}$ in favour of an equal number of minerals.  This is performed via a [swap](swap.md).  This is the only way of specifying a particular concentration for a mineral.  Often minerals are thought to be immobile (with regards to [transport](transport.md)) although this assumption might be relaxed to account, for example, for the migration of colloids or suspended sediment.
 
 Of course, the basis species Pb$^{2+}$ cannot be sensibly replaced by the mineral Acanthite (Ag$_{2}$S), but Anglesite, PbSO$_{4}$ would be appropriate.
 
