@@ -109,9 +109,12 @@ Here $R$ is the gas constant, $T$ is the temperature (in Kelvin), $F$ is the Far
 | $A_{q}$ | - | Label for sorbed species.  These do not get transported --- they are surface complexes.
 | $A_{p}$ | - | Label for sorbing sites.
 | $a$ | - | Activity.  For species in equilibrium reactions $a = \gamma m/m_{\mathrm{ref}}$, where $\gamma$ is the activity coefficient, $m$ is the molality, and $m_{\mathrm{ref}}=1\,$mol.kg$^{-1}$. |
-| $C$ | mol.m$^{-3}$ | Concentration |
-| $C_{r}$ | mol.m$^{-3}$ | Concentration of mobile species $r$ |
+| $C$ | mol.m$^{-3}$ | Concentration of a component per volume of aqueous solution (the concentration of component per volume of porous skeleton is $\phi C$) |
+| $C_{T,\ast}$ | mol.m$^{-3}$ | Concentration of mobile component per volume of aqueous solution |
+| $c_{w}$ | kg.m$^{-3}$ | Mass of solute water per volume of aqueous solution |
+| $c_{k}$ | mol.m$^{-3}$ | Concentration of mineral component $A_{k}$ per volume of aqueous solution |
 | $f$ | Pa | Gas [fugacity](fugacity.md) |
+| $\phi$ | - | Porosity of porous skeleton.  Its dynamics (if any) are not controlled by the `geochemistry` module |
 | $\gamma$ | - | [Activity coefficient](activity_coefficients.md) |
 | $I$ | mol.kg$^{-1}$ | Ionic strength: $I = \frac{1}{2}\sum_{i}m_{i}z_{i}^{2}$, where the sum runs over the free ions in the solution, so neutral complexes are not counted. |
 | $I_{s}$ | mol.kg$^{-1}$ | Stiochiometric ionic strength: $I_{s} = \frac{1}{2}\sum_{i}m_{i}z_{i}^{2}$.  Here, complete dissociation of complexes is assumed, and then the sum runs over all ions in the hypothetical solution. |
@@ -128,6 +131,8 @@ Here $R$ is the gas constant, $T$ is the temperature (in Kelvin), $F$ is the Far
 | $N_{m}$ | - | Number of basis gases $A_{m}$ |
 | $\nu$ | - | Stoichiometric coefficient |
 | $Q_{l}$ | - | [Activity product](equilibrium.md) for mineral $l$.  This is used to construct the saturation index for the mineral |
+| $r_{\bar{k}}$ | mol.s$^{-1}$ | [Reaction rate](kinetics.md) for kinetic component $A_{\bar{k}}$ |
+| $R_{\bar{k}}$ | mol.s$^{-1}$.m$^{-3}$ | Reaction rate [per volume of aqueous solution](transport.md) for kinetic component $A_{\bar{k}}$ |
 | SI$_{l}$ | - | [Saturation index](equilibrium.md) for mineral $l$.  The mineral is supersaturated if this is positive, and undersaturated if it is negative |
 | $z$ | - | Charge number of a substance |
 

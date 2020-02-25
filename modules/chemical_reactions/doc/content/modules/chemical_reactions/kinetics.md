@@ -26,7 +26,7 @@ Denote the stoichiometric coefficients by $\nu_{\ast \bar{k}}$, so that the equa
 \frac{\mathrm{d}M_{p}}{\mathrm{d}t} &= \sum_{\bar{k}}\nu_{p\bar{k}}r_{\bar{k}}
 \end{aligned}
 \end{equation}
-I shall give examples of $r_{\bar{k}}$ and $\nu_{\ast\bar{k}}$ below, since they are different for different specific cases.
+I shall give examples of $r_{\bar{k}}$ and $\nu_{\ast\bar{k}}$ below, since they are different for different specific cases.  I suspect the equation for $M_{m}$ is ignored, since once the [Newton-Raphson procedure](equilibrium.md) has provided the secondary and sorbed species' molality, $M_{m}$ is defined uniquely.  Any excess or deficit according to the ODE comes from the infinite gas buffer of fixed fugacity.
 
 As described in the chapter on [equilibrium](equilibrium.md), the equations involving $M_{k}$ and $M_{m}$ are simple to solve, and only the equations involving $M_{w}$, $M_{i}$ and $M_{p}$ need to considered, and for the equilibrium case, these are
 \begin{equation}
