@@ -15,4 +15,15 @@ Most of the tests and examples are drawn from [!cite](bethke_2007)
 - [Morro de Ferro groundwater](morro.md)
 - [Microbial respiration](microbial_redox.md)
 
+## Exploring solubility and activities
+
+- [Solubility of gypsum](gypsum.md)
+- [Saturation of halite and anhydrite at Sebkhat El Melah](sebkhat.md)
+
+## Sorption and surface complexation
+
+- [Langmuir sorption of selenate in loamy soil](selenate.md)
+- [A problem involving surface complexation](surface_complexation.md)
+
+
 !bibtex bibliography
