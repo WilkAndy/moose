@@ -77,7 +77,7 @@ GeneratedMeshGenerator::validParams()
                                                    "Names of extra element integers");
 
   params.addClassDescription(
-      "Create a line, square, or cube mesh with uniformly spaced or biased elements.");
+      "Create a point, line, square, or cube mesh with uniformly spaced or biased elements.");
 
   return params;
 }
@@ -144,29 +144,27 @@ GeneratedMeshGenerator::generate()
   {
     case 0:
     {
-      //mesh->set_mesh_dimension(0);
-      //mesh->set_spatial_dimension(0);
-      std::vector<Node *> node(3);
-      node[0] = mesh->add_point(Point(_xmin, _ymin, _zmin), 0);
+      Node * node = mesh->add_point(Point(_xmin, _ymin, _zmin), 0);
       BoundaryInfo & boundary_info = mesh->get_boundary_info();
-      boundary_info.add_node(node[0], 0);
+      boundary_info.add_node(node, 0);
       boundary_info.nodeset_name(0) = "the_point";
-      boundary_info.sideset_name(0) = "the_point";
       if (true)
-        {
-	  std::vector<Node *> elem_nodes(2);
-	  elem_nodes[1] = mesh->add_point(Point(1, 0, 0), 1);
-	  elem_nodes[2] = mesh->add_point(Point(2, 0, 0), 2);
-	  Elem * elem = mesh->add_elem(new Edge2);
-	  elem->set_node(0) = elem_nodes[1];
-	  elem->set_node(1) = elem_nodes[2];
-	  //      elem->subdomain_id() = 0;
-	}
-      // Trying not to remove orphaned points:
-      mesh->skip_partitioning(true);
-      mesh->allow_renumbering(false);
-      mesh->allow_remote_element_removal(false);
-      mesh->prepare_for_use(true);
+      {
+        Elem * elem = mesh->add_elem(new Edge2);
+        elem->set_node(0) = node;
+        elem->set_node(1) = node;
+        boundary_info.add_side(elem, 0, 0);
+        boundary_info.sideset_name(0) = "the_point";
+	mesh->prepare_for_use(false);
+      }
+      else
+      {
+        // Trying not to remove orphaned points:
+        mesh->skip_partitioning(true);
+        mesh->allow_renumbering(false);
+        mesh->allow_remote_element_removal(false);
+        mesh->prepare_for_use(true);
+      }
       break;
     }
     // The build_XYZ mesh generation functions take an
