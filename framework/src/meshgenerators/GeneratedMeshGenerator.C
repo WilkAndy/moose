@@ -34,7 +34,7 @@ GeneratedMeshGenerator::validParams()
       "EDGE EDGE2 EDGE3 EDGE4 QUAD QUAD4 QUAD8 QUAD9 TRI3 TRI6 HEX HEX8 HEX20 HEX27 TET4 TET10 "
       "PRISM6 PRISM15 PRISM18 PYRAMID5 PYRAMID13 PYRAMID14"); // no default
 
-  MooseEnum dims("1=1 2 3");
+  MooseEnum dims("0 1=1 2 3");
   params.addRequiredParam<MooseEnum>("dim", dims, "The dimension of the mesh to be generated");
 
   params.addParam<unsigned int>("nx", 1, "Number of elements in the X direction");
@@ -122,6 +122,9 @@ GeneratedMeshGenerator::generate()
     // Switching on MooseEnum
     switch (_dim)
     {
+      case 0:
+        elem_type_enum = "EDGE2";
+        break;
       case 1:
         elem_type_enum = "EDGE2";
         break;
@@ -139,6 +142,33 @@ GeneratedMeshGenerator::generate()
   // Switching on MooseEnum
   switch (_dim)
   {
+    case 0:
+    {
+      //mesh->set_mesh_dimension(0);
+      //mesh->set_spatial_dimension(0);
+      std::vector<Node *> node(3);
+      node[0] = mesh->add_point(Point(_xmin, _ymin, _zmin), 0);
+      BoundaryInfo & boundary_info = mesh->get_boundary_info();
+      boundary_info.add_node(node[0], 0);
+      boundary_info.nodeset_name(0) = "the_point";
+      boundary_info.sideset_name(0) = "the_point";
+      if (true)
+        {
+	  std::vector<Node *> elem_nodes(2);
+	  elem_nodes[1] = mesh->add_point(Point(1, 0, 0), 1);
+	  elem_nodes[2] = mesh->add_point(Point(2, 0, 0), 2);
+	  Elem * elem = mesh->add_elem(new Edge2);
+	  elem->set_node(0) = elem_nodes[1];
+	  elem->set_node(1) = elem_nodes[2];
+	  //      elem->subdomain_id() = 0;
+	}
+      // Trying not to remove orphaned points:
+      mesh->skip_partitioning(true);
+      mesh->allow_renumbering(false);
+      mesh->allow_remote_element_removal(false);
+      mesh->prepare_for_use(true);
+      break;
+    }
     // The build_XYZ mesh generation functions take an
     // UnstructuredMesh& as the first argument, hence the dynamic_cast.
     case 1:
