@@ -159,11 +159,13 @@ GeochemicalDatabaseReader::getEquilibriumSpecies(const std::vector<std::string> 
 {
   // Parse the secondary species specified in names
   for (const auto & species : names)
-    if (_root["secondary species"].isMember(species))
+    if (_root["secondary species"].isMember(species) or _root["free electron"].isMember(species))
     {
       GeochemistryEquilibriumSpecies dbs;
 
-      auto sec_species = _root["secondary species"][species];
+      auto sec_species = _root["secondary species"].isMember(species)
+                             ? _root["secondary species"][species]
+                             : _root["free electron"][species];
       dbs.name = species;
       dbs.radius = MooseUtils::convert<Real>(sec_species["radius"].asString());
       dbs.charge = MooseUtils::convert<Real>(sec_species["charge"].asString());
@@ -610,6 +612,8 @@ std::vector<std::string>
 GeochemicalDatabaseReader::secondarySpeciesNames() const
 {
   std::vector<std::string> names(_root["secondary species"].getMemberNames());
+  for (const auto nm : _root["free electron"].getMemberNames())
+    names.push_back(nm);
   return names;
 }
 
@@ -654,7 +658,7 @@ GeochemicalDatabaseReader::isSorbingMineral(const std::string & name) const
 bool
 GeochemicalDatabaseReader::isSecondarySpecies(const std::string & name) const
 {
-  return _root["secondary species"].isMember(name);
+  return _root["secondary species"].isMember(name) || _root["free electron"].isMember(name);
 }
 
 bool

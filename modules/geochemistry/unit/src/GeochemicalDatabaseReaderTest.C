@@ -478,6 +478,7 @@ TEST(GeochemicalDatabaseReaderTest, isBasisSpecies)
   EXPECT_FALSE(database.isBasisSpecies("Fe+++"));
   EXPECT_FALSE(database.isBasisSpecies("Cu2O"));
   EXPECT_FALSE(database.isBasisSpecies(">(s)FeO-"));
+  EXPECT_FALSE(database.isBasisSpecies("e-"));
 }
 
 TEST(GeochemicalDatabaseReaderTest, isSecondarySpecies)
@@ -496,6 +497,7 @@ TEST(GeochemicalDatabaseReaderTest, isSecondarySpecies)
   EXPECT_FALSE(database.isSecondarySpecies("Fe+++"));
   EXPECT_FALSE(database.isSecondarySpecies("Cu2O"));
   EXPECT_FALSE(database.isSecondarySpecies(">(s)FeO-"));
+  EXPECT_TRUE(database.isSecondarySpecies("e-"));
 }
 
 TEST(GeochemicalDatabaseReaderTest, isMineralSpecies)
@@ -514,6 +516,7 @@ TEST(GeochemicalDatabaseReaderTest, isMineralSpecies)
   EXPECT_FALSE(database.isMineralSpecies("Fe+++"));
   EXPECT_FALSE(database.isMineralSpecies("Cu2O"));
   EXPECT_FALSE(database.isMineralSpecies(">(s)FeO-"));
+  EXPECT_FALSE(database.isMineralSpecies("e-"));
 }
 
 TEST(GeochemicalDatabaseReaderTest, isRedoxSpecies)
@@ -532,6 +535,7 @@ TEST(GeochemicalDatabaseReaderTest, isRedoxSpecies)
   EXPECT_TRUE(database.isRedoxSpecies("Fe+++"));
   EXPECT_FALSE(database.isRedoxSpecies("Cu2O"));
   EXPECT_FALSE(database.isRedoxSpecies(">(s)FeO-"));
+  EXPECT_FALSE(database.isRedoxSpecies("e-"));
 }
 
 TEST(GeochemicalDatabaseReaderTest, isGasSpecies)
@@ -550,6 +554,7 @@ TEST(GeochemicalDatabaseReaderTest, isGasSpecies)
   EXPECT_FALSE(database.isGasSpecies("Fe+++"));
   EXPECT_FALSE(database.isGasSpecies("Cu2O"));
   EXPECT_FALSE(database.isGasSpecies(">(s)FeO-"));
+  EXPECT_FALSE(database.isGasSpecies("e-"));
 }
 
 TEST(GeochemicalDatabaseReaderTest, isSorbingMineral)
@@ -568,6 +573,7 @@ TEST(GeochemicalDatabaseReaderTest, isSorbingMineral)
   EXPECT_FALSE(database.isSorbingMineral("Fe+++"));
   EXPECT_FALSE(database.isSorbingMineral("Cu2O"));
   EXPECT_FALSE(database.isSorbingMineral(">(s)FeO-"));
+  EXPECT_FALSE(database.isSorbingMineral("e-"));
 }
 
 TEST(GeochemicalDatabaseReaderTest, isOxideSpecies)
@@ -586,6 +592,7 @@ TEST(GeochemicalDatabaseReaderTest, isOxideSpecies)
   EXPECT_FALSE(database.isOxideSpecies("Fe+++"));
   EXPECT_TRUE(database.isOxideSpecies("Cu2O"));
   EXPECT_FALSE(database.isOxideSpecies(">(s)FeO-"));
+  EXPECT_FALSE(database.isOxideSpecies("e-"));
 }
 
 TEST(GeochemicalDatabaseReaderTest, isSurfaceSpecies)
@@ -604,6 +611,7 @@ TEST(GeochemicalDatabaseReaderTest, isSurfaceSpecies)
   EXPECT_FALSE(database.isSurfaceSpecies("Fe+++"));
   EXPECT_FALSE(database.isSurfaceSpecies("Cu2O"));
   EXPECT_TRUE(database.isSurfaceSpecies(">(s)FeO-"));
+  EXPECT_FALSE(database.isSurfaceSpecies("e-"));
 }
 
 TEST(GeochemicalDatabaseReaderTest, secondarySpeciesNames)
@@ -611,9 +619,9 @@ TEST(GeochemicalDatabaseReaderTest, secondarySpeciesNames)
   GeochemicalDatabaseReader database("data/moose_testdb.json");
 
   std::vector<std::string> names = database.secondarySpeciesNames();
-  for (const auto & n : {"CO2(aq)", "CO3--", "CaCO3", "CaOH+", "OH-"})
+  for (const auto & n : {"CO2(aq)", "CO3--", "CaCO3", "CaOH+", "OH-", "e-"})
     EXPECT_TRUE(std::find(names.begin(), names.end(), n) != names.end());
-  EXPECT_EQ(names.size(), 5);
+  EXPECT_EQ(names.size(), 6);
 }
 
 TEST(GeochemicalDatabaseReaderTest, redoxCoupleNames)

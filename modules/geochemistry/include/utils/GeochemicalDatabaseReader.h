@@ -387,13 +387,15 @@ public:
    */
   const FileName & filename() const;
 
+  /// Returns true if name is a "secondary species" or "free electron" in the database
+  bool isSecondarySpecies(const std::string & name) const;
+
   /**
    * Checks if species is of given type
    * @param name species name
    * @return true iff species is of given type
    */
   bool isBasisSpecies(const std::string & name) const;
-  bool isSecondarySpecies(const std::string & name) const;
   bool isRedoxSpecies(const std::string & name) const;
   bool isGasSpecies(const std::string & name) const;
   bool isMineralSpecies(const std::string & name) const;
@@ -403,7 +405,7 @@ public:
   /// returns True iff name is the name of a sorbing mineral
   bool isSorbingMineral(const std::string & name) const;
 
-  /// Returns a list of all the names of the "secondary species" in the database
+  /// Returns a list of all the names of the "secondary species" and "free electron" in the database
   std::vector<std::string> secondarySpeciesNames() const;
 
   /// Returns a list of all the names of the "redox couples" in the database
@@ -441,7 +443,7 @@ protected:
   std::map<std::string, GeochemistryElements> _elements;
   /// Basis species data read from the database
   std::map<std::string, GeochemistryBasisSpecies> _basis_species;
-  /// Secondary equilibrium species data read from the database
+  /// Secondary equilibrium species and free electron data read from the database
   std::map<std::string, GeochemistryEquilibriumSpecies> _equilibrium_species;
   /// Mineral species data read from the database
   std::map<std::string, GeochemistryMineralSpecies> _mineral_species;
