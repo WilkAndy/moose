@@ -11,6 +11,7 @@
 
 #include "json/json.h"
 #include "MooseTypes.h"
+#include "GeochemistryConstants.h"
 
 /**
  * Data structure for basis (primary) species.

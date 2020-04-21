@@ -9,6 +9,7 @@
 
 #pragma once
 #include "MooseTypes.h"
+#include "GeochemistryConstants.h"
 
 /**
  * Calculators to compute activity coefficients
