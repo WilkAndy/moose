@@ -37,7 +37,7 @@ testExceptionMessage(const FileName filename, const std::string msg)
 TEST(GeochemicalDatabaseValidatorTest, validateTestDB)
 {
   // Read the JSON database
-  FileName filename = "data/moose_testdb.json";
+  FileName filename = "database/moose_testdb.json";
   std::ifstream jsondata(filename);
   moosecontrib::Json::Value root;
   jsondata >> root;

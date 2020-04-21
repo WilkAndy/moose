@@ -10,14 +10,13 @@
 #include "GeochemistryActivity.h"
 #include "libmesh/utility.h"
 
-Real moles_per_kg_water = 55.51;
-Real logten = 2.30258509299404;
-
 namespace GeochemistryActivity
 {
 Real
 log10ActCoeffDHBdot(Real charge, Real ion_size, Real sqrt_ionic_strength, Real A, Real B, Real Bdot)
 {
+  if (sqrt_ionic_strength <= 0.0)
+    return 0.0; // guard against unphysical inputs that might occur during a Newton process
   return -A * Utility::pow<2>(charge) * sqrt_ionic_strength /
              (1.0 + ion_size * B * sqrt_ionic_strength) +
          Bdot * Utility::pow<2>(sqrt_ionic_strength);
@@ -26,6 +25,8 @@ log10ActCoeffDHBdot(Real charge, Real ion_size, Real sqrt_ionic_strength, Real A
 Real
 log10ActCoeffDHBdotNeutral(Real ionic_strength, Real a, Real b, Real c, Real d)
 {
+  if (ionic_strength <= 0.0)
+    return 0.0; // guard against unphysical inputs that might occur during a Newton process
   return a * ionic_strength + b * Utility::pow<2>(ionic_strength) +
          c * Utility::pow<3>(ionic_strength) + d * Utility::pow<4>(ionic_strength);
 }
@@ -33,12 +34,16 @@ log10ActCoeffDHBdotNeutral(Real ionic_strength, Real a, Real b, Real c, Real d)
 Real
 log10ActCoeffDHBdotAlternative(Real ionic_strength, Real Bdot)
 {
+  if (ionic_strength <= 0.0)
+    return 0.0; // guard against unphysical inputs that might occur during a Newton process
   return Bdot * ionic_strength;
 }
 
 Real
 log10ActCoeffDavies(Real charge, Real sqrt_ionic_strength, Real A)
 {
+  if (sqrt_ionic_strength <= 0.0)
+    return 0.0; // guard against unphysical inputs that might occur during a Newton process
   return -A * Utility::pow<2>(charge) *
          (sqrt_ionic_strength / (1.0 + sqrt_ionic_strength) -
           0.3 * Utility::pow<2>(sqrt_ionic_strength));
@@ -48,6 +53,8 @@ Real
 lnActivityDHBdotWater(
     Real stoichiometric_ionic_strength, Real A, Real atilde, Real btilde, Real ctilde, Real dtilde)
 {
+  if (stoichiometric_ionic_strength <= 0.0)
+    return 0.0; // guard against unphysical inputs that might occur during a Newton process
   const Real bhat = 1.0 + atilde * std::sqrt(stoichiometric_ionic_strength);
   const Real inner = bhat - 2.0 * std::log(bhat) - 1.0 / bhat;
   const Real outer = 1.0 -
