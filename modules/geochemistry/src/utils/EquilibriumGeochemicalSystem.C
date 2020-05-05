@@ -28,6 +28,7 @@ EquilibriumGeochemicalSystem::EquilibriumGeochemicalSystem(
     _num_basis(_mgd.basis_species_index.size()),
     _num_eqm(_mgd.eqm_species_index.size()),
     _num_redox(_mgd.redox_stoichiometry.m()),
+    _num_surface_pot(_mgd.surface_sorption_name.size()),
     _swapper(_num_basis, stoichiometry_tolerance),
     _swap_out(swap_out_of_basis),
     _swap_in(swap_into_basis),
@@ -44,6 +45,7 @@ EquilibriumGeochemicalSystem::EquilibriumGeochemicalSystem(
     _constraint_meaning(),
     _eqm_log10K(_num_eqm),
     _redox_log10K(_num_redox),
+    _num_basis_in_algebraic_system(0),
     _num_in_algebraic_system(0),
     _in_algebraic_system(_num_basis),
     _algebraic_index(_num_basis),
@@ -55,6 +57,8 @@ EquilibriumGeochemicalSystem::EquilibriumGeochemicalSystem(
     _eqm_molality(_num_eqm),
     _basis_activity_coef(_num_basis),
     _eqm_activity_coef(_num_eqm),
+    _surface_pot_expr(_num_surface_pot),
+    _sorbing_surface_area(_num_surface_pot),
     _iters_to_make_consistent(iters_to_make_consistent),
     _temperature(initial_temperature),
     _min_initial_molality(min_initial_molality)
@@ -82,6 +86,7 @@ EquilibriumGeochemicalSystem::EquilibriumGeochemicalSystem(
     _num_basis(_mgd.basis_species_index.size()),
     _num_eqm(_mgd.eqm_species_index.size()),
     _num_redox(_mgd.redox_stoichiometry.m()),
+    _num_surface_pot(_mgd.surface_sorption_name.size()),
     _swapper(_num_basis, stoichiometry_tolerance),
     _swap_out(swap_out_of_basis),
     _swap_in(swap_into_basis),
@@ -98,6 +103,7 @@ EquilibriumGeochemicalSystem::EquilibriumGeochemicalSystem(
     _constraint_meaning(constraint_meaning),
     _eqm_log10K(_num_eqm),
     _redox_log10K(_num_redox),
+    _num_basis_in_algebraic_system(0),
     _num_in_algebraic_system(0),
     _in_algebraic_system(_num_basis),
     _algebraic_index(_num_basis),
@@ -109,6 +115,8 @@ EquilibriumGeochemicalSystem::EquilibriumGeochemicalSystem(
     _eqm_molality(_num_eqm),
     _basis_activity_coef(_num_basis),
     _eqm_activity_coef(_num_eqm),
+    _surface_pot_expr(_num_surface_pot),
+    _sorbing_surface_area(_num_surface_pot),
     _iters_to_make_consistent(iters_to_make_consistent),
     _temperature(initial_temperature),
     _min_initial_molality(min_initial_molality)
@@ -265,12 +273,16 @@ EquilibriumGeochemicalSystem::initialize()
 {
   buildTemperatureDependentQuantities(_temperature);
   enforceChargeBalanceIfSimple(_constraint_value);
-  buildAlgebraicInfo(
-      _in_algebraic_system, _num_in_algebraic_system, _algebraic_index, _basis_index);
+  buildAlgebraicInfo(_in_algebraic_system,
+                     _num_basis_in_algebraic_system,
+                     _num_in_algebraic_system,
+                     _algebraic_index,
+                     _basis_index);
   initBulkAndFree(_bulk_moles, _basis_molality);
   buildKnownBasisActivities(_basis_activity_known, _basis_activity);
 
   _eqm_molality.assign(_num_eqm, 0.0);
+  _surface_pot_expr.assign(_num_surface_pot, 1.0);
 
   computeConsistentConfiguration();
 }
@@ -297,6 +309,7 @@ EquilibriumGeochemicalSystem::computeConsistentConfiguration()
 
   computeBulk(_bulk_moles);
   computeFreeMineralMoles(_basis_molality);
+  computeSorbingSurfaceArea(_sorbing_surface_area);
 }
 
 unsigned
@@ -368,6 +381,7 @@ EquilibriumGeochemicalSystem::getDebyeHuckel() const
 
 void
 EquilibriumGeochemicalSystem::buildAlgebraicInfo(std::vector<bool> & in_algebraic_system,
+                                                 unsigned & num_basis_in_algebraic_system,
                                                  unsigned & num_in_algebraic_system,
                                                  std::vector<unsigned> & algebraic_index,
                                                  std::vector<unsigned> & basis_index) const
@@ -389,22 +403,36 @@ EquilibriumGeochemicalSystem::buildAlgebraicInfo(std::vector<bool> & in_algebrai
   }
 
   // build algebraic_index and basis_index
-  num_in_algebraic_system = 0;
+  num_basis_in_algebraic_system = 0;
   algebraic_index.resize(_num_basis, 0);
   basis_index.resize(_num_basis, 0);
   for (unsigned basis_ind = 0; basis_ind < _num_basis; ++basis_ind)
     if (in_algebraic_system[basis_ind])
     {
-      algebraic_index[basis_ind] = _num_in_algebraic_system;
-      basis_index[_num_in_algebraic_system] = basis_ind;
-      num_in_algebraic_system += 1;
+      algebraic_index[basis_ind] = _num_basis_in_algebraic_system;
+      basis_index[_num_basis_in_algebraic_system] = basis_ind;
+      num_basis_in_algebraic_system += 1;
     }
+
+  num_in_algebraic_system = num_basis_in_algebraic_system + _num_surface_pot;
 }
 
 unsigned
 EquilibriumGeochemicalSystem::getNumInAlgebraicSystem() const
 {
   return _num_in_algebraic_system;
+}
+
+unsigned
+EquilibriumGeochemicalSystem::getNumBasisInAlgebraicSystem() const
+{
+  return _num_basis_in_algebraic_system;
+}
+
+unsigned
+EquilibriumGeochemicalSystem::getNumSurfacePotentials() const
+{
+  return _num_surface_pot;
 }
 
 const std::vector<bool> &
@@ -428,9 +456,20 @@ EquilibriumGeochemicalSystem::getAlgebraicIndexOfBasisSystem() const
 std::vector<Real>
 EquilibriumGeochemicalSystem::getAlgebraicVariableValues() const
 {
-  std::vector<Real> var(_num_in_algebraic_system);
-  for (unsigned a = 0; a < _num_in_algebraic_system; ++a)
-    var[a] = _basis_molality[_basis_index[a]];
+  std::vector<Real> var;
+  for (unsigned a = 0; a < _num_basis_in_algebraic_system; ++a)
+    var.push_back(_basis_molality[_basis_index[a]]);
+  for (unsigned s = 0; s < _num_surface_pot; ++s)
+    var.push_back(_surface_pot_expr[s]);
+  return var;
+}
+
+std::vector<Real>
+EquilibriumGeochemicalSystem::getAlgebraicBasisValues() const
+{
+  std::vector<Real> var;
+  for (unsigned a = 0; a < _num_basis_in_algebraic_system; ++a)
+    var.push_back(_basis_molality[_basis_index[a]]);
   return var;
 }
 
@@ -438,8 +477,10 @@ DenseVector<Real>
 EquilibriumGeochemicalSystem::getAlgebraicVariableDenseValues() const
 {
   DenseVector<Real> var(_num_in_algebraic_system);
-  for (unsigned a = 0; a < _num_in_algebraic_system; ++a)
+  for (unsigned a = 0; a < _num_basis_in_algebraic_system; ++a)
     var(a) = _basis_molality[_basis_index[a]];
+  for (unsigned s = 0; s < _num_surface_pot; ++s)
+    var(s + _num_basis_in_algebraic_system) = _surface_pot_expr[s];
   return var;
 }
 
@@ -665,9 +706,21 @@ EquilibriumGeochemicalSystem::computeEqmMolalities(std::vector<Real> & eqm_molal
       // compute log10 version first, in an attempt to eliminate overflow and underflow problems
       // such as 10^(1000)
       const Real log10m = log10ActivityProduct(eqm_j) - _eqm_log10K[eqm_j];
-      eqm_molality[eqm_j] = std::pow(10.0, log10m) / _eqm_activity_coef[eqm_j];
+      eqm_molality[eqm_j] =
+          std::pow(10.0, log10m) / _eqm_activity_coef[eqm_j] * surfaceSorptionModifier(eqm_j);
     }
   }
+}
+
+Real
+EquilibriumGeochemicalSystem::surfaceSorptionModifier(unsigned eqm_j) const
+{
+  if (eqm_j >= _num_eqm)
+    return 1.0;
+  if (!_mgd.surface_sorption_related[eqm_j])
+    return 1.0;
+  return std::pow(_surface_pot_expr[_mgd.surface_sorption_number[eqm_j]],
+                  2.0 * _mgd.eqm_species_charge[eqm_j]);
 }
 
 void
@@ -726,8 +779,10 @@ EquilibriumGeochemicalSystem::setAlgebraicVariables(const DenseVector<Real> & al
       mooseError("Cannot set algebraic variables to non-positive values such as ",
                  algebraic_var(a));
 
-  for (unsigned a = 0; a < _num_in_algebraic_system; ++a)
+  for (unsigned a = 0; a < _num_basis_in_algebraic_system; ++a)
     _basis_molality[_basis_index[a]] = algebraic_var(a);
+  for (unsigned s = 0; s < _num_surface_pot; ++s)
+    _surface_pot_expr[s] = algebraic_var(s + _num_basis_in_algebraic_system);
 
   computeConsistentConfiguration();
 }
@@ -797,34 +852,49 @@ EquilibriumGeochemicalSystem::computeBulk(std::vector<Real> & bulk_moles) const
 Real
 EquilibriumGeochemicalSystem::getResidualComponent(unsigned algebraic_ind) const
 {
-  if (algebraic_ind > _num_in_algebraic_system)
+  if (algebraic_ind >= _num_in_algebraic_system)
     mooseError("Cannot retrieve residual for algebraic index ",
                algebraic_ind,
                " because there are only ",
-               _num_in_algebraic_system,
-               " species in the algebraic system");
-  const unsigned basis_i = _basis_index[algebraic_ind];
-  Real res = 0.0;
-  if (basis_i == 0)
-    res += -_bulk_moles[basis_i] + _basis_molality[0] * GeochemistryConstants::MOLES_PER_KG_WATER;
-  else if (basis_i == _charge_balance_basis_index)
+               _num_basis_in_algebraic_system,
+               " molalities in the algebraic system and ",
+               _num_surface_pot,
+               " surface potentials");
+
+  if (algebraic_ind < _num_basis_in_algebraic_system) // residual for basis molality
   {
-    res += _basis_molality[0] * _basis_molality[basis_i];
-    for (unsigned i = 0; i < _num_basis; ++i)
+    const unsigned basis_i = _basis_index[algebraic_ind];
+    Real res = 0.0;
+    if (basis_i == 0)
+      res += -_bulk_moles[basis_i] + _basis_molality[0] * GeochemistryConstants::MOLES_PER_KG_WATER;
+    else if (basis_i == _charge_balance_basis_index)
     {
-      if (i == _charge_balance_basis_index)
-        continue;
-      else if (_mgd.basis_species_charge[i] == 0.0) // certainly includes water, minerals and gases
-        continue;
-      else // _bulk_moles has been computed using computeBulk, either from constructor,
-           // setAlgebraicVariables or performSwap
-        res += _mgd.basis_species_charge[i] * _bulk_moles[i] / _mgd.basis_species_charge[basis_i];
+      res += _basis_molality[0] * _basis_molality[basis_i];
+      for (unsigned i = 0; i < _num_basis; ++i)
+      {
+        if (i == _charge_balance_basis_index)
+          continue;
+        else if (_mgd.basis_species_charge[i] ==
+                 0.0) // certainly includes water, minerals and gases
+          continue;
+        else // _bulk_moles has been computed using computeBulk, either from constructor,
+             // setAlgebraicVariables or performSwap
+          res += _mgd.basis_species_charge[i] * _bulk_moles[i] / _mgd.basis_species_charge[basis_i];
+      }
     }
+    else
+      res += -_bulk_moles[basis_i] + _basis_molality[0] * _basis_molality[basis_i];
+    for (unsigned eqm_j = 0; eqm_j < _num_eqm; ++eqm_j)
+      res += _basis_molality[0] * _mgd.eqm_stoichiometry(eqm_j, basis_i) * _eqm_molality[eqm_j];
+    return res;
   }
-  else
-    res += -_bulk_moles[basis_i] + _basis_molality[0] * _basis_molality[basis_i];
-  for (unsigned eqm_j = 0; eqm_j < _num_eqm; ++eqm_j)
-    res += _basis_molality[0] * _mgd.eqm_stoichiometry(eqm_j, basis_i) * _eqm_molality[eqm_j];
+
+  // else: residual for surface potential
+  const unsigned sp = algebraic_ind - _num_basis_in_algebraic_system;
+  Real res = surfacePotPrefactor(sp) * (_surface_pot_expr[sp] - 1.0 / _surface_pot_expr[sp]);
+  for (unsigned j = 0; j < _num_eqm; ++j)
+    if (_mgd.surface_sorption_related[j] && _mgd.surface_sorption_number[j] == sp)
+      res += _basis_molality[0] * _mgd.eqm_species_charge[j] * _eqm_molality[j];
   return res;
 }
 
@@ -841,17 +911,17 @@ don't have to worry about derivatives with respect to fixed-activity things, or 
 Also, note that the constructor and the various "set" methods of this class enforce molality > 0,
 so there are no division-by-zero problems.  Also, note that we never compute derivatives of the
 activity coefficients, or the activity of water with respect to the molalities, as they are
-assumed to be quite small.
+assumed to be quite small.  Finally, the surface_pot_expr will also always be positive.
   */
   // correctly size and zero
   jac.resize(_num_in_algebraic_system, _num_in_algebraic_system);
   const Real nw = _basis_molality[0];
 
-  // jac(a, b) = d(R_a) / d(m_b)
-  for (unsigned a = 0; a < _num_in_algebraic_system; ++a)
+  // jac(a, b) = d(R_a) / d(m_b), where a corresponds to a molality
+  for (unsigned a = 0; a < _num_basis_in_algebraic_system; ++a)
   {
     const unsigned basis_of_a = _basis_index[a];
-    for (unsigned b = 0; b < _num_in_algebraic_system; ++b)
+    for (unsigned b = 0; b < _num_basis_in_algebraic_system; ++b)
     {
       const unsigned basis_of_b = _basis_index[b];
       if (basis_of_b == 0) // special cases: mass of solvent water is an unknown
@@ -912,6 +982,58 @@ assumed to be quite small.
         }
       }
     }
+  }
+
+  // jac(a, b) = d(R_a) / d(surface_pot), where a corresponds to a molality
+  for (unsigned a = 0; a < _num_basis_in_algebraic_system; ++a)
+  {
+    const unsigned basis_of_a = _basis_index[a];
+    for (unsigned s = 0; s < _num_surface_pot; ++s)
+    {
+      const unsigned b = s + _num_basis_in_algebraic_system;
+      // derivative of nw * _mgd.eqm_stoichiometry(eqm_j, basis_i) * _eqm_molality[eqm_j],
+      // where _eqm_molality = (_surface_pot_expr)^(2 * charge) * stuff
+      for (unsigned eqm_j = 0; eqm_j < _num_eqm; ++eqm_j)
+        if (_mgd.surface_sorption_related[eqm_j] && _mgd.surface_sorption_number[eqm_j] == s)
+          jac(a, b) += nw * _mgd.eqm_stoichiometry(eqm_j, basis_of_a) * 2.0 *
+                       _mgd.eqm_species_charge[eqm_j] * _eqm_molality[eqm_j] /
+                       _surface_pot_expr[_mgd.surface_sorption_number[eqm_j]];
+    }
+  }
+
+  // jac(a, b) = d(R_a) / d(variable_b) where a corresponds to a surface potential
+  for (unsigned s = 0; s < _num_surface_pot; ++s)
+  {
+    const unsigned a = s + _num_basis_in_algebraic_system;
+
+    for (unsigned b = 0; b < _num_basis_in_algebraic_system; ++b)
+    {
+      // derivative of nw * _mgd.eqm_species_charge[j] * _eqm_molality[j];
+      const unsigned basis_of_b = _basis_index[b];
+      if (basis_of_b == 0) // special case: mass of solvent water is an unknown
+      {
+        for (unsigned j = 0; j < _num_eqm; ++j)
+          if (_mgd.surface_sorption_related[j] && _mgd.surface_sorption_number[j] == s)
+            jac(a, b) += _mgd.eqm_species_charge[j] * _eqm_molality[j];
+      }
+      else
+      {
+        for (unsigned j = 0; j < _num_eqm; ++j)
+          if (_mgd.surface_sorption_related[j] && _mgd.surface_sorption_number[j] == s)
+            jac(a, b) += nw * _mgd.eqm_species_charge[j] * _eqm_molality[j] *
+                         _mgd.eqm_stoichiometry(j, basis_of_b) / _basis_molality[basis_of_b];
+      }
+    }
+
+    const Real coef = surfacePotPrefactor(s);
+    // derivative of coef * (x - 1/x) wrt x, where x = _surface_pot_expr
+    jac(a, a) += coef * (1.0 + 1.0 / std::pow(_surface_pot_expr[s], 2.0));
+    // derivative of nw * _mgd.eqm_species_charge[j] * _eqm_molality[j];
+    // where _eqm_molality = (_surface_pot_expr)^(2 * charge) * stuff
+    for (unsigned j = 0; j < _num_eqm; ++j)
+      if (_mgd.surface_sorption_related[j] && _mgd.surface_sorption_number[j] == s)
+        jac(a, a) += nw * std::pow(_mgd.eqm_species_charge[j], 2.0) * 2.0 * _eqm_molality[j] /
+                     _surface_pot_expr[s];
   }
 }
 
@@ -1013,8 +1135,11 @@ EquilibriumGeochemicalSystem::performSwap(unsigned swap_out_of_basis, unsigned s
   enforceChargeBalanceIfSimple(_constraint_value);
 
   // the algebraic system has probably changed
-  buildAlgebraicInfo(
-      _in_algebraic_system, _num_in_algebraic_system, _algebraic_index, _basis_index);
+  buildAlgebraicInfo(_in_algebraic_system,
+                     _num_basis_in_algebraic_system,
+                     _num_in_algebraic_system,
+                     _algebraic_index,
+                     _basis_index);
 
   // finally compute a consistent configuration, based on the basis molalities, etc, above
   computeConsistentConfiguration();
@@ -1141,4 +1266,67 @@ Real
 EquilibriumGeochemicalSystem::getStoichiometricIonicStrength() const
 {
   return _gac.getStoichiometricIonicStrength();
+}
+
+Real
+EquilibriumGeochemicalSystem::surfacePotPrefactor(unsigned sp) const
+{
+  return 0.5 * _sorbing_surface_area[sp] / GeochemistryConstants::FARADAY *
+         std::sqrt(GeochemistryConstants::GAS_CONSTANT *
+                   (_temperature + GeochemistryConstants::CELSIUS_TO_KELVIN) *
+                   GeochemistryConstants::PERMITTIVITY_FREE_SPACE *
+                   GeochemistryConstants::DIELECTRIC_CONSTANT_WATER *
+                   GeochemistryConstants::DENSITY_WATER * _gac.getIonicStrength());
+}
+
+Real
+EquilibriumGeochemicalSystem::getSurfacePotential(unsigned sp) const
+{
+  if (sp >= _num_surface_pot)
+    mooseError("Cannot retrieve the surface potential for surface ",
+               sp,
+               " since there are only ",
+               _num_surface_pot,
+               " surfaces involved in surface complexation");
+  return -2.0 * GeochemistryConstants::GAS_CONSTANT *
+         (_temperature + GeochemistryConstants::CELSIUS_TO_KELVIN) /
+         GeochemistryConstants::FARADAY * std::log(_surface_pot_expr[sp]);
+}
+
+Real
+EquilibriumGeochemicalSystem::getSurfaceCharge(unsigned sp) const
+{
+  if (sp >= _num_surface_pot)
+    mooseError("Cannot retrieve the surface charge for surface ",
+               sp,
+               " since there are only ",
+               _num_surface_pot,
+               " surfaces involved in surface complexation");
+  // pre = mol of charge per square metre.  To convert to Coulombs/m^2:
+  const Real pre = surfacePotPrefactor(sp) / _sorbing_surface_area[sp] *
+                   (-_surface_pot_expr[sp] + 1.0 / _surface_pot_expr[sp]);
+  return pre * GeochemistryConstants::FARADAY;
+}
+
+void
+EquilibriumGeochemicalSystem::computeSorbingSurfaceArea(
+    std::vector<Real> & sorbing_surface_area) const
+{
+  for (unsigned sp = 0; sp < _num_surface_pot; ++sp)
+  {
+    sorbing_surface_area[sp] = _mgd.surface_sorption_area[sp];
+    if (_mgd.basis_species_index.count(_mgd.surface_sorption_name[sp]) == 1)
+    {
+      const unsigned basis_ind = _mgd.basis_species_index.at(_mgd.surface_sorption_name[sp]);
+      const Real grams =
+          _mgd.basis_species_molecular_weight[basis_ind] * _basis_molality[basis_ind];
+      sorbing_surface_area[sp] *= grams;
+    }
+  }
+}
+
+const std::vector<Real> &
+EquilibriumGeochemicalSystem::getSorbingSurfaceArea() const
+{
+  return _sorbing_surface_area;
 }

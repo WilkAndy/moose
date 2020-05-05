@@ -11,6 +11,7 @@
 
 #include "GeochemicalModelDefinition.h"
 #include "EquilibriumGeochemicalSystem.h"
+#include "EquilibriumGeochemicalSolver.h"
 #include "Output.h"
 #include "UserObjectInterface.h"
 #include "DenseMatrix.h"
@@ -31,6 +32,8 @@ protected:
 
   /// The equilibrium geochemical system that holds all the molalities, activities, etc
   EquilibriumGeochemicalSystem _egs;
+  /// The solver
+  EquilibriumGeochemicalSolver _solver;
   /// The left-hand side specified in the original model definition for redox half reactions
   const std::string _original_redox_lhs;
   /// number of basis species
@@ -39,6 +42,8 @@ protected:
   const unsigned _num_eqm;
   /// reference to the underlying ModelGeochemicalDatabase
   const ModelGeochemicalDatabase & _mgd;
+  /// number of molalities in the algebraic system
+  unsigned _num_basis_in_algebraic_system;
   /// number of unknowns in the algebraic system
   unsigned _num_in_algebraic_system;
   /// residual of the algebraic system we wish to solve
@@ -85,42 +90,6 @@ protected:
   unsigned _tot_iter;
 
 private:
-  /// Solve the geochemical system.  This method does the bulk of the work in this class
-  void solveSystem();
-
-  /**
-   * Builds the residual of the algebraic system
-   * @return the L1 norm of residual
-   */
-  Real computeResidual(DenseVector<Real> & residual) const;
-
-  /**
-   * Solves _jacobian * neg_change_mol = _residual for neg_change_mol, then performs an
-   * underrelaxation to get new_mol
-   * @param jacobian the jacobian of the system
-   * @param new_mol upon exit, this will be the new molality values according to the underrelaxed
-   * Newton process
-   */
-  void solveAndUnderrelax(DenseMatrix<Real> & jacobian, DenseVector<Real> & new_mol) const;
-
-  /**
-   * Check if a basis swap is needed.  It is needed if:
-   * - the free number of moles of a basis mineral is negative
-   * - the saturation index of an equilibrium mineral is positive (and it is not in the
-   * prevent_precipitation list)
-   * @param swap_out_of_basis the index of the species in the basis that will be removed from the
-   * basis
-   * @param swap_into_basis the index of the equilibrium mineneral that will be added to the basis
-   * @return true if a swap is needed, false otherwise
-   */
-  bool mineralSwapNeeded(unsigned & swap_out_of_basis, unsigned & swap_into_basis) const;
-
-  /**
-   * Progressively reduce the initial-guess molalities for the algebraic system to attempt to reduce
-   * the residual
-   */
-  bool reduceInitialResidual();
-
   /**
    * Perform the swaps specified by the user, prior to outputting Nernst redox information.  In
    * addition, use swaps to attempt to make the left-hand side of the redox half reaction equal to

@@ -115,6 +115,10 @@ GeochemistryActivityCoefficients::buildActivityCoefficients(
                        GeochemistryActivityCalculators::log10ActCoeffDHBdotAlternative(
                            _ionic_strength, _dhBdot));
         }
+        else if (mgd.basis_species_radius[basis_i] == -1.5)
+        {
+          basis_activity_coef[basis_i] = 1.0;
+        }
         else if (mgd.basis_species_charge[basis_i] == 0.0)
         {
           basis_activity_coef[basis_i] = 1.0;
@@ -148,6 +152,10 @@ GeochemistryActivityCoefficients::buildActivityCoefficients(
               std::pow(10.0,
                        GeochemistryActivityCalculators::log10ActCoeffDHBdotAlternative(
                            _ionic_strength, _dhBdot));
+        }
+        else if (mgd.eqm_species_radius[eqm_j] == -1.5)
+        {
+          eqm_activity_coef[eqm_j] = 1.0;
         }
         else if (mgd.eqm_species_charge[eqm_j] == 0.0)
         {

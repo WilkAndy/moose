@@ -23,11 +23,12 @@
  * compositions, etc, as well as performing basis swaps.
  *
  * Related to this, this class also builds the so-called "algebraic system" which is the nonlinear
- * system of algebraic equations for the unknown basis molalities, and computes the residual vector
- * and jacobian of this algebraic system.  This class initialises the algebraic variables (the
- * unknown molalities) to reaponable values, but it does not solve the algebraic system: instead, it
- * has a "setter" method, setAlgebraicValues that can be used to set the unknowns, hence another
- * class can use whatever method it desires to solve the system.
+ * system of algebraic equations for the unknown basis molalities and surface potentials, and
+ * computes the residual vector and jacobian of this algebraic system.  This class initialises the
+ * algebraic variables (the unknown molalities and surface potentials) to reaponable values, but it
+ * does not solve the algebraic system: instead, it has a "setter" method, setAlgebraicValues that
+ * can be used to set the unknowns, hence another class can use whatever method it desires to solve
+ * the system.
  */
 class EquilibriumGeochemicalSystem
 {
@@ -159,8 +160,14 @@ public:
    */
   std::vector<Real> getDebyeHuckel() const;
 
-  /// return the number in the algebraic system
+  /// return the number in the algebraic system (number of basis species in algebraic system + number of surface potentials)
   unsigned getNumInAlgebraicSystem() const;
+
+  /// return the number of basis species in the algebraic system
+  unsigned getNumBasisInAlgebraicSystem() const;
+
+  /// return the number of surface potentials
+  unsigned getNumSurfacePotentials() const;
 
   /**
    * @return a vector of length _num_basis whose entries determine whether the basis species is in
@@ -170,7 +177,8 @@ public:
 
   /**
    * @return v, a vector of length _num_basis, where v[i] = the basis index of the i^th species in
-   the algebraic system.  Note that for i > _num_in_algebraic_system, the value of v is undefined.
+   the algebraic system.  Note that for i > _num_basis_in_algebraic_system, the value of v is
+   undefined.
    */
   const std::vector<unsigned> & getBasisIndexOfAlgebraicSystem() const;
 
@@ -186,6 +194,12 @@ public:
    * values of the algebraic variables
    */
   std::vector<Real> getAlgebraicVariableValues() const;
+
+  /**
+   * @return v, a vector of length _num_basis_in_algebraic_system, the elements of which are the
+   * current values of the algebraic variables: molalities only (not surface potentials)
+   */
+  std::vector<Real> getAlgebraicBasisValues() const;
 
   /**
    * @return v, a DenseVector of length getNumInAlgebraicSystem, the elements of which are the
@@ -260,8 +274,9 @@ public:
 
   /**
    * Set the variables in the algebraic system (molalities and potentially the mass of solvent
-   * water) to algebraic_var.  All of the elements of this vector must be positive.  This function
-   * also does a lot more:
+   * water, and surface potentials, if any) to algebraic_var.  The first
+   * _num_basis_in_algebraic_system elements of this vector (corresponding to basis molalities and
+   * mass of solvent water) must be positive. This function also does a lot more:
    * - recomputes new ionic strengths
    * - builds all activity coefficients for basis species that have not got fixed activity
    * - builds all activity coefficients for equilibium aqueous species (not minerals or gases)
@@ -318,6 +333,23 @@ public:
   /// Get the stoichiometric ionic strength
   Real getStoichiometricIonicStrength() const;
 
+  /**
+   * @param sp surface number of interest.  sp < _num_surface_pot
+   * @return the surface potential (units Volts) for the surface number
+   */
+  Real getSurfacePotential(unsigned sp) const;
+
+  /**
+   * @param sp surface number of interest.  sp < _num_surface_pot
+   * @return the specific charge of the surface (units: Coulombs/m^2) for the surface number
+   */
+  Real getSurfaceCharge(unsigned sp) const;
+
+  /**
+   * @return the sorbing surface area (units: m^2) for each sorbing surface
+   */
+  const std::vector<Real> & getSorbingSurfaceArea() const;
+
 private:
   /// The minimal geochemical database
   ModelGeochemicalDatabase _mgd;
@@ -327,6 +359,8 @@ private:
   const unsigned _num_eqm;
   /// number of redox species
   const unsigned _num_redox;
+  /// number of surface potentials
+  const unsigned _num_surface_pot;
   /// swapper that can swap species into and out of the basis
   GeochemistrySpeciesSwapper _swapper;
   /// Species to immediately remove from the basis in favor of _swap_in
@@ -353,13 +387,15 @@ private:
   std::vector<Real> _eqm_log10K;
   /// equuilibrium constant of the redox species
   std::vector<Real> _redox_log10K;
-  /// number of unknowns in the algebraic system
+  /// number of unknown molalities in the algebraic system.  Note: surface potentials (if any) are extra quantities in the algebraic system
+  unsigned _num_basis_in_algebraic_system;
+  /// number of unknowns in the algebraic system (includes molalities and surface potentials)
   unsigned _num_in_algebraic_system;
   /// if _in_algebraic_system[i] == true then we need to solve for the i^th basis-species molality
   std::vector<bool> _in_algebraic_system;
   /// _algebraic_index[i] = index in the algebraic system of the basis species i.  _basis_index[_algebraic_index[i]] = i
   std::vector<unsigned> _algebraic_index;
-  /// _basis_index[i] = index in the basis of the algebraic system species i, for i<num_in_algebraic_system.  _basis_index[_algebraic_index[i]] == i
+  /// _basis_index[i] = index in the basis of the algebraic system species i, for i<num_basis_in_algebraic_system.  _basis_index[_algebraic_index[i]] == i
   std::vector<unsigned> _basis_index;
   /// Number of bulk moles of basis species
   std::vector<Real> _bulk_moles;
@@ -375,6 +411,15 @@ private:
   std::vector<Real> _basis_activity_coef;
   /// equilibrium activity coefficients
   std::vector<Real> _eqm_activity_coef;
+  /**
+   * surface potential expressions.  These are not the surface potentials themselves.  Instead they
+   * are exp(-surface_potential * Faraday / 2 / R / T_k).  Hence _surface_pot_expr >= 0 (like
+   * molalities) and the surface-potential residual is close to linear in _surface_pot_expr if
+   * equilibrium molalities are large
+   */
+  std::vector<Real> _surface_pot_expr;
+  /// surface areas of the sorbing minerals
+  std::vector<Real> _sorbing_surface_area;
   /**
    * Iterations to make the initial configuration consistent.  Note that because equilibrium
    * molality depends on activity and activity coefficients, and water activity and activity
@@ -396,8 +441,9 @@ private:
    */
   void buildTemperatureDependentQuantities(Real temperature);
 
-  /// Builds in_algebraic_system, algebraic_index and basis_index, and sets num_in_algebraic_system appropriately
+  /// Builds in_algebraic_system, algebraic_index and basis_index, and sets num_basis_in_algebraic_system appropriately
   void buildAlgebraicInfo(std::vector<bool> & in_algebraic_system,
+                          unsigned & num_basis_in_algebraic_system,
                           unsigned & num_in_algebraic_system,
                           std::vector<unsigned> & algebraic_index,
                           std::vector<unsigned> & basis_index) const;
@@ -510,4 +556,24 @@ private:
    * _charge_balance_basis_index and _charge_balance_species is set appropriately
    */
   void setChargeBalanceSpecies(unsigned new_charge_balance_index);
+
+  /**
+   * @param eqm_j the index of the equilibrium species
+   * @return the modifier to the mass-balance equation for equilibrium species j, which is
+   * exp(-z * psi * F / R / TK), where z is the charge of the equilibrium species j, psi is the
+   * surface potential relevant to the equilibrium species j, F the Faraday constant, R the gas
+   * constant, and TK the temperature in Kelvin.  If equilibrium species j has no relevant surface
+   * potential, unity is returned.  Note that exp(-z * psi * F / R / TK) = (_surface_pot_expr)^(2z)
+   */
+  Real surfaceSorptionModifier(unsigned eqm_j) const;
+
+  /**
+   * @param sp Surface potential number.  sp < _num_surface_pot
+   * @return (1/2) * A / F * sqrt(R * T_k * eps * eps_0 * rho * I).  This appears in the
+   * surface-potential equation.
+   */
+  Real surfacePotPrefactor(unsigned sp) const;
+
+  /// Compute sorbing_surface_area depending on the current molality of the sorbing minerals
+  void computeSorbingSurfaceArea(std::vector<Real> & sorbing_surface_area) const;
 };

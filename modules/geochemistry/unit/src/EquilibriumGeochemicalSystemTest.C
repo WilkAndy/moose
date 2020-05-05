@@ -1021,6 +1021,8 @@ TEST(EquilibiumGeochemicalSystemTest, getInAlgebraicSystem)
 TEST(EquilibiumGeochemicalSystemTest, NumInAlgebraicSystem)
 {
   EXPECT_EQ(egs_good_calcite.getNumInAlgebraicSystem(), 1);
+  EXPECT_EQ(egs_good_calcite.getNumBasisInAlgebraicSystem(), 1);
+  EXPECT_EQ(egs_good_calcite.getNumSurfacePotentials(), 0);
 }
 
 /// Check getBasisIndexOfAlgebraicSystem()
@@ -1097,6 +1099,8 @@ TEST(EquilibiumGeochemicalSystemTest, getSolventMassAndFreeMolalityAndMineralMol
   EXPECT_EQ(egs_good_calcite.getSolventMassAndFreeMolalityAndMineralMoles()[2], 1.0); // HCO3-
   EXPECT_EQ(egs_good_calcite.getAlgebraicVariableValues()[0],
             egs_good_calcite.getSolventMassAndFreeMolalityAndMineralMoles()[1]); // H+
+  EXPECT_EQ(egs_good_calcite.getAlgebraicBasisValues()[0],
+            egs_good_calcite.getSolventMassAndFreeMolalityAndMineralMoles()[1]); // H+
   EXPECT_EQ(egs_good_calcite.getAlgebraicVariableDenseValues()(0),
             egs_good_calcite.getSolventMassAndFreeMolalityAndMineralMoles()[1]); // H+
 
@@ -1122,6 +1126,8 @@ TEST(EquilibiumGeochemicalSystemTest, getSolventMassAndFreeMolalityAndMineralMol
   EXPECT_EQ(egs.getSolventMassAndFreeMolalityAndMineralMoles()[2], 1.0); // HCO3-
   EXPECT_EQ(egs.getSolventMassAndFreeMolalityAndMineralMoles()[3], 3.5); // Calcite
   EXPECT_EQ(egs_good_calcite.getAlgebraicVariableValues()[0],
+            egs_good_calcite.getSolventMassAndFreeMolalityAndMineralMoles()[1]); // H+
+  EXPECT_EQ(egs_good_calcite.getAlgebraicBasisValues()[0],
             egs_good_calcite.getSolventMassAndFreeMolalityAndMineralMoles()[1]); // H+
   EXPECT_EQ(egs_good_calcite.getAlgebraicVariableDenseValues()(0),
             egs_good_calcite.getSolventMassAndFreeMolalityAndMineralMoles()[1]); // H+
@@ -1373,6 +1379,8 @@ TEST(EquilibiumGeochemicalSystemTest, getResidual)
                                          false);
   // Here, water and HCO3- are the components in the algebraic system
   EXPECT_EQ(egs.getNumInAlgebraicSystem(), 2);
+  EXPECT_EQ(egs.getNumBasisInAlgebraicSystem(), 2);
+  EXPECT_EQ(egs.getNumSurfacePotentials(), 0);
 
   try
   {
@@ -1383,7 +1391,8 @@ TEST(EquilibiumGeochemicalSystemTest, getResidual)
   {
     std::string msg(e.what());
     ASSERT_TRUE(msg.find("Cannot retrieve residual for algebraic index 3 because there are only 2 "
-                         "species in the algebraic system") != std::string::npos)
+                         "molalities in the algebraic system and 0 surface potentials") !=
+                std::string::npos)
         << "Failed with unexpected error message: " << msg;
   }
 
@@ -1425,6 +1434,8 @@ TEST(EquilibiumGeochemicalSystemTest, getResidual)
                                           false);
   // Here, water and StoiCheckBasis are the components in the algebraic system
   EXPECT_EQ(egs2.getNumInAlgebraicSystem(), 2);
+  EXPECT_EQ(egs2.getNumBasisInAlgebraicSystem(), 2);
+  EXPECT_EQ(egs2.getNumSurfacePotentials(), 0);
   // The equilibrium species are StoiCheckRedox (m = 9.82934e+06) and OH- (m = 4.78251e-15)
   const Real nw2 = egs2.getSolventMassAndFreeMolalityAndMineralMoles()[0];
   const Real mscb = egs2.getSolventMassAndFreeMolalityAndMineralMoles()[2];
@@ -1522,6 +1533,8 @@ TEST(EquilibiumGeochemicalSystemTest, jac1)
       false);
   // Here, water and HCO3- are the components in the algebraic system
   EXPECT_EQ(egs.getNumInAlgebraicSystem(), 2);
+  EXPECT_EQ(egs.getNumBasisInAlgebraicSystem(), 2);
+  EXPECT_EQ(egs.getNumSurfacePotentials(), 0);
   DenseVector<Real> res_orig(2);
   res_orig(0) = egs.getResidualComponent(0);
   res_orig(1) = egs.getResidualComponent(1);
@@ -1530,6 +1543,11 @@ TEST(EquilibiumGeochemicalSystemTest, jac1)
                                         // ~ 3.2E-2/3.2 = 0.01 (molality of HCO3-)
   DenseMatrix<Real> jac(1, 1); // deliberately size incorrectly to check resizing done correctly
   egs.computeJacobian(res_orig, jac);
+
+  const std::vector<Real> mol_orig = egs.getAlgebraicBasisValues();
+  EXPECT_EQ(mol_orig.size(), var_orig.size());
+  for (unsigned a = 0; a < mol_orig.size(); ++a)
+    EXPECT_EQ(mol_orig[a], var_orig[a]);
 
   const Real eps = 1E-9;
   for (unsigned var_num = 0; var_num < 2; ++var_num)
@@ -1572,6 +1590,8 @@ TEST(EquilibiumGeochemicalSystemTest, jac2)
                                    false);
   // Here, H+ and HCO3- are the components in the algebraic system
   EXPECT_EQ(egs.getNumInAlgebraicSystem(), 2);
+  EXPECT_EQ(egs.getNumBasisInAlgebraicSystem(), 2);
+  EXPECT_EQ(egs.getNumSurfacePotentials(), 0);
   DenseVector<Real> res_orig(2);
   res_orig(0) = egs.getResidualComponent(0);
   res_orig(1) = egs.getResidualComponent(1);
@@ -1625,6 +1645,8 @@ TEST(EquilibiumGeochemicalSystemTest, jac3)
                                    false);
   // Here H+ is the only component in the algebraic system
   EXPECT_EQ(egs.getNumInAlgebraicSystem(), 1);
+  EXPECT_EQ(egs.getNumBasisInAlgebraicSystem(), 1);
+  EXPECT_EQ(egs.getNumSurfacePotentials(), 0);
   DenseVector<Real> res_orig(1);
   res_orig(0) = egs.getResidualComponent(0);
   const std::vector<Real> var_orig = egs.getAlgebraicVariableValues(); // around 3E-4
@@ -1665,6 +1687,8 @@ TEST(EquilibiumGeochemicalSystemTest, jac4)
                                    1E-20,
                                    false);
   EXPECT_EQ(egs.getNumInAlgebraicSystem(), 3);
+  EXPECT_EQ(egs.getNumBasisInAlgebraicSystem(), 3);
+  EXPECT_EQ(egs.getNumSurfacePotentials(), 0);
   DenseVector<Real> res_orig(3);
   res_orig(0) = egs.getResidualComponent(0);
   res_orig(1) = egs.getResidualComponent(1);
@@ -1672,6 +1696,11 @@ TEST(EquilibiumGeochemicalSystemTest, jac4)
   const std::vector<Real> var_orig = egs.getAlgebraicVariableValues(); // around {3.1, 2.9, 11.4}
   DenseMatrix<Real> jac(1, 1);
   egs.computeJacobian(res_orig, jac);
+
+  const std::vector<Real> mol_orig = egs.getAlgebraicBasisValues();
+  EXPECT_EQ(mol_orig.size(), var_orig.size());
+  for (unsigned a = 0; a < mol_orig.size(); ++a)
+    EXPECT_EQ(mol_orig[a], var_orig[a]);
 
   const Real eps = 1E-6;
   for (unsigned var_num = 0; var_num < 3; ++var_num)
@@ -1852,6 +1881,8 @@ TEST(EquilibiumGeochemicalSystemTest, swap)
                                    false);
 
   EXPECT_EQ(egs.getNumInAlgebraicSystem(), 1);
+  EXPECT_EQ(egs.getNumBasisInAlgebraicSystem(), 1);
+  EXPECT_EQ(egs.getNumSurfacePotentials(), 0);
   EXPECT_EQ(egs.getInAlgebraicSystem()[0], false);
   EXPECT_EQ(egs.getInAlgebraicSystem()[1], true);
   EXPECT_EQ(egs.getInAlgebraicSystem()[2], false);
@@ -1861,7 +1892,9 @@ TEST(EquilibiumGeochemicalSystemTest, swap)
 
   egs.performSwap(3, 5); // swap out Calcite and replace by Ca++
 
-  EXPECT_EQ(egs.getNumInAlgebraicSystem(), 2); // now Ca++ has a bulk moles attached to it
+  EXPECT_EQ(egs.getNumInAlgebraicSystem(), 2);      // now Ca++ has a bulk moles attached to it
+  EXPECT_EQ(egs.getNumBasisInAlgebraicSystem(), 2); // now Ca++ has a bulk moles attached to it
+  EXPECT_EQ(egs.getNumSurfacePotentials(), 0);
   EXPECT_EQ(egs.getInAlgebraicSystem()[0], false);
   EXPECT_EQ(egs.getInAlgebraicSystem()[1], true);
   EXPECT_EQ(egs.getInAlgebraicSystem()[2], false);
@@ -2019,5 +2052,276 @@ TEST(EquilibiumGeochemicalSystemTest, log10RedoxActivityProduct)
     ASSERT_TRUE(msg.find("Cannot retrieve activity product for redox species 2 since there are "
                          "only 2 redox species") != std::string::npos)
         << "Failed with unexpected error message: " << msg;
+  }
+}
+
+/// Check getSurfacePotential exception
+TEST(EquilibiumGeochemicalSystemTest, getSurfacePotentialException)
+{
+  try
+  {
+    egs_good_calcite.getSurfacePotential(0);
+    FAIL() << "Missing expected exception.";
+  }
+  catch (const std::exception & e)
+  {
+    std::string msg(e.what());
+    ASSERT_TRUE(msg.find("Cannot retrieve the surface potential for surface 0 since there are only "
+                         "0 surfaces involved in surface complexation") != std::string::npos)
+        << "Failed with unexpected error message: " << msg;
+  }
+}
+
+/// Check getSurfaceCharge exception
+TEST(EquilibiumGeochemicalSystemTest, getSurfaceChargeException)
+{
+  try
+  {
+    egs_good_calcite.getSurfaceCharge(0);
+    FAIL() << "Missing expected exception.";
+  }
+  catch (const std::exception & e)
+  {
+    std::string msg(e.what());
+    ASSERT_TRUE(msg.find("Cannot retrieve the surface charge for surface 0 since there are only "
+                         "0 surfaces involved in surface complexation") != std::string::npos)
+        << "Failed with unexpected error message: " << msg;
+  }
+}
+
+/// Check sorbing surface area
+TEST(EquilibiumGeochemicalSystemTest, sorbingSurfaceArea)
+{
+  GeochemicalDatabaseReader database("database/moose_testdb.json");
+  PertinentGeochemicalSystem model(database,
+                                   {"H2O", "H+", ">(s)FeOH", ">(w)FeOH", "Fe+++"},
+                                   {"Fe(OH)3(ppd)"},
+                                   {},
+                                   {},
+                                   {},
+                                   {},
+                                   "O2(aq)",
+                                   "e-");
+  const std::vector<EquilibriumGeochemicalSystem::ConstraintMeaningEnum> cm = {
+      EquilibriumGeochemicalSystem::ConstraintMeaningEnum::KG_SOLVENT_WATER,
+      EquilibriumGeochemicalSystem::ConstraintMeaningEnum::MOLES_BULK_SPECIES,
+      EquilibriumGeochemicalSystem::ConstraintMeaningEnum::FREE_MOLALITY,
+      EquilibriumGeochemicalSystem::ConstraintMeaningEnum::FREE_MOLALITY,
+      EquilibriumGeochemicalSystem::ConstraintMeaningEnum::FREE_MOLES_MINERAL_SPECIES};
+  EquilibriumGeochemicalSystem egs(model.modelGeochemicalDatabase(),
+                                   1E-6,
+                                   {"Fe+++"},
+                                   {"Fe(OH)3(ppd)"},
+                                   "H+",
+                                   {"H2O", "H+", ">(s)FeOH", ">(w)FeOH", "Fe(OH)3(ppd)"},
+                                   {1.75, 1.0, 2.0, 1.0, 1.5},
+                                   cm,
+                                   25.0,
+                                   3.0,
+                                   0,
+                                   1E-20,
+                                   false);
+  EXPECT_EQ(egs.getSorbingSurfaceArea().size(), 1);
+  EXPECT_EQ(egs.getSorbingSurfaceArea()[0], 1.5 * 106.8689 * 600.0);
+}
+
+/// Check surface potential things (not jacobian)
+TEST(EquilibiumGeochemicalSystemTest, surfacePot)
+{
+  GeochemicalDatabaseReader database("database/moose_testdb.json");
+  PertinentGeochemicalSystem model(database,
+                                   {"H2O", "H+", ">(s)FeOH", ">(w)FeOH", "Fe+++", "HCO3-"},
+                                   {"Fe(OH)3(ppd)"},
+                                   {},
+                                   {},
+                                   {},
+                                   {},
+                                   "O2(aq)",
+                                   "e-");
+  const std::vector<EquilibriumGeochemicalSystem::ConstraintMeaningEnum> cm = {
+      EquilibriumGeochemicalSystem::ConstraintMeaningEnum::KG_SOLVENT_WATER,
+      EquilibriumGeochemicalSystem::ConstraintMeaningEnum::MOLES_BULK_SPECIES,
+      EquilibriumGeochemicalSystem::ConstraintMeaningEnum::FREE_MOLALITY,
+      EquilibriumGeochemicalSystem::ConstraintMeaningEnum::FREE_MOLALITY,
+      EquilibriumGeochemicalSystem::ConstraintMeaningEnum::FREE_MOLALITY,
+      EquilibriumGeochemicalSystem::ConstraintMeaningEnum::MOLES_BULK_SPECIES};
+  const Real temp = 45.0;
+  EquilibriumGeochemicalSystem egs(model.modelGeochemicalDatabase(),
+                                   1E-6,
+                                   {},
+                                   {},
+                                   "H+",
+                                   {"H2O", "H+", ">(s)FeOH", ">(w)FeOH", "Fe+++", "HCO3-"},
+                                   {1.75, 1.0, 2.0, 3.0, 1.0, 1.0},
+                                   cm,
+                                   temp,
+                                   3.0,
+                                   0,
+                                   1E-20,
+                                   false);
+
+  // test basic things like sizes and that the algebraic variables are correctly set
+  EXPECT_EQ(egs.getNumInAlgebraicSystem(), 3);
+  EXPECT_EQ(egs.getNumBasisInAlgebraicSystem(), 2);
+  EXPECT_EQ(egs.getNumSurfacePotentials(), 1);
+  EXPECT_EQ(egs.getBasisIndexOfAlgebraicSystem()[0],
+            1); // H+ is slot=0 in algebraic system and slot=1 in basis
+  EXPECT_EQ(egs.getBasisIndexOfAlgebraicSystem()[1],
+            5); // HCO3-
+  EXPECT_EQ(egs.getAlgebraicIndexOfBasisSystem()[1], 0);
+  EXPECT_EQ(egs.getAlgebraicIndexOfBasisSystem()[5], 1);
+  DenseVector<Real> alg_vars = egs.getAlgebraicVariableDenseValues();
+  EXPECT_EQ(alg_vars.size(), 3);
+  std::vector<Real> mols = egs.getAlgebraicBasisValues();
+  EXPECT_EQ(mols.size(), 2);
+  EXPECT_EQ(mols[0], alg_vars(0));
+  EXPECT_EQ(mols[1], alg_vars(1));
+  EXPECT_EQ(egs.getAlgebraicVariableValues().size(), 3);
+
+  // try setting a _surface_pot_expr to a non-positive quantity
+  try
+  {
+    alg_vars(2) = -1.0;
+    egs.setAlgebraicVariables(alg_vars);
+    FAIL() << "Missing expected exception.";
+  }
+  catch (const std::exception & e)
+  {
+    std::string msg(e.what());
+    ASSERT_TRUE(msg.find("Cannot set algebraic variables to non-positive values such as -1") !=
+                std::string::npos)
+        << "Failed with unexpected error message: " << msg;
+  }
+
+  // set the _surface_pot_expr to 2.0
+  alg_vars(2) = 2.0;
+  egs.setAlgebraicVariables(alg_vars);
+
+  // check that the setting worked
+  const std::vector<Real> av = egs.getAlgebraicVariableValues();
+  EXPECT_EQ(av.size(), 3);
+  for (unsigned i = 0; i < 3; ++i)
+    EXPECT_EQ(av[i], alg_vars(i));
+
+  // check the surface potential is correctly computed
+  const Real surf_pot_gold = -std::log(alg_vars(2)) * 2.0 * 8.314472 * 318.15 / 96485.3415;
+  EXPECT_NEAR(egs.getSurfacePotential(0), surf_pot_gold, 1.0E-9);
+  try
+  {
+    egs.getSurfacePotential(1);
+    FAIL() << "Missing expected exception.";
+  }
+  catch (const std::exception & e)
+  {
+    std::string msg(e.what());
+    ASSERT_TRUE(msg.find("Cannot retrieve the surface potential for surface 1 since there are only "
+                         "1 surfaces involved in surface complexation") != std::string::npos)
+        << "Failed with unexpected error message: " << msg;
+  }
+
+  // check the specific surface charge is correctly computed
+  const Real pref =
+      0.5 / 96485.3415 *
+      std::sqrt(8.314472 * 318.15 * 8.8541878128E-12 * 78.5 * 1000.0 * egs.getIonicStrength()) *
+      (-alg_vars(2) + 1.0 / alg_vars(2));
+  const Real surf_charge_gold = pref * 96485.3415;
+  EXPECT_NEAR(egs.getSurfaceCharge(0), surf_charge_gold, 1.0E-9);
+  try
+  {
+    egs.getSurfaceCharge(1);
+    FAIL() << "Missing expected exception.";
+  }
+  catch (const std::exception & e)
+  {
+    std::string msg(e.what());
+    ASSERT_TRUE(msg.find("Cannot retrieve the surface charge for surface 1 since there are only "
+                         "1 surfaces involved in surface complexation") != std::string::npos)
+        << "Failed with unexpected error message: " << msg;
+  }
+
+  // check that equilibrium molality for the surface species is correctly computed
+  const Real act_h = egs.getBasisActivity(1);
+  const Real act_bicarb = egs.getBasisActivity(2);
+  const unsigned ind_surf = model.modelGeochemicalDatabase().eqm_species_index.at(">(s)FeO-");
+  const Real mol_surf = egs.getEquilibriumMolality(ind_surf);
+  EXPECT_NEAR(mol_surf,
+              act_bicarb / act_h / std::pow(10.0, egs.getLog10K(ind_surf)) *
+                  std::pow(alg_vars(2), -2.0),
+              1.0E-9);
+
+  // check that residuals are correctly calculated (non-surface stuff is checked in other tests)
+  EXPECT_NEAR(egs.getResidualComponent(2), -pref * 600.0 + 1.75 * (-1.0) * mol_surf, 1.0E-9);
+  try
+  {
+    egs.getResidualComponent(3);
+    FAIL() << "Missing expected exception.";
+  }
+  catch (const std::exception & e)
+  {
+    std::string msg(e.what());
+    ASSERT_TRUE(msg.find("Cannot retrieve residual for algebraic index 3 because there are only 2 "
+                         "molalities in the algebraic system and 1 surface potentials") !=
+                std::string::npos)
+        << "Failed with unexpected error message: " << msg;
+  }
+}
+
+/// Check jacobian when there is a surface potential
+TEST(EquilibiumGeochemicalSystemTest, surfacePotJac)
+{
+  GeochemicalDatabaseReader database("database/moose_testdb.json");
+  PertinentGeochemicalSystem model(database,
+                                   {"H2O", "H+", ">(s)FeOH", ">(w)FeOH", "Fe+++", "HCO3-"},
+                                   {"Fe(OH)3(ppd)"},
+                                   {},
+                                   {},
+                                   {},
+                                   {},
+                                   "O2(aq)",
+                                   "e-");
+  const std::vector<EquilibriumGeochemicalSystem::ConstraintMeaningEnum> cm = {
+      EquilibriumGeochemicalSystem::ConstraintMeaningEnum::MOLES_BULK_WATER,
+      EquilibriumGeochemicalSystem::ConstraintMeaningEnum::MOLES_BULK_SPECIES,
+      EquilibriumGeochemicalSystem::ConstraintMeaningEnum::MOLES_BULK_SPECIES,
+      EquilibriumGeochemicalSystem::ConstraintMeaningEnum::FREE_MOLALITY,
+      EquilibriumGeochemicalSystem::ConstraintMeaningEnum::ACTIVITY,
+      EquilibriumGeochemicalSystem::ConstraintMeaningEnum::MOLES_BULK_SPECIES};
+  const Real temp = 45.0;
+  EquilibriumGeochemicalSystem egs(model.modelGeochemicalDatabase(),
+                                   1E-6,
+                                   {},
+                                   {},
+                                   "H+",
+                                   {"H2O", "H+", ">(s)FeOH", ">(w)FeOH", "Fe+++", "HCO3-"},
+                                   {1.75, 1.0, 2.0, 3.0, 0.5, 1.0},
+                                   cm,
+                                   temp,
+                                   1.0E-2,
+                                   10,
+                                   1E-20,
+                                   false);
+  const unsigned num_alg = egs.getNumInAlgebraicSystem();
+  DenseVector<Real> res_orig(num_alg);
+  for (unsigned i = 0; i < num_alg; ++i)
+    res_orig(i) = egs.getResidualComponent(i);
+  const std::vector<Real> var_orig = egs.getAlgebraicVariableValues();
+  DenseMatrix<Real> jac(1, 1);
+  egs.computeJacobian(res_orig, jac);
+
+  const Real eps = 1E-3;
+  for (unsigned var_num = 0; var_num < num_alg; ++var_num)
+  {
+    std::vector<Real> var_new = var_orig;
+    var_new[var_num] *= (1.0 + eps);
+    egs.setAlgebraicVariables(var_new);
+    for (unsigned res_comp = 0; res_comp < num_alg; ++res_comp)
+    {
+      const Real expected = (egs.getResidualComponent(res_comp) - res_orig(res_comp)) /
+                            (var_new[var_num] - var_orig[var_num]);
+      if (std::abs(expected) < 1.0E-7)
+        EXPECT_NEAR(jac(res_comp, var_num), 0.0, 1.0E-7);
+      else
+        EXPECT_NEAR(expected / jac(res_comp, var_num), 1.0, 1.0E-2);
+    }
   }
 }
