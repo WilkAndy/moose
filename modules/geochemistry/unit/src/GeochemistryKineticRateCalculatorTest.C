@@ -35,7 +35,8 @@ KineticRateUserDescription rate_ch4("CH4(aq)",
                                     66.0,
                                     0.003,
                                     DirectionChoiceEnum::BOTH,
-                                    -1.0);
+                                    -1.0,
+                                    0.0);
 KineticRateUserDescription rate_cal("Calcite",
                                     7.0,
                                     6.0,
@@ -49,7 +50,8 @@ KineticRateUserDescription rate_cal("Calcite",
                                     55.0,
                                     0.00315,
                                     DirectionChoiceEnum::BOTH,
-                                    -1.0);
+                                    -1.0,
+                                    0.0);
 const ModelGeochemicalDatabase & mgd_kin = model_kin.modelGeochemicalDatabase();
 
 /// Test exceptions in KineticRateUserDescription
@@ -71,7 +73,8 @@ TEST(KineticRateUserDescriptionTest, exceptions)
                                     6.0,
                                     7.0,
                                     DirectionChoiceEnum::BOTH,
-                                    -1.0);
+                                    -1.0,
+                                    0.0);
     FAIL() << "Missing expected exception.";
   }
   catch (const std::exception & e)
@@ -98,7 +101,8 @@ TEST(KineticRateUserDescriptionTest, exceptions)
                                     6.0,
                                     7.0,
                                     DirectionChoiceEnum::BOTH,
-                                    -1.0);
+                                    -1.0,
+                                    0.0);
     FAIL() << "Missing expected exception.";
   }
   catch (const std::exception & e)

@@ -23,6 +23,7 @@
   solver_info = true
   evaluate_kinetic_rates_always = true
   precision = 16
+  prevent_precipitation = 'Pyrite Troilite'
 []
 
 [UserObjects]
@@ -45,7 +46,7 @@
     type = GeochemicalModelDefinition
     database_file = "db.json"
     basis_species = "H2O              Na+              Ca++             Fe++             Cl-              SO4--            HCO3-            CH3COO-          HS-              H+"
-    equilibrium_minerals = "Mackinawite Siderite"
+    equilibrium_minerals = "*" #Mackinawite Siderite
     kinetic_redox = "sulfate_reducer"
     kinetic_rate_descriptions = "rate_sulfate_reducer"
   []
@@ -55,7 +56,7 @@
   [timestepper]
     type = PiecewiseLinear
     x = '0 10 18  21'
-    y = '1 1  1   1'
+    y = '1E-2 1E-2  1   1'
   []
 []
 
@@ -65,7 +66,7 @@
     type = FunctionDT
     function = timestepper
   []
-  end_time = 21
+  end_time = 7
 []
 
 [AuxVariables]

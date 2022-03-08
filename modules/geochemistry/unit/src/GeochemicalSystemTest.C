@@ -5598,7 +5598,8 @@ TEST_F(GeochemicalSystemTest, setKineticRates)
                                       66.0,
                                       0.003,
                                       DirectionChoiceEnum::BOTH,
-                                      -1.0);
+                                      -1.0,
+                                      0.0);
   KineticRateUserDescription rate_cal("Calcite",
                                       7.0,
                                       6.0,
@@ -5612,7 +5613,8 @@ TEST_F(GeochemicalSystemTest, setKineticRates)
                                       55.0,
                                       0.00315,
                                       DirectionChoiceEnum::BOTH,
-                                      -1.0);
+                                      -1.0,
+                                      0.0);
   const std::vector<GeochemicalSystem::ConstraintUserMeaningEnum> cm = {
       GeochemicalSystem::ConstraintUserMeaningEnum::KG_SOLVENT_WATER,
       GeochemicalSystem::ConstraintUserMeaningEnum::BULK_COMPOSITION,

@@ -1667,7 +1667,8 @@ TEST(PertinentGeochemicalSystemTest, addKineticRateExceptions)
                                     6.0,
                                     7.0,
                                     DirectionChoiceEnum::BOTH,
-                                    -1.0);
+                                    -1.0,
+                                    0.0);
     model.addKineticRate(rate);
     FAIL() << "Missing expected exception.";
   }
@@ -1696,7 +1697,8 @@ TEST(PertinentGeochemicalSystemTest, addKineticRateExceptions)
                                     6.0,
                                     7.0,
                                     DirectionChoiceEnum::BOTH,
-                                    -1.0);
+                                    -1.0,
+                                    0.0);
     model.addKineticRate(rate);
     FAIL() << "Missing expected exception.";
   }
@@ -1735,7 +1737,8 @@ TEST(PertinentGeochemicalSystemTest, addKineticRate)
                                   6.0,
                                   7.0,
                                   DirectionChoiceEnum::BOTH,
-                                  -1.0);
+                                  -1.0,
+                                  0.0);
   model.addKineticRate(rate);
 
   const ModelGeochemicalDatabase & mgd = model.modelGeochemicalDatabase();
@@ -1772,7 +1775,8 @@ TEST(PertinentGeochemicalSystemTest, addKineticRate)
                                    3.0,
                                    2.0,
                                    DirectionChoiceEnum::BOTH,
-                                   -1.0);
+                                   -1.0,
+                                   0.0);
   model.addKineticRate(ratec);
 
   EXPECT_EQ(mgd.kin_rate.size(), (std::size_t)2);

@@ -2548,7 +2548,8 @@ TEST(GeochemicalSolverTest, solve_kinetic2)
                                             0.0,
                                             0.0,
                                             DirectionChoiceEnum::BOTH,
-                                            -1.0);
+                                            -1.0,
+                                            0.0);
   // Fe(OH)3(ppd)fake = -3H+ + 2Fe+++ + 3H2O, so Q=1E15*1E-10=1E5 (approx) < K, so rate_Fe produces
   // a positive rate, so mole_additions < 0, so Something will decrease in mole number
   KineticRateUserDescription rate_Fe("Fe(OH)3(ppd)fake",
@@ -2564,7 +2565,8 @@ TEST(GeochemicalSolverTest, solve_kinetic2)
                                      0.0,
                                      0.0,
                                      DirectionChoiceEnum::BOTH,
-                                     -1.0);
+                                     -1.0,
+                                     0.0);
   model.addKineticRate(rate_Something);
   model.addKineticRate(rate_Fe);
 
@@ -2766,7 +2768,8 @@ TEST(GeochemicalSolverTest, solve_kinetic3)
                                             1E5,
                                             1.0 / 303.15,
                                             DirectionChoiceEnum::BOTH,
-                                            -1.0);
+                                            -1.0,
+                                            0.0);
   model.addKineticRate(rate_Something);
 
   ModelGeochemicalDatabase mgd = model.modelGeochemicalDatabase();
