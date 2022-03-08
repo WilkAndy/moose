@@ -822,8 +822,9 @@ public:
 
   /**
    * Computes the kinetic rates and their derivatives based on the current values of molality, mole
-   * number, etc, and places them (multiplied by dt) in the num_kin final slots of mole_additions
-   * and dmole_additions.  This method is not const because it modifies _eqm_activity for
+   * number, etc, and then, using dt, calculates the appropriate mole_additions and dmole_additions.
+   * NOTE: this first zeroes mole_additions and dmole_additions.
+   * This method is not const because it modifies _eqm_activity for
    * equilibrium gases and eqm species H+ and OH- (if there are any).
    * @param dt time-step size
    * @param mole_additions The kinetic rates multiplied by dt get placed in the last num_kin slots

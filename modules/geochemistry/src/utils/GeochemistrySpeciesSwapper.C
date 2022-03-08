@@ -328,6 +328,17 @@ GeochemistrySpeciesSwapper::alterMGD(ModelGeochemicalDatabase & mgd,
     mgd.kin_rate[r].promoting_indices[basis_index_to_replace] =
         mgd.kin_rate[r].promoting_indices[pro_ind_eqm];
     mgd.kin_rate[r].promoting_indices[pro_ind_eqm] = promoting_index_of_original_basis;
+    const Real promoting_monod_index_of_original_basis =
+        mgd.kin_rate[r].promoting_monod_indices[basis_index_to_replace];
+    mgd.kin_rate[r].promoting_monod_indices[basis_index_to_replace] =
+        mgd.kin_rate[r].promoting_monod_indices[pro_ind_eqm];
+    mgd.kin_rate[r].promoting_monod_indices[pro_ind_eqm] = promoting_monod_index_of_original_basis;
+    const Real promoting_half_saturation_of_original_basis =
+        mgd.kin_rate[r].promoting_half_saturation[basis_index_to_replace];
+    mgd.kin_rate[r].promoting_half_saturation[basis_index_to_replace] =
+        mgd.kin_rate[r].promoting_half_saturation[pro_ind_eqm];
+    mgd.kin_rate[r].promoting_half_saturation[pro_ind_eqm] =
+        promoting_half_saturation_of_original_basis;
   }
 }
 

@@ -867,10 +867,14 @@ TEST(GeochemistrySpeciesSwapperTest, swap3)
                                    true,
                                    {"H+", "O2(aq)", "CO3--"},
                                    {1.1, 2.2, 3.3},
+                                   {0.0, 0.0, 0.0},
+                                   {0.0, 0.0, 0.0},
                                    5.0,
                                    6.0,
                                    7.0,
-                                   8.0);
+                                   8.0,
+                                   DirectionChoiceEnum::BOTH,
+                                   -1.0);
   model.addKineticRate(rate1);
   KineticRateUserDescription rate2("Fe(OH)3(ppd)",
                                    -1.0,
@@ -878,10 +882,14 @@ TEST(GeochemistrySpeciesSwapperTest, swap3)
                                    false,
                                    {"O2(aq)", "Fe+++", "H2O"},
                                    {-1.1, -2.2, -3.3},
+                                   {0.0, 0.0, 0.0},
+                                   {0.0, 0.0, 0.0},
                                    -5.0,
                                    -6.0,
                                    -7.0,
-                                   -8.0);
+                                   -8.0,
+                                   DirectionChoiceEnum::BOTH,
+                                   -1.0);
   model.addKineticRate(rate2);
   KineticRateUserDescription rate3(">(s)FeO-",
                                    1.1,
@@ -889,10 +897,14 @@ TEST(GeochemistrySpeciesSwapperTest, swap3)
                                    false,
                                    {"CO2(aq)", "Fe+++", "Fe++"},
                                    {1.25, 2.25, 3.25},
+                                   {0.0, 0.0, 0.0},
+                                   {0.0, 0.0, 0.0},
                                    5.5,
                                    -6.6,
                                    -7.7,
-                                   -8.8);
+                                   -8.8,
+                                   DirectionChoiceEnum::BOTH,
+                                   -1.0);
   model.addKineticRate(rate3);
   ModelGeochemicalDatabase mgd = model.modelGeochemicalDatabase();
   GeochemistrySpeciesSwapper swapper(mgd.basis_species_index.size(), 1E-6);

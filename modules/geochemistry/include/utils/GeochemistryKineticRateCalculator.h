@@ -13,6 +13,14 @@
 #include "DenseMatrix.h"
 #include "GeochemistryConstants.h"
 
+enum DirectionChoiceEnum
+{
+  BOTH,
+  DISSOLUTION,
+  PRECIPITATION,
+  RAW
+};
+
 /**
  * Holds a user-specified description of a kinetic rate
  *
@@ -38,23 +46,36 @@ struct KineticRateUserDescription
                              bool multiply_by_mass,
                              const std::vector<std::string> & promoting_species,
                              const std::vector<Real> & promoting_indices,
+                             const std::vector<Real> & promoting_monod_indices,
+                             const std::vector<Real> & promoting_half_saturation,
                              Real theta,
                              Real eta,
                              Real activation_energy,
-                             Real one_over_T0)
+                             Real one_over_T0,
+                             DirectionChoiceEnum direction,
+                             Real biological_efficiency)
     : kinetic_species_name(kinetic_species_name),
       intrinsic_rate_constant(intrinsic_rate_constant),
       area_quantity(area_quantity),
       multiply_by_mass(multiply_by_mass),
       promoting_species(promoting_species),
       promoting_indices(promoting_indices),
+      promoting_monod_indices(promoting_monod_indices),
+      promoting_half_saturation(promoting_half_saturation),
       theta(theta),
       eta(eta),
       activation_energy(activation_energy),
-      one_over_T0(one_over_T0)
+      one_over_T0(one_over_T0),
+      direction(direction),
+      biological_efficiency(biological_efficiency)
   {
     if (promoting_species.size() != promoting_indices.size())
       mooseError("The promoting_species and promoting_indices vectors must be the same size");
+    if (promoting_species.size() != promoting_monod_indices.size())
+      mooseError("The promoting_species and promoting_monod_indices vectors must be the same size");
+    if (promoting_species.size() != promoting_half_saturation.size())
+      mooseError(
+          "The promoting_species and promoting_half_saturation vectors must be the same size");
     std::unordered_map<std::string, int> check_for_repeats;
     for (const std::string & name : promoting_species)
       if (check_for_repeats.count(name) == 1)
@@ -69,9 +90,12 @@ struct KineticRateUserDescription
            (intrinsic_rate_constant == rhs.intrinsic_rate_constant) &&
            (area_quantity == rhs.area_quantity) && (multiply_by_mass == rhs.multiply_by_mass) &&
            (promoting_species == rhs.promoting_species) &&
-           (promoting_indices == rhs.promoting_indices) && (theta == rhs.theta) &&
+           (promoting_indices == rhs.promoting_indices) &&
+           (promoting_monod_indices == rhs.promoting_monod_indices) &&
+           (promoting_half_saturation == rhs.promoting_half_saturation) && (theta == rhs.theta) &&
            (eta == rhs.eta) && (activation_energy == rhs.activation_energy) &&
-           (one_over_T0 == rhs.one_over_T0);
+           (one_over_T0 == rhs.one_over_T0) && (direction == rhs.direction) &&
+           (biological_efficiency == rhs.biological_efficiency);
   };
 
   std::string kinetic_species_name;
@@ -80,10 +104,14 @@ struct KineticRateUserDescription
   bool multiply_by_mass;
   std::vector<std::string> promoting_species;
   std::vector<Real> promoting_indices;
+  std::vector<Real> promoting_monod_indices;
+  std::vector<Real> promoting_half_saturation;
   Real theta;
   Real eta;
   Real activation_energy;
   Real one_over_T0;
+  DirectionChoiceEnum direction;
+  Real biological_efficiency;
 };
 
 /**
@@ -100,7 +128,7 @@ struct KineticRateUserDescription
  * product over the promoting_species of m^(promoting_index)
  * |1 - (Q/K)^theta|^eta
  * exp(activation_energy / R * (1/T0 - 1/T))
- * sign(1 - (Q/K))
+ * D(1 - (Q/K))
  *
  * Some explanation may be useful:
  *
@@ -130,6 +158,15 @@ struct KineticRateUserDescription
  * R = 8.314472 m^2.kg.s^-2.K^-1.mol^-1 = 8.314472 J.K^-1.mol^-1 is the gas constant.
  * T is the temperature in Kelvin.
  * T0 is a reference temperature, in Kelvin.  It is inputted as 1/T0 so that 1/T0 = 0 is possible.
+ *
+ * D(x) depends on direction.  If direction == BOTH then D(x) = sgn(x).  If direction == DISSOLUTION
+ * then D(x) = (x>0)?1:0.  If direction == PRECIPITATION then D(x) = (x<0)?-1:0.  If direction ==
+ * BOTH then D(x) = 1
+ *
+ * The amount of kinetic species that is generated is biological_efficiency * rate.  Note that rate
+ * > 0 for dissolution of the kinetic species, so biological_efficiency defaults to -1.  However,
+ * for biogeochemistry, it is appropriate to set biological_efficiency > 0, so that "dissolution" of
+ * the biomass (with rate > 0) generates further biomass
  */
 namespace GeochemistryKineticRateCalculator
 {
@@ -142,7 +179,7 @@ namespace GeochemistryKineticRateCalculator
  * product over the promoting_species of m^(promoting_index)
  * |1 - (Q/K)^theta|^eta
  * exp(activation_energy / R * (1/T0 - 1/T))
- * sign(1 - (Q/K))
+ * D(1 - (Q/K))
  *
  * @param promoting_indices of the basis species and equilibrium species.  Note that this is
  * different from description.promoting_indices (which is paired with description.promoting_species)
@@ -175,6 +212,8 @@ namespace GeochemistryKineticRateCalculator
  * @param[out] drate_dmol d(rate)/d(basis molality[i])
  */
 void calculateRate(const std::vector<Real> & promoting_indices,
+                   const std::vector<Real> & promoting_monod_indices,
+                   const std::vector<Real> & promoting_half_saturation,
                    const KineticRateUserDescription & description,
                    const std::vector<std::string> & basis_species_name,
                    const std::vector<bool> & basis_species_gas,

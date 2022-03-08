@@ -5585,10 +5585,34 @@ TEST_F(GeochemicalSystemTest, setKineticRates)
                                  {},
                                  "O2(aq)",
                                  "e-");
-  KineticRateUserDescription rate_ch4(
-      "CH4(aq)", 1.5, 2.0, true, {"OH-", "CaCO3"}, {3.0, 3.1}, 0.8, 2.5, 66.0, 0.003);
-  KineticRateUserDescription rate_cal(
-      "Calcite", 7.0, 6.0, false, {"H+"}, {-3.0}, 2.5, 0.8, 55.0, 0.00315);
+  KineticRateUserDescription rate_ch4("CH4(aq)",
+                                      1.5,
+                                      2.0,
+                                      true,
+                                      {"OH-", "CaCO3"},
+                                      {3.0, 3.1},
+                                      {0.0, 0.0},
+                                      {0.0, 0.0},
+                                      0.8,
+                                      2.5,
+                                      66.0,
+                                      0.003,
+                                      DirectionChoiceEnum::BOTH,
+                                      -1.0);
+  KineticRateUserDescription rate_cal("Calcite",
+                                      7.0,
+                                      6.0,
+                                      false,
+                                      {"H+"},
+                                      {-3.0},
+                                      {0.0},
+                                      {0.0},
+                                      2.5,
+                                      0.8,
+                                      55.0,
+                                      0.00315,
+                                      DirectionChoiceEnum::BOTH,
+                                      -1.0);
   const std::vector<GeochemicalSystem::ConstraintUserMeaningEnum> cm = {
       GeochemicalSystem::ConstraintUserMeaningEnum::KG_SOLVENT_WATER,
       GeochemicalSystem::ConstraintUserMeaningEnum::BULK_COMPOSITION,

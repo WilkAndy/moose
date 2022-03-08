@@ -42,19 +42,28 @@ struct KineticRateDefinition
 {
   KineticRateDefinition(unsigned kinetic_species_index,
                         const std::vector<Real> & promoting_indices,
+                        const std::vector<Real> & promoting_monod_indices,
+                        const std::vector<Real> & promoting_half_saturation,
                         const KineticRateUserDescription & description)
     : kinetic_species_index(kinetic_species_index),
       promoting_indices(promoting_indices),
+      promoting_monod_indices(promoting_monod_indices),
+      promoting_half_saturation(promoting_half_saturation),
       description(description){};
 
   bool operator==(const KineticRateDefinition & rhs) const
   {
     return (kinetic_species_index == rhs.kinetic_species_index) &&
-           (promoting_indices == rhs.promoting_indices) && (description == rhs.description);
+           (promoting_indices == rhs.promoting_indices) &&
+           (promoting_monod_indices == rhs.promoting_monod_indices) &&
+           (promoting_half_saturation == rhs.promoting_half_saturation) &&
+           (description == rhs.description);
   };
 
   unsigned kinetic_species_index;
   std::vector<Real> promoting_indices;
+  std::vector<Real> promoting_monod_indices;
+  std::vector<Real> promoting_half_saturation;
   KineticRateUserDescription description;
 };
 

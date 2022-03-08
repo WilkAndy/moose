@@ -28,12 +28,28 @@ KineticRateUserDescription rate_ch4("CH4(aq)",
                                     true,
                                     {"H2O", "OH-", "O2(aq)", "CO2(aq)", "CaCO3"},
                                     {3.0, 3.1, 3.2, 3.3, 3.4},
+                                    {0.0, 0.0, 0.0, 0.0, 0.0},
+                                    {0.0, 0.0, 0.0, 0.0, 0.0},
                                     0.8,
                                     2.5,
                                     66.0,
-                                    0.003);
-KineticRateUserDescription
-    rate_cal("Calcite", 7.0, 6.0, false, {"H+"}, {-3.0}, 2.5, 0.8, 55.0, 0.00315);
+                                    0.003,
+                                    DirectionChoiceEnum::BOTH,
+                                    -1.0);
+KineticRateUserDescription rate_cal("Calcite",
+                                    7.0,
+                                    6.0,
+                                    false,
+                                    {"H+"},
+                                    {-3.0},
+                                    {0.0},
+                                    {0.0},
+                                    2.5,
+                                    0.8,
+                                    55.0,
+                                    0.00315,
+                                    DirectionChoiceEnum::BOTH,
+                                    -1.0);
 const ModelGeochemicalDatabase & mgd_kin = model_kin.modelGeochemicalDatabase();
 
 /// Test exceptions in KineticRateUserDescription
@@ -42,8 +58,20 @@ TEST(KineticRateUserDescriptionTest, exceptions)
 
   try
   {
-    KineticRateUserDescription rate(
-        "CH4(aq)", 1.0, 2.0, true, {"H2O", "H+"}, {3.0}, 4.0, 5.0, 6.0, 7.0);
+    KineticRateUserDescription rate("CH4(aq)",
+                                    1.0,
+                                    2.0,
+                                    true,
+                                    {"H2O", "H+"},
+                                    {3.0},
+                                    {0.0, 0.0},
+                                    {0.0, 0.0},
+                                    4.0,
+                                    5.0,
+                                    6.0,
+                                    7.0,
+                                    DirectionChoiceEnum::BOTH,
+                                    -1.0);
     FAIL() << "Missing expected exception.";
   }
   catch (const std::exception & e)
@@ -57,8 +85,20 @@ TEST(KineticRateUserDescriptionTest, exceptions)
 
   try
   {
-    KineticRateUserDescription rate(
-        "CH4(aq)", 1.0, 2.0, true, {"H2O", "OH-", "H2O"}, {3.0, 1.0, -1.0}, 4.0, 5.0, 6.0, 7.0);
+    KineticRateUserDescription rate("CH4(aq)",
+                                    1.0,
+                                    2.0,
+                                    true,
+                                    {"H2O", "OH-", "H2O"},
+                                    {3.0, 1.0, -1.0},
+                                    {0.0, 0.0, 0.0},
+                                    {0.0, 0.0, 0.0},
+                                    4.0,
+                                    5.0,
+                                    6.0,
+                                    7.0,
+                                    DirectionChoiceEnum::BOTH,
+                                    -1.0);
     FAIL() << "Missing expected exception.";
   }
   catch (const std::exception & e)
@@ -94,6 +134,8 @@ TEST(GeochemistryKineticRateCalculatorTest, exceptions)
   try
   {
     GeochemistryKineticRateCalculator::calculateRate({},
+                                                     {},
+                                                     {},
                                                      rate_ch4,
                                                      basis_name,
                                                      basis_species_gas,
@@ -128,6 +170,8 @@ TEST(GeochemistryKineticRateCalculatorTest, exceptions)
   try
   {
     GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                     std::vector<Real>(5 + 6, 0),
+                                                     std::vector<Real>(5 + 6, 0),
                                                      rate_ch4,
                                                      basis_name,
                                                      {},
@@ -162,6 +206,8 @@ TEST(GeochemistryKineticRateCalculatorTest, exceptions)
   try
   {
     GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                     std::vector<Real>(5 + 6, 0),
+                                                     std::vector<Real>(5 + 6, 0),
                                                      rate_ch4,
                                                      basis_name,
                                                      basis_species_gas,
@@ -196,6 +242,8 @@ TEST(GeochemistryKineticRateCalculatorTest, exceptions)
   try
   {
     GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                     std::vector<Real>(5 + 6, 0),
+                                                     std::vector<Real>(5 + 6, 0),
                                                      rate_ch4,
                                                      basis_name,
                                                      basis_species_gas,
@@ -230,6 +278,8 @@ TEST(GeochemistryKineticRateCalculatorTest, exceptions)
   try
   {
     GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                     std::vector<Real>(5 + 6, 0),
+                                                     std::vector<Real>(5 + 6, 0),
                                                      rate_ch4,
                                                      basis_name,
                                                      basis_species_gas,
@@ -265,6 +315,8 @@ TEST(GeochemistryKineticRateCalculatorTest, exceptions)
   {
     std::vector<Real> drdm(4);
     GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                     std::vector<Real>(5 + 6, 0),
+                                                     std::vector<Real>(5 + 6, 0),
                                                      rate_ch4,
                                                      basis_name,
                                                      basis_species_gas,
@@ -299,6 +351,8 @@ TEST(GeochemistryKineticRateCalculatorTest, exceptions)
   try
   {
     GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                     std::vector<Real>(5 + 6, 0),
+                                                     std::vector<Real>(5 + 6, 0),
                                                      rate_ch4,
                                                      basis_name,
                                                      basis_species_gas,
@@ -333,6 +387,8 @@ TEST(GeochemistryKineticRateCalculatorTest, exceptions)
   try
   {
     GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                     std::vector<Real>(5 + 6, 0),
+                                                     std::vector<Real>(5 + 6, 0),
                                                      rate_ch4,
                                                      basis_name,
                                                      basis_species_gas,
@@ -367,6 +423,8 @@ TEST(GeochemistryKineticRateCalculatorTest, exceptions)
   try
   {
     GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                     std::vector<Real>(5 + 6, 0),
+                                                     std::vector<Real>(5 + 6, 0),
                                                      rate_ch4,
                                                      basis_name,
                                                      basis_species_gas,
@@ -402,6 +460,8 @@ TEST(GeochemistryKineticRateCalculatorTest, exceptions)
   {
     DenseMatrix<Real> stoi(7, 4);
     GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                     std::vector<Real>(5 + 6, 0),
+                                                     std::vector<Real>(5 + 6, 0),
                                                      rate_ch4,
                                                      basis_name,
                                                      basis_species_gas,
@@ -437,6 +497,8 @@ TEST(GeochemistryKineticRateCalculatorTest, exceptions)
   {
     DenseMatrix<Real> stoi(4, 5);
     GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                     std::vector<Real>(5 + 6, 0),
+                                                     std::vector<Real>(5 + 6, 0),
                                                      rate_ch4,
                                                      basis_name,
                                                      basis_species_gas,
@@ -472,6 +534,8 @@ TEST(GeochemistryKineticRateCalculatorTest, exceptions)
   {
     DenseMatrix<Real> stoi(1, 5);
     GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                     std::vector<Real>(5 + 6, 0),
+                                                     std::vector<Real>(5 + 6, 0),
                                                      rate_ch4,
                                                      basis_name,
                                                      basis_species_gas,
@@ -507,6 +571,8 @@ TEST(GeochemistryKineticRateCalculatorTest, exceptions)
   {
     DenseMatrix<Real> stoi(1, 4);
     GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                     std::vector<Real>(5 + 6, 0),
+                                                     std::vector<Real>(5 + 6, 0),
                                                      rate_ch4,
                                                      basis_name,
                                                      basis_species_gas,
@@ -562,6 +628,8 @@ TEST(GeochemistryKineticRateCalculatorTest, rate1)
   std::vector<Real> drate_dmol(5, 1.0);
 
   GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                   std::vector<Real>(12, 0),
+                                                   std::vector<Real>(12, 0),
                                                    rate_ch4,
                                                    basis_name,
                                                    basis_species_gas,
@@ -599,6 +667,8 @@ TEST(GeochemistryKineticRateCalculatorTest, rate1)
     ASSERT_EQ(drate_dmol[i], 0.0);
 
   GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                   std::vector<Real>(12, 0),
+                                                   std::vector<Real>(12, 0),
                                                    rate_ch4,
                                                    basis_name,
                                                    basis_species_gas,
@@ -638,6 +708,8 @@ TEST(GeochemistryKineticRateCalculatorTest, rate1)
   for (unsigned i = 0; i < 5; ++i)
     promoting_indices[i] = 0.5 * (i + 1);
   GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                   std::vector<Real>(12, 0),
+                                                   std::vector<Real>(12, 0),
                                                    rate_cal,
                                                    basis_name,
                                                    basis_species_gas,
@@ -676,6 +748,8 @@ TEST(GeochemistryKineticRateCalculatorTest, rate1)
   for (unsigned i = 5; i < 12; ++i)
     promoting_indices[i] = -0.1 * (i + 1);
   GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                   std::vector<Real>(12, 0),
+                                                   std::vector<Real>(12, 0),
                                                    rate_cal,
                                                    basis_name,
                                                    basis_species_gas,
@@ -723,6 +797,8 @@ TEST(GeochemistryKineticRateCalculatorTest, rate1)
   eqm_stoichiometry(3, 2) = -2.5;  // gas depends on another thing
   eqm_stoichiometry(3, 3) = -33.5; // gas depends on the gas
   GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                   std::vector<Real>(12, 0),
+                                                   std::vector<Real>(12, 0),
                                                    rate_cal,
                                                    basis_name,
                                                    basis_species_gas,
@@ -772,6 +848,8 @@ TEST(GeochemistryKineticRateCalculatorTest, rate1)
   kin_stoichiometry(0, 3) = 1.75;
   kin_stoichiometry(1, 1) = -11.0;
   GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                   std::vector<Real>(12, 0),
+                                                   std::vector<Real>(12, 0),
                                                    rate_cal,
                                                    basis_name,
                                                    basis_species_gas,
@@ -821,6 +899,8 @@ TEST(GeochemistryKineticRateCalculatorTest, rate1)
   Real ap = std::pow(0.1, -1.0) * std::pow(basis_activity[1], 1.25) *
             std::pow(basis_molality[2], -1.5) * std::pow(0.4, 1.75);
   GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                   std::vector<Real>(12, 0),
+                                                   std::vector<Real>(12, 0),
                                                    rate_cal,
                                                    basis_name,
                                                    basis_species_gas,
@@ -848,6 +928,8 @@ TEST(GeochemistryKineticRateCalculatorTest, rate1)
        std::pow(0.4, 1.75);
   Real rate_new;
   GeochemistryKineticRateCalculator::calculateRate(promoting_indices,
+                                                   std::vector<Real>(12, 0),
+                                                   std::vector<Real>(12, 0),
                                                    rate_cal,
                                                    basis_name,
                                                    basis_species_gas,
