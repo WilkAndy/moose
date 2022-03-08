@@ -37,14 +37,15 @@
     promoting_half_saturation = 70E-6
     direction = dissolution
     biological_efficiency = 4.3
-    theta = 1
-    eta = 0
+    energy_captured = 45E3
+    theta = 0.2
+    eta = 1
   []
   [definition]
     type = GeochemicalModelDefinition
     database_file = "db.json"
     basis_species = "H2O              Na+              Ca++             Fe++             Cl-              SO4--            HCO3-            CH3COO-          HS-              H+"
-    #equilibrium_minerals = "Mackinawite"
+    equilibrium_minerals = "Mackinawite Siderite"
     kinetic_redox = "sulfate_reducer"
     kinetic_rate_descriptions = "rate_sulfate_reducer"
   []
@@ -64,7 +65,7 @@
     type = FunctionDT
     function = timestepper
   []
-  end_time = 7
+  end_time = 21
 []
 
 [AuxVariables]

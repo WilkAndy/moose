@@ -53,7 +53,8 @@ struct KineticRateUserDescription
                              Real activation_energy,
                              Real one_over_T0,
                              DirectionChoiceEnum direction,
-                             Real biological_efficiency)
+                             Real biological_efficiency,
+                             Real energy_captured)
     : kinetic_species_name(kinetic_species_name),
       intrinsic_rate_constant(intrinsic_rate_constant),
       area_quantity(area_quantity),
@@ -67,7 +68,8 @@ struct KineticRateUserDescription
       activation_energy(activation_energy),
       one_over_T0(one_over_T0),
       direction(direction),
-      biological_efficiency(biological_efficiency)
+      biological_efficiency(biological_efficiency),
+      energy_captured(energy_captured)
   {
     if (promoting_species.size() != promoting_indices.size())
       mooseError("The promoting_species and promoting_indices vectors must be the same size");
@@ -95,7 +97,8 @@ struct KineticRateUserDescription
            (promoting_half_saturation == rhs.promoting_half_saturation) && (theta == rhs.theta) &&
            (eta == rhs.eta) && (activation_energy == rhs.activation_energy) &&
            (one_over_T0 == rhs.one_over_T0) && (direction == rhs.direction) &&
-           (biological_efficiency == rhs.biological_efficiency);
+           (biological_efficiency == rhs.biological_efficiency) &&
+           (energy_captured == rhs.energy_captured);
   };
 
   std::string kinetic_species_name;
@@ -112,6 +115,7 @@ struct KineticRateUserDescription
   Real one_over_T0;
   DirectionChoiceEnum direction;
   Real biological_efficiency;
+  Real energy_captured;
 };
 
 /**
@@ -125,10 +129,9 @@ struct KineticRateUserDescription
  * intrinsic_rate_constant
  * area_quantity
  * mass of the kinetic_species, measured in grams, if multiply_by_mass is true
- * product over the promoting_species of m^(promoting_index)
- * |1 - (Q/K)^theta|^eta
- * exp(activation_energy / R * (1/T0 - 1/T))
- * D(1 - (Q/K))
+ * product over the promoting_species of m^(promoting_index) / (m^(promoting_index) +
+ * half_saturation)^(promoting_monod_index)
+ * |1 - (Q/K)^theta|^eta exp(activation_energy / R * (1/T0 - 1/T)) D(1 - (Q/K))
  *
  * Some explanation may be useful:
  *
@@ -154,10 +157,11 @@ struct KineticRateUserDescription
  *
  * Q is the activity product, defined by the kinetic_species reaction (defined in the database
  * file).
- * K is the reaction's equilibrium constant (defined in the database file).
- * R = 8.314472 m^2.kg.s^-2.K^-1.mol^-1 = 8.314472 J.K^-1.mol^-1 is the gas constant.
- * T is the temperature in Kelvin.
- * T0 is a reference temperature, in Kelvin.  It is inputted as 1/T0 so that 1/T0 = 0 is possible.
+ * K is the reaction's equilibrium constant (defined in the database file) multiplied by
+ * exp(-energy_captured / (RT)).
+ * R = 8.314472 m^2.kg.s^-2.K^-1.mol^-1 = 8.314472 J.K^-1.mol^-1 is
+ * the gas constant. T is the temperature in Kelvin. T0 is a reference temperature, in Kelvin.  It
+ * is inputted as 1/T0 so that 1/T0 = 0 is possible.
  *
  * D(x) depends on direction.  If direction == BOTH then D(x) = sgn(x).  If direction == DISSOLUTION
  * then D(x) = (x>0)?1:0.  If direction == PRECIPITATION then D(x) = (x<0)?-1:0.  If direction ==

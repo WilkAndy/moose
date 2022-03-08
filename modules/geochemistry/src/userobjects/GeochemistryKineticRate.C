@@ -40,6 +40,14 @@ GeochemistryKineticRate::validParams()
   params.addParam<std::vector<Real>>("promoting_half_saturation",
                                      "Half-saturation constants for the monod expression.  If not "
                                      "given, then the default is 0 for each promoting species");
+  params.addParam<Real>(
+      "energy_captured",
+      0.0,
+      "In biologically-catalysed kinetic reactions, this is the energy captured by the cell, per "
+      "mol of reaction turnover.  Specifically, for each mole of kinetic reaction, the microbe "
+      "will produce m moles of ATP via a reaction such as ADP + PO4--- -> ATP + H2O, with "
+      "free-energy change G (usually around 45 kJ/mol).  Then, energy_captured = m * G.  For "
+      "non-biologically-catalysed reactions, this should be zero.");
   params.addParam<Real>("theta", 1.0, "Theta parameter, which appears in |1 - (Q/K)^theta|^eta");
   params.addParam<Real>("eta", 1.0, "Eta parameter, which appears in |1 - (Q/K)^theta|^eta");
   params.addRangeCheckedParam<Real>(
@@ -109,7 +117,8 @@ GeochemistryKineticRate::GeochemistryKineticRate(const InputParameters & paramet
                       getParam<Real>("activation_energy"),
                       getParam<Real>("one_over_T0"),
                       getParam<MooseEnum>("direction").getEnum<DirectionChoiceEnum>(),
-                      getParam<Real>("biological_efficiency"))
+                      getParam<Real>("biological_efficiency"),
+                      getParam<Real>("energy_captured"))
 {
 }
 

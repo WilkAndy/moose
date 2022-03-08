@@ -145,7 +145,11 @@ calculateRate(const std::vector<Real> & promoting_indices,
       (description.one_over_T0 - 1.0 / (temp_degC + GeochemistryConstants::CELSIUS_TO_KELVIN)));
 
   // dependence on activity and equilibrium constant
-  const Real ap_over_k = std::pow(10.0, log10_activity_product - log10K);
+  const Real log10K_bio = log10K - description.energy_captured /
+                                       GeochemistryConstants::GAS_CONSTANT /
+                                       (temp_degC + GeochemistryConstants::CELSIUS_TO_KELVIN) /
+                                       GeochemistryConstants::LOGTEN;
+  const Real ap_over_k = std::pow(10.0, log10_activity_product - log10K_bio);
   const Real theta_term = std::pow(ap_over_k, description.theta);
   switch (description.direction)
   {
