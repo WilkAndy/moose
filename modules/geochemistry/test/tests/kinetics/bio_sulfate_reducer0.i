@@ -3,7 +3,8 @@
 [GeochemicalModelInterrogator]
   model_definition = definition
   swap_into_basis = 'HS-'
-  swap_out_of_basis = 'H+'
+  swap_out_of_basis = 'O2(aq)'
+  temperature = 25.0
 []
 
 [UserObjects]

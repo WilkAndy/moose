@@ -56,8 +56,8 @@ struct KineticRateUserDescription
                              Real activation_energy,
                              Real one_over_T0,
                              DirectionChoiceEnum direction,
-                             std::string non_kin_bio_catalyst,
-                             Real non_kin_bio_efficiency,
+                             std::string progeny,
+                             Real progeny_efficiency,
                              Real kinetic_bio_efficiency,
                              Real energy_captured)
     : kinetic_species_name(kinetic_species_name),
@@ -76,8 +76,8 @@ struct KineticRateUserDescription
       activation_energy(activation_energy),
       one_over_T0(one_over_T0),
       direction(direction),
-      non_kin_bio_catalyst(non_kin_bio_catalyst),
-      non_kin_bio_efficiency(non_kin_bio_efficiency),
+      progeny(progeny),
+      progeny_efficiency(progeny_efficiency),
       kinetic_bio_efficiency(kinetic_bio_efficiency),
       energy_captured(energy_captured)
   {
@@ -110,8 +110,7 @@ struct KineticRateUserDescription
            (promoting_half_saturation == rhs.promoting_half_saturation) && (theta == rhs.theta) &&
            (eta == rhs.eta) && (activation_energy == rhs.activation_energy) &&
            (one_over_T0 == rhs.one_over_T0) && (direction == rhs.direction) &&
-           (non_kin_bio_catalyst == rhs.non_kin_bio_catalyst) &&
-           (non_kin_bio_efficiency == rhs.non_kin_bio_efficiency) &&
+           (progeny == rhs.progeny) && (progeny_efficiency == rhs.progeny_efficiency) &&
            (kinetic_bio_efficiency == rhs.kinetic_bio_efficiency) &&
            (energy_captured == rhs.energy_captured);
   };
@@ -132,8 +131,8 @@ struct KineticRateUserDescription
   Real activation_energy;
   Real one_over_T0;
   DirectionChoiceEnum direction;
-  std::string non_kin_bio_catalyst;
-  Real non_kin_bio_efficiency;
+  std::string progeny;
+  Real progeny_efficiency;
   Real kinetic_bio_efficiency;
   Real energy_captured;
 };

@@ -2452,10 +2452,10 @@ GeochemicalSystem::setKineticRates(Real dt,
         dmole_additions(i, j) += stoi_fac * drate_dmol[j];
     }
 
-    const Real eff = krd.description.non_kin_bio_efficiency;
+    const Real eff = krd.description.progeny_efficiency;
     if (eff != 0.0)
     {
-      const unsigned bio_i = krd.non_kin_bio_catalyst_index;
+      const unsigned bio_i = krd.progeny_index;
       if (bio_i < _num_basis)
       {
         mole_additions(bio_i) += eff * rate * dt;

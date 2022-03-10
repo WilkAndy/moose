@@ -341,14 +341,13 @@ GeochemistrySpeciesSwapper::alterMGD(ModelGeochemicalDatabase & mgd,
         promoting_half_saturation_of_original_basis;
   }
 
-  // swap biological catalyst, if needed
-  // swap promoting indices in the rates
+  // swap progeny, if needed
   for (unsigned r = 0; r < num_rate; ++r)
   {
-    if (mgd.kin_rate[r].non_kin_bio_catalyst_index == pro_ind_eqm)
-      mgd.kin_rate[r].non_kin_bio_catalyst_index = basis_index_to_replace;
-    else if (mgd.kin_rate[r].non_kin_bio_catalyst_index == basis_index_to_replace)
-      mgd.kin_rate[r].non_kin_bio_catalyst_index = pro_ind_eqm;
+    if (mgd.kin_rate[r].progeny_index == pro_ind_eqm)
+      mgd.kin_rate[r].progeny_index = basis_index_to_replace;
+    else if (mgd.kin_rate[r].progeny_index == basis_index_to_replace)
+      mgd.kin_rate[r].progeny_index = pro_ind_eqm;
   }
 }
 

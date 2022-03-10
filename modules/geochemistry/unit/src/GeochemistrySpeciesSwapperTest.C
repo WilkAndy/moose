@@ -865,6 +865,9 @@ TEST(GeochemistrySpeciesSwapperTest, swap3)
                                    1.0,
                                    2.0,
                                    true,
+                                   0.0,
+                                   0.0,
+                                   0.0,
                                    {"H+", "O2(aq)", "CO3--"},
                                    {1.1, 2.2, 3.3},
                                    {0.0, 0.0, 0.0},
@@ -874,6 +877,8 @@ TEST(GeochemistrySpeciesSwapperTest, swap3)
                                    7.0,
                                    8.0,
                                    DirectionChoiceEnum::BOTH,
+                                   "H2O",
+                                   0.0,
                                    -1.0,
                                    0.0);
   model.addKineticRate(rate1);
@@ -881,6 +886,9 @@ TEST(GeochemistrySpeciesSwapperTest, swap3)
                                    -1.0,
                                    -2.0,
                                    false,
+                                   0.0,
+                                   0.0,
+                                   0.0,
                                    {"O2(aq)", "Fe+++", "H2O"},
                                    {-1.1, -2.2, -3.3},
                                    {0.0, 0.0, 0.0},
@@ -890,6 +898,8 @@ TEST(GeochemistrySpeciesSwapperTest, swap3)
                                    -7.0,
                                    -8.0,
                                    DirectionChoiceEnum::BOTH,
+                                   "H2O",
+                                   0.0,
                                    -1.0,
                                    0.0);
   model.addKineticRate(rate2);
@@ -897,6 +907,9 @@ TEST(GeochemistrySpeciesSwapperTest, swap3)
                                    1.1,
                                    2.2,
                                    false,
+                                   0.0,
+                                   0.0,
+                                   0.0,
                                    {"CO2(aq)", "Fe+++", "Fe++"},
                                    {1.25, 2.25, 3.25},
                                    {0.0, 0.0, 0.0},
@@ -906,6 +919,8 @@ TEST(GeochemistrySpeciesSwapperTest, swap3)
                                    -7.7,
                                    -8.8,
                                    DirectionChoiceEnum::BOTH,
+                                   "H2O",
+                                   0.0,
                                    -1.0,
                                    0.0);
   model.addKineticRate(rate3);

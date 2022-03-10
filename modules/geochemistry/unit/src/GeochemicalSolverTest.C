@@ -2539,6 +2539,9 @@ TEST(GeochemicalSolverTest, solve_kinetic2)
                                             1.0E-7,
                                             1.0,
                                             false,
+                                            0.0,
+                                            0.0,
+                                            0.0,
                                             {},
                                             {},
                                             {},
@@ -2548,6 +2551,8 @@ TEST(GeochemicalSolverTest, solve_kinetic2)
                                             0.0,
                                             0.0,
                                             DirectionChoiceEnum::BOTH,
+                                            "H2O",
+                                            0.0,
                                             -1.0,
                                             0.0);
   // Fe(OH)3(ppd)fake = -3H+ + 2Fe+++ + 3H2O, so Q=1E15*1E-10=1E5 (approx) < K, so rate_Fe produces
@@ -2556,6 +2561,9 @@ TEST(GeochemicalSolverTest, solve_kinetic2)
                                      1.0E-7,
                                      1.0,
                                      false,
+                                     0.0,
+                                     0.0,
+                                     0.0,
                                      {},
                                      {},
                                      {},
@@ -2565,6 +2573,8 @@ TEST(GeochemicalSolverTest, solve_kinetic2)
                                      0.0,
                                      0.0,
                                      DirectionChoiceEnum::BOTH,
+                                     "H2O",
+                                     0.0,
                                      -1.0,
                                      0.0);
   model.addKineticRate(rate_Something);
@@ -2759,6 +2769,9 @@ TEST(GeochemicalSolverTest, solve_kinetic3)
                                             1.0E-2,
                                             1.0,
                                             true,
+                                            0.0,
+                                            0.0,
+                                            0.0,
                                             {"H+"},
                                             {1.0},
                                             {0.0},
@@ -2768,6 +2781,8 @@ TEST(GeochemicalSolverTest, solve_kinetic3)
                                             1E5,
                                             1.0 / 303.15,
                                             DirectionChoiceEnum::BOTH,
+                                            "H2O",
+                                            0.0,
                                             -1.0,
                                             0.0);
   model.addKineticRate(rate_Something);

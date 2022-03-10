@@ -1658,6 +1658,9 @@ TEST(PertinentGeochemicalSystemTest, addKineticRateExceptions)
                                     1.0,
                                     2.0,
                                     true,
+                                    0.0,
+                                    0.0,
+                                    0.0,
                                     {"H2O"},
                                     {3.0},
                                     {0.0},
@@ -1667,6 +1670,8 @@ TEST(PertinentGeochemicalSystemTest, addKineticRateExceptions)
                                     6.0,
                                     7.0,
                                     DirectionChoiceEnum::BOTH,
+                                    "H2O",
+                                    0.0,
                                     -1.0,
                                     0.0);
     model.addKineticRate(rate);
@@ -1688,6 +1693,9 @@ TEST(PertinentGeochemicalSystemTest, addKineticRateExceptions)
                                     1.0,
                                     2.0,
                                     true,
+                                    0.0,
+                                    0.0,
+                                    0.0,
                                     {"H2O", "H++"},
                                     {3.0, 1.0},
                                     {0.0, 0.0},
@@ -1697,6 +1705,8 @@ TEST(PertinentGeochemicalSystemTest, addKineticRateExceptions)
                                     6.0,
                                     7.0,
                                     DirectionChoiceEnum::BOTH,
+                                    "H2O",
+                                    0.0,
                                     -1.0,
                                     0.0);
     model.addKineticRate(rate);
@@ -1728,6 +1738,9 @@ TEST(PertinentGeochemicalSystemTest, addKineticRate)
                                   1.0,
                                   2.0,
                                   true,
+                                  0.0,
+                                  0.0,
+                                  0.0,
                                   {"H2O", "OH-", "O2(aq)", "CO2(aq)", "CaCO3"},
                                   {3.0, 3.1, 3.2, 3.3, 3.4},
                                   {0.0, 0.0, 0.0, 0.0, 0.0},
@@ -1737,6 +1750,8 @@ TEST(PertinentGeochemicalSystemTest, addKineticRate)
                                   6.0,
                                   7.0,
                                   DirectionChoiceEnum::BOTH,
+                                  "H2O",
+                                  0.0,
                                   -1.0,
                                   0.0);
   model.addKineticRate(rate);
@@ -1766,6 +1781,9 @@ TEST(PertinentGeochemicalSystemTest, addKineticRate)
                                    7.0,
                                    6.0,
                                    false,
+                                   0.0,
+                                   0.0,
+                                   0.0,
                                    {"H+"},
                                    {-3.0},
                                    {0.0},
@@ -1775,6 +1793,8 @@ TEST(PertinentGeochemicalSystemTest, addKineticRate)
                                    3.0,
                                    2.0,
                                    DirectionChoiceEnum::BOTH,
+                                   "H2O",
+                                   0.0,
                                    -1.0,
                                    0.0);
   model.addKineticRate(ratec);

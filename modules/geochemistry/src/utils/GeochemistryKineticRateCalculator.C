@@ -95,9 +95,10 @@ calculateRate(const std::vector<Real> & promoting_indices,
   if (description.kinetic_molal_index != 0.0)
     rate *= std::pow(kin_molality, description.kinetic_molal_index);
   if (description.kinetic_monod_index != 0.0)
-    rate /= std::pow(std::pow(kin_molality, description.kinetic_molal_index) +
-                         description.kinetic_half_saturation,
-                     description.kinetic_monod_index);
+    rate /=
+        std::pow(std::pow(kin_molality, description.kinetic_molal_index) +
+                     std::pow(description.kinetic_half_saturation, description.kinetic_molal_index),
+                 description.kinetic_monod_index);
 
   // promoting species numerators
   for (unsigned i = 0; i < num_basis; ++i)
@@ -126,13 +127,13 @@ calculateRate(const std::vector<Real> & promoting_indices,
     if (promoting_monod_indices[i] == 0.0)
       continue;
     if (basis_species_gas[i] || basis_species_name[i] == "H+" || basis_species_name[i] == "OH-")
-      rate /=
-          std::pow(std::pow(basis_activity[i], promoting_indices[i]) + promoting_half_saturation[i],
-                   promoting_monod_indices[i]);
+      rate /= std::pow(std::pow(basis_activity[i], promoting_indices[i]) +
+                           std::pow(promoting_half_saturation[i], promoting_indices[i]),
+                       promoting_monod_indices[i]);
     else
-      rate /=
-          std::pow(std::pow(basis_molality[i], promoting_indices[i]) + promoting_half_saturation[i],
-                   promoting_monod_indices[i]);
+      rate /= std::pow(std::pow(basis_molality[i], promoting_indices[i]) +
+                           std::pow(promoting_half_saturation[i], promoting_indices[i]),
+                       promoting_monod_indices[i]);
   }
   for (unsigned j = 0; j < num_eqm; ++j)
   {
@@ -141,11 +142,11 @@ calculateRate(const std::vector<Real> & promoting_indices,
       continue;
     if (eqm_species_gas[j] || eqm_species_name[j] == "H+" || eqm_species_name[j] == "OH-")
       rate /= std::pow(std::pow(eqm_activity[j], promoting_indices[index]) +
-                           promoting_half_saturation[index],
+                           std::pow(promoting_half_saturation[index], promoting_indices[index]),
                        promoting_monod_indices[index]);
     else
       rate /= std::pow(std::pow(eqm_molality[j], promoting_indices[index]) +
-                           promoting_half_saturation[index],
+                           std::pow(promoting_half_saturation[index], promoting_indices[index]),
                        promoting_monod_indices[index]);
   }
 
@@ -205,7 +206,7 @@ calculateRate(const std::vector<Real> & promoting_indices,
         -description.kinetic_monod_index * description.kinetic_molal_index *
         std::pow(kin_molality, description.kinetic_molal_index - 1) * rate /
         (std::pow(kin_molality, description.kinetic_molal_index) +
-         description.kinetic_half_saturation);
+         std::pow(description.kinetic_half_saturation, description.kinetic_molal_index));
     drate_dkin += d_by_dkin_molality * dkin_molality_dkin_moles;
     drate_dmol[0] += d_by_dkin_molality * dkin_molality_dnw;
   }
@@ -247,15 +248,16 @@ calculateRate(const std::vector<Real> & promoting_indices,
     else if (basis_species_gas[i]) // molality is undefined
       continue;
     else if (basis_species_name[i] == "H+" || basis_species_name[i] == "OH-")
-      drate_dmol[i] -=
-          promoting_monod_indices[i] * promoting_indices[i] *
-          std::pow(basis_activity[i], promoting_indices[i]) * rate / basis_molality[i] /
-          (std::pow(basis_activity[i], promoting_indices[i]) + promoting_half_saturation[i]);
+      drate_dmol[i] -= promoting_monod_indices[i] * promoting_indices[i] *
+                       std::pow(basis_activity[i], promoting_indices[i]) * rate /
+                       basis_molality[i] /
+                       (std::pow(basis_activity[i], promoting_indices[i]) +
+                        std::pow(promoting_half_saturation[i], promoting_indices[i]));
     else
-      drate_dmol[i] -=
-          promoting_monod_indices[i] * promoting_indices[i] *
-          std::pow(basis_molality[i], promoting_indices[i] - 1) * rate /
-          (std::pow(basis_molality[i], promoting_indices[i]) + promoting_half_saturation[i]);
+      drate_dmol[i] -= promoting_monod_indices[i] * promoting_indices[i] *
+                       std::pow(basis_molality[i], promoting_indices[i] - 1) * rate /
+                       (std::pow(basis_molality[i], promoting_indices[i]) +
+                        std::pow(promoting_half_saturation[i], promoting_indices[i]));
   }
   for (unsigned j = 0; j < num_eqm; ++j)
   {
@@ -271,14 +273,14 @@ calculateRate(const std::vector<Real> & promoting_indices,
                          std::pow(eqm_activity[j], promoting_indices[index]) * rate *
                          eqm_stoichiometry(j, i) /
                          (std::pow(eqm_activity[j], promoting_indices[index]) +
-                          promoting_half_saturation[index]) /
+                          std::pow(promoting_half_saturation[index], promoting_indices[index])) /
                          basis_molality[i];
       else
         drate_dmol[i] -= promoting_monod_indices[index] * promoting_indices[index] *
                          std::pow(eqm_molality[j], promoting_indices[index]) * rate *
                          eqm_stoichiometry(j, i) /
                          (std::pow(eqm_molality[j], promoting_indices[index]) +
-                          promoting_half_saturation[index]) /
+                          std::pow(promoting_half_saturation[index], promoting_indices[index])) /
                          basis_molality[i];
     }
   }
