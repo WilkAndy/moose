@@ -884,8 +884,22 @@ PertinentGeochemicalSystem::addKineticRate(const KineticRateUserDescription & de
     promoting_m_ind[index] = description.promoting_monod_indices[i];
     promoting_k[index] = description.promoting_half_saturation[i];
   }
+  unsigned non_kin_bio_catalyst_num = 0;
+  if (_model.basis_species_index.count(description.non_kin_bio_catalyst) == 1)
+    non_kin_bio_catalyst_num = _model.basis_species_index.at(description.non_kin_bio_catalyst);
+  else if (_model.eqm_species_index.count(description.non_kin_bio_catalyst) == 1)
+    non_kin_bio_catalyst_num =
+        num_basis + _model.eqm_species_index.at(description.non_kin_bio_catalyst);
+  else
+    mooseError("Biological catalyst ",
+               description.non_kin_bio_catalyst,
+               " must be a basis or a secondary species");
 
   // append the result to kin_rate
-  _model.kin_rate.push_back(KineticRateDefinition(
-      kinetic_species_index, promoting_ind, promoting_m_ind, promoting_k, description));
+  _model.kin_rate.push_back(KineticRateDefinition(kinetic_species_index,
+                                                  promoting_ind,
+                                                  promoting_m_ind,
+                                                  promoting_k,
+                                                  non_kin_bio_catalyst_num,
+                                                  description));
 }

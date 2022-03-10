@@ -27,9 +27,23 @@ GeochemistryKineticRate::validParams()
       "area_quantity > 0.0",
       "The surface area of the kinetic species in m^2 (if multiply_by_mass = false) or the "
       "specific surface area of the kinetic species in m^2/g (if multiply_by_mass = true)");
-  params.addParam<bool>("multiply_by_mass",
-                        false,
-                        "Whether the rate should be multiplied by the kinetic species mass");
+  params.addParam<bool>(
+      "multiply_by_mass", false, "The rate is multiplied by the kinetic_species mass");
+  params.addParam<Real>("kinetic_molal_index",
+                        0.0,
+                        "The rate is multiplied by kinetic_species_molality^kinetic_molal_index / "
+                        "(kinetic_species_molality^kinetic_molal_index + "
+                        "kinetic_half_saturation)^kinetic_monod_index");
+  params.addParam<Real>("kinetic_monod_index",
+                        0.0,
+                        "The rate is multiplied by kinetic_species_molality^kinetic_molal_index / "
+                        "(kinetic_species_molality^kinetic_molal_index + "
+                        "kinetic_half_saturation)^kinetic_monod_index");
+  params.addParam<Real>("kinetic_half_saturation",
+                        0.0,
+                        "The rate is multiplied by kinetic_species_molality^kinetic_molal_index / "
+                        "(kinetic_species_molality^kinetic_molal_index + "
+                        "kinetic_half_saturation)^kinetic_monod_index");
   params.addParam<std::vector<std::string>>("promoting_species_names",
                                             "Names of any promoting species");
   params.addParam<std::vector<Real>>("promoting_indices", "Indices of the promoting species");
@@ -40,14 +54,6 @@ GeochemistryKineticRate::validParams()
   params.addParam<std::vector<Real>>("promoting_half_saturation",
                                      "Half-saturation constants for the monod expression.  If not "
                                      "given, then the default is 0 for each promoting species");
-  params.addParam<Real>(
-      "energy_captured",
-      0.0,
-      "In biologically-catalysed kinetic reactions, this is the energy captured by the cell, per "
-      "mol of reaction turnover.  Specifically, for each mole of kinetic reaction, the microbe "
-      "will produce m moles of ATP via a reaction such as ADP + PO4--- -> ATP + H2O, with "
-      "free-energy change G (usually around 45 kJ/mol).  Then, energy_captured = m * G.  For "
-      "non-biologically-catalysed reactions, this should be zero.");
   params.addParam<Real>("theta", 1.0, "Theta parameter, which appears in |1 - (Q/K)^theta|^eta");
   params.addParam<Real>("eta", 1.0, "Eta parameter, which appears in |1 - (Q/K)^theta|^eta");
   params.addRangeCheckedParam<Real>(
@@ -74,19 +80,38 @@ GeochemistryKineticRate::validParams()
       "dissolution will be prevented.  raw = the rate will not depend on 1 - (Q/K), which means "
       "dissolution will occur if intrinsic_rate_constant > 0, and precipitation will occur when "
       "intrinsic_rate_constant < 0.");
+  params.addParam<std::string>(
+      "non_kinetic_biological_catalyst",
+      "H2O",
+      "Name of the primary or equilibrium species that acts as a biological catalyst.");
   params.addParam<Real>(
-      "biological_efficiency",
+      "non_kinetic_biological_efficiency",
+      0.0,
+      "When one mole of the kinetic species dissolves, non_kinetic_biological_efficiency moles of "
+      "the non_kinetic_biological_catalyst is created");
+  params.addParam<Real>(
+      "kinetic_biological_efficiency",
       -1,
-      "If the rate of reaction is R, which is positive for dissolution, then the kinetic species "
-      "reduces at rate biological_efficiency * R.  When modelling biogeochemistry, "
-      "biological_efficiency should be set to the moles-of-biomass created per mole of reaction "
-      "catalysed (which should be positive).");
+      "This is used when modelling biologically-catalysed reactions, when the biomass is treated "
+      "as a kinetic species, and the reactants and reactant-products are in equilibrium in tne "
+      "aqueous solution.  When one mole of reaction is catalysed, the biomass increases by "
+      "kinetic_biological_efficiency moles");
+  params.addParam<Real>(
+      "energy_captured",
+      0.0,
+      "In biologically-catalysed kinetic reactions, this is the energy captured by the cell, per "
+      "mol of reaction turnover.  Specifically, for each mole of kinetic reaction, the microbe "
+      "will produce m moles of ATP via a reaction such as ADP + PO4--- -> ATP + H2O, with "
+      "free-energy change G (usually around 45 kJ/mol).  Then, energy_captured = m * G.  For "
+      "non-biologically-catalysed reactions, this should be zero.");
   params.addClassDescription(
       "User object that defines a kinetic rate.  Note that more than one rate can be prescribed to "
       "a single kinetic_species: the sum the individual rates defines the overall rate.  "
       "GeochemistryKineticRate simply specifies the algebraic form for a kinetic rate: to actually "
       "use it in a calculation, you must use it in the GeochemicalModelDefinition.  The rate is "
-      "intrinsic_rate_constant * area_quantity * (mass of kinetic_species in grams, optionally) * "
+      "intrinsic_rate_constant * area_quantity * (mass of kinetic_species in "
+      "grams)^kinetic_mass_index / ((mass of kinetic_species in grams)^kinetic_mass_index + "
+      "kinetic_half_saturation)^kinetic_monod_index * "
       "(product_over_promoting_species m^promoting_index / (m^promoting_index + "
       "promoting_half_saturation)^promoting_monod_index) * |1 - (Q/K)^theta|^eta * "
       "exp(activation_energy / R * (1/T0 - 1/T)) * Direction(1 - (Q/K)).  Please see the markdown "
@@ -108,6 +133,9 @@ GeochemistryKineticRate::GeochemistryKineticRate(const InputParameters & paramet
                       getParam<Real>("intrinsic_rate_constant"),
                       getParam<Real>("area_quantity"),
                       getParam<bool>("multiply_by_mass"),
+                      getParam<Real>("kinetic_molal_index"),
+                      getParam<Real>("kinetic_monod_index"),
+                      getParam<Real>("kinetic_half_saturation"),
                       _promoting_names,
                       getParam<std::vector<Real>>("promoting_indices"),
                       _monod_ind,
@@ -117,7 +145,9 @@ GeochemistryKineticRate::GeochemistryKineticRate(const InputParameters & paramet
                       getParam<Real>("activation_energy"),
                       getParam<Real>("one_over_T0"),
                       getParam<MooseEnum>("direction").getEnum<DirectionChoiceEnum>(),
-                      getParam<Real>("biological_efficiency"),
+                      getParam<std::string>("non_kinetic_biological_catalyst"),
+                      getParam<Real>("non_kinetic_biological_efficiency"),
+                      getParam<Real>("kinetic_biological_efficiency"),
                       getParam<Real>("energy_captured"))
 {
 }

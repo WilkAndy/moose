@@ -37,7 +37,7 @@
     promoting_monod_indices = '1'
     promoting_half_saturation = 70E-6
     direction = dissolution
-    biological_efficiency = 4.3
+    kinetic_biological_efficiency = 4.3
     energy_captured = 45E3
     theta = 0.2
     eta = 1

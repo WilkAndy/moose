@@ -44,6 +44,9 @@ struct KineticRateUserDescription
                              Real intrinsic_rate_constant,
                              Real area_quantity,
                              bool multiply_by_mass,
+                             Real kinetic_molal_index,
+                             Real kinetic_monod_index,
+                             Real kinetic_half_saturation,
                              const std::vector<std::string> & promoting_species,
                              const std::vector<Real> & promoting_indices,
                              const std::vector<Real> & promoting_monod_indices,
@@ -53,12 +56,17 @@ struct KineticRateUserDescription
                              Real activation_energy,
                              Real one_over_T0,
                              DirectionChoiceEnum direction,
-                             Real biological_efficiency,
+                             std::string non_kin_bio_catalyst,
+                             Real non_kin_bio_efficiency,
+                             Real kinetic_bio_efficiency,
                              Real energy_captured)
     : kinetic_species_name(kinetic_species_name),
       intrinsic_rate_constant(intrinsic_rate_constant),
       area_quantity(area_quantity),
       multiply_by_mass(multiply_by_mass),
+      kinetic_molal_index(kinetic_molal_index),
+      kinetic_monod_index(kinetic_monod_index),
+      kinetic_half_saturation(kinetic_half_saturation),
       promoting_species(promoting_species),
       promoting_indices(promoting_indices),
       promoting_monod_indices(promoting_monod_indices),
@@ -68,7 +76,9 @@ struct KineticRateUserDescription
       activation_energy(activation_energy),
       one_over_T0(one_over_T0),
       direction(direction),
-      biological_efficiency(biological_efficiency),
+      non_kin_bio_catalyst(non_kin_bio_catalyst),
+      non_kin_bio_efficiency(non_kin_bio_efficiency),
+      kinetic_bio_efficiency(kinetic_bio_efficiency),
       energy_captured(energy_captured)
   {
     if (promoting_species.size() != promoting_indices.size())
@@ -91,13 +101,18 @@ struct KineticRateUserDescription
     return (kinetic_species_name == rhs.kinetic_species_name) &&
            (intrinsic_rate_constant == rhs.intrinsic_rate_constant) &&
            (area_quantity == rhs.area_quantity) && (multiply_by_mass == rhs.multiply_by_mass) &&
+           (kinetic_molal_index == rhs.kinetic_molal_index) &&
+           (kinetic_monod_index == rhs.kinetic_monod_index) &&
+           (kinetic_half_saturation == rhs.kinetic_half_saturation) &&
            (promoting_species == rhs.promoting_species) &&
            (promoting_indices == rhs.promoting_indices) &&
            (promoting_monod_indices == rhs.promoting_monod_indices) &&
            (promoting_half_saturation == rhs.promoting_half_saturation) && (theta == rhs.theta) &&
            (eta == rhs.eta) && (activation_energy == rhs.activation_energy) &&
            (one_over_T0 == rhs.one_over_T0) && (direction == rhs.direction) &&
-           (biological_efficiency == rhs.biological_efficiency) &&
+           (non_kin_bio_catalyst == rhs.non_kin_bio_catalyst) &&
+           (non_kin_bio_efficiency == rhs.non_kin_bio_efficiency) &&
+           (kinetic_bio_efficiency == rhs.kinetic_bio_efficiency) &&
            (energy_captured == rhs.energy_captured);
   };
 
@@ -105,6 +120,9 @@ struct KineticRateUserDescription
   Real intrinsic_rate_constant;
   Real area_quantity;
   bool multiply_by_mass;
+  Real kinetic_molal_index;
+  Real kinetic_monod_index;
+  Real kinetic_half_saturation;
   std::vector<std::string> promoting_species;
   std::vector<Real> promoting_indices;
   std::vector<Real> promoting_monod_indices;
@@ -114,7 +132,9 @@ struct KineticRateUserDescription
   Real activation_energy;
   Real one_over_T0;
   DirectionChoiceEnum direction;
-  Real biological_efficiency;
+  std::string non_kin_bio_catalyst;
+  Real non_kin_bio_efficiency;
+  Real kinetic_bio_efficiency;
   Real energy_captured;
 };
 

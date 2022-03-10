@@ -2439,18 +2439,40 @@ GeochemicalSystem::setKineticRates(Real dt,
                                                      drate_dkin,
                                                      drate_dmol);
     const unsigned ind = kin + _num_basis;
-    mole_additions(ind) += krd.description.biological_efficiency * rate * dt;
-    dmole_additions(ind, ind) += krd.description.biological_efficiency * drate_dkin * dt;
-    for (unsigned i = 0; i < _num_basis; ++i)
-      dmole_additions(ind, i) += krd.description.biological_efficiency * drate_dmol[i] * dt;
+    mole_additions(ind) += krd.description.kinetic_bio_efficiency * rate * dt;
+    dmole_additions(ind, ind) += krd.description.kinetic_bio_efficiency * drate_dkin * dt;
     for (unsigned i = 0; i < _num_basis; ++i)
     {
+      dmole_additions(ind, i) += krd.description.kinetic_bio_efficiency * drate_dmol[i] * dt;
       const Real stoi_fac =
-          _mgd.kin_stoichiometry(kin, i) * (krd.description.biological_efficiency + 1.0) * dt;
+          _mgd.kin_stoichiometry(kin, i) * (krd.description.kinetic_bio_efficiency + 1.0) * dt;
       mole_additions(i) += stoi_fac * rate;
       dmole_additions(i, ind) += stoi_fac * drate_dkin;
       for (unsigned j = 0; j < _num_basis; ++j)
         dmole_additions(i, j) += stoi_fac * drate_dmol[j];
+    }
+
+    const Real eff = krd.description.non_kin_bio_efficiency;
+    if (eff != 0.0)
+    {
+      const unsigned bio_i = krd.non_kin_bio_catalyst_index;
+      if (bio_i < _num_basis)
+      {
+        mole_additions(bio_i) += eff * rate * dt;
+        dmole_additions(bio_i, ind) += eff * drate_dkin * dt;
+        for (unsigned i = 0; i < _num_basis; ++i)
+          dmole_additions(bio_i, i) += eff * drate_dmol[i] * dt;
+      }
+      else
+      {
+        for (unsigned i = 0; i < _num_basis; ++i)
+        {
+          mole_additions(i) += _mgd.eqm_stoichiometry(bio_i, i) * eff * rate * dt;
+          dmole_additions(i, ind) += _mgd.eqm_stoichiometry(bio_i, i) * eff * drate_dkin * dt;
+          for (unsigned j = 0; j < _num_basis; ++j)
+            dmole_additions(i, j) += _mgd.eqm_stoichiometry(bio_i, i) * eff * drate_dmol[j] * dt;
+        }
+      }
     }
   }
 }

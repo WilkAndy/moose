@@ -89,6 +89,16 @@ calculateRate(const std::vector<Real> & promoting_indices,
   if (description.multiply_by_mass)
     rate *= kin_moles * kin_species_molecular_weight;
 
+  const Real kin_molality = kin_moles / basis_molality[0];
+  const Real dkin_molality_dkin_moles = 1.0 / basis_molality[0];
+  const Real dkin_molality_dnw = -kin_molality / basis_molality[0];
+  if (description.kinetic_molal_index != 0.0)
+    rate *= std::pow(kin_molality, description.kinetic_molal_index);
+  if (description.kinetic_monod_index != 0.0)
+    rate /= std::pow(std::pow(kin_molality, description.kinetic_molal_index) +
+                         description.kinetic_half_saturation,
+                     description.kinetic_monod_index);
+
   // promoting species numerators
   for (unsigned i = 0; i < num_basis; ++i)
   {
@@ -175,23 +185,44 @@ calculateRate(const std::vector<Real> & promoting_indices,
   const Real rate_no_theta_term = rate; // needed for derivative calcs when theta_term == 1
   rate *= (theta_term == 1.0) ? 0.0 : std::pow(std::abs(1.0 - theta_term), description.eta);
 
-  // derivatives with respect to the kinetic species
+  for (unsigned i = 0; i < num_basis; ++i)
+    drate_dmol[i] = 0.0;
+  drate_dkin = 0.0;
+
+  // derivatives with respect to the kinetic species moles
   if (description.multiply_by_mass)
-    drate_dkin = rate / kin_moles;
-  else
-    drate_dkin = 0.0;
+    drate_dkin += rate / kin_moles;
+
+  if (description.kinetic_molal_index != 0.0)
+  {
+    const Real d_by_dkin_molality = description.kinetic_molal_index * rate / kin_molality;
+    drate_dkin += d_by_dkin_molality * dkin_molality_dkin_moles;
+    drate_dmol[0] += d_by_dkin_molality * dkin_molality_dnw;
+  }
+  if (!(description.kinetic_molal_index == 0 || description.kinetic_monod_index == 0.0))
+  {
+    const Real d_by_dkin_molality =
+        -description.kinetic_monod_index * description.kinetic_molal_index *
+        std::pow(kin_molality, description.kinetic_molal_index - 1) * rate /
+        (std::pow(kin_molality, description.kinetic_molal_index) +
+         description.kinetic_half_saturation);
+    drate_dkin += d_by_dkin_molality * dkin_molality_dkin_moles;
+    drate_dmol[0] += d_by_dkin_molality * dkin_molality_dnw;
+  }
 
   // Derivatives of the promoting-species numerators (ignore all derivatives of activity
-  // coefficients, so d(activity^P)/d(molality) = activity_product^P * d(molality^P)/d(molality) = P
-  // * activity^P / molality)
+  // coefficients, so
+  // d(molality^P) / dmolality = P * molality^P / molality  , and
+  // d(activity^P)/d(molality) = P activity^(P-1) d(activity)/d(molality) = P activity^(P-1)
+  // activity_product  = P * activity^P / molality
   for (unsigned i = 0; i < num_basis; ++i)
   {
     if (promoting_indices[i] == 0.0)
-      drate_dmol[i] = 0.0;
+      continue;
     else if (basis_species_gas[i]) // molality is undefined
-      drate_dmol[i] = 0.0;
+      continue;
     else
-      drate_dmol[i] = promoting_indices[i] * rate / basis_molality[i];
+      drate_dmol[i] += promoting_indices[i] * rate / basis_molality[i];
   }
   for (unsigned j = 0; j < num_eqm; ++j)
   {
@@ -205,13 +236,21 @@ calculateRate(const std::vector<Real> & promoting_indices,
             promoting_indices[index] * rate * eqm_stoichiometry(j, i) / basis_molality[i];
   }
   // Derivatives of the promoting-species denominators (ignore all derivatives of activity
-  // coefficients)
+  // coefficients) so
+  // d((molality^P + K)^(-u))/d(molality) = -u (molality^P + K)^(-u) / (molality^P + K) * P *
+  // molality^P / molality d((activity^P + K)^(-u))/d(molality) = -u (activity^P + K)^(-u) /
+  // (activity^P + K) * P * activity^P / molality
   for (unsigned i = 0; i < num_basis; ++i)
   {
     if (promoting_indices[i] == 0.0 || promoting_monod_indices[i] == 0.0)
       continue;
     else if (basis_species_gas[i]) // molality is undefined
       continue;
+    else if (basis_species_name[i] == "H+" || basis_species_name[i] == "OH-")
+      drate_dmol[i] -=
+          promoting_monod_indices[i] * promoting_indices[i] *
+          std::pow(basis_activity[i], promoting_indices[i]) * rate / basis_molality[i] /
+          (std::pow(basis_activity[i], promoting_indices[i]) + promoting_half_saturation[i]);
     else
       drate_dmol[i] -=
           promoting_monod_indices[i] * promoting_indices[i] *
@@ -224,13 +263,24 @@ calculateRate(const std::vector<Real> & promoting_indices,
     if (promoting_indices[index] == 0.0 || promoting_monod_indices[index] == 0.0)
       continue;
     for (unsigned i = 1; i < num_basis; ++i) // deriv of water activity is ignored
-      if (!(basis_species_gas[i] || eqm_stoichiometry(j, i) == 0.0))
+    {
+      if (basis_species_gas[i] || eqm_stoichiometry(j, i) == 0.0)
+        continue;
+      else if (eqm_species_name[j] == "H+" || eqm_species_name[j] == "OH-")
+        drate_dmol[i] -= promoting_monod_indices[index] * promoting_indices[index] *
+                         std::pow(eqm_activity[j], promoting_indices[index]) * rate *
+                         eqm_stoichiometry(j, i) /
+                         (std::pow(eqm_activity[j], promoting_indices[index]) +
+                          promoting_half_saturation[index]) /
+                         basis_molality[i];
+      else
         drate_dmol[i] -= promoting_monod_indices[index] * promoting_indices[index] *
                          std::pow(eqm_molality[j], promoting_indices[index]) * rate *
                          eqm_stoichiometry(j, i) /
                          (std::pow(eqm_molality[j], promoting_indices[index]) +
                           promoting_half_saturation[index]) /
                          basis_molality[i];
+    }
   }
   // derivative of the activity-product term
   Real deriv_ap_term = 0.0;
