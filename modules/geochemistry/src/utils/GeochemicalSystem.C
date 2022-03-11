@@ -2380,21 +2380,17 @@ GeochemicalSystem::updateOldWithCurrent(const DenseVector<Real> & mole_additions
 }
 
 void
-GeochemicalSystem::setKineticRates(Real dt,
+GeochemicalSystem::addKineticRates(Real dt,
                                    DenseVector<Real> & mole_additions,
                                    DenseMatrix<Real> & dmole_additions)
 {
-  // zero
-  mole_additions.zero();
-  dmole_additions.zero();
-
   if (_num_kin == 0)
     return;
 
   // check sizes
   const unsigned tot = mole_additions.size();
   if (!(tot == _num_kin + _num_basis && dmole_additions.m() == tot && dmole_additions.n() == tot))
-    mooseError("setKineticRates: incorrectly sized additions: ",
+    mooseError("addKineticRates: incorrectly sized additions: ",
                tot,
                " ",
                dmole_additions.m(),

@@ -202,13 +202,4 @@ private:
                              Real dt,
                              DenseVector<Real> & mole_additions,
                              DenseMatrix<Real> & dmole_additions);
-
-  /**
-   * Add _input_mole_additions to mole_additions, and adds _input_dmole_additions to
-   * dmole_additions.  This is necessary after every call to egs.setKineticRates, because that
-   * method zeroes mole_additions and dmole_additions, but the user could have specified some
-   * overall ("input") mole additions to solveSystem
-   */
-  void addInputMoleAdditions(DenseVector<Real> & mole_additions,
-                             DenseMatrix<Real> & dmole_additions) const;
 };
