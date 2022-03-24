@@ -182,9 +182,13 @@ calculateRate(const std::vector<Real> & promoting_indices,
       break;
     case DirectionChoiceEnum::RAW:
       break; // no dependence on 1 - ap_over_k
+    case DirectionChoiceEnum::DEATH:
+      break; // no dependence on 1 - ap_over_k
   }
   const Real rate_no_theta_term = rate; // needed for derivative calcs when theta_term == 1
-  rate *= (theta_term == 1.0) ? 0.0 : std::pow(std::abs(1.0 - theta_term), description.eta);
+  rate *= (description.eta == 0.0)
+              ? 1.0
+              : ((theta_term == 1.0) ? 0.0 : std::pow(std::abs(1.0 - theta_term), description.eta));
 
   for (unsigned i = 0; i < num_basis; ++i)
     drate_dmol[i] = 0.0;

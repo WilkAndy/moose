@@ -18,7 +18,8 @@ enum DirectionChoiceEnum
   BOTH,
   DISSOLUTION,
   PRECIPITATION,
-  RAW
+  RAW,
+  DEATH
 };
 
 /**

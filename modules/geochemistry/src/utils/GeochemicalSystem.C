@@ -2437,11 +2437,13 @@ GeochemicalSystem::addKineticRates(Real dt,
     const unsigned ind = kin + _num_basis;
     mole_additions(ind) += krd.description.kinetic_bio_efficiency * rate * dt;
     dmole_additions(ind, ind) += krd.description.kinetic_bio_efficiency * drate_dkin * dt;
+    const Real extra_additions = (krd.description.direction == DirectionChoiceEnum::DEATH)
+                                     ? krd.description.kinetic_bio_efficiency
+                                     : krd.description.kinetic_bio_efficiency + 1.0;
     for (unsigned i = 0; i < _num_basis; ++i)
     {
       dmole_additions(ind, i) += krd.description.kinetic_bio_efficiency * drate_dmol[i] * dt;
-      const Real stoi_fac =
-          _mgd.kin_stoichiometry(kin, i) * (krd.description.kinetic_bio_efficiency + 1.0) * dt;
+      const Real stoi_fac = _mgd.kin_stoichiometry(kin, i) * extra_additions * dt;
       mole_additions(i) += stoi_fac * rate;
       dmole_additions(i, ind) += stoi_fac * drate_dkin;
       for (unsigned j = 0; j < _num_basis; ++j)

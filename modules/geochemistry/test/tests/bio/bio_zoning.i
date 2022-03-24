@@ -1,10 +1,12 @@
+rate_Ca_injection = 0 #2E-6 # mol.m^-3.yr^-1
+rate_CH3COO_injection = 0 #4E-6 # mol.m^-3.yr^-1
 [Mesh]
   [gen]
     type = GeneratedMeshGenerator
     dim = 1
-    nx = 50
+    nx = 1
     xmin = 0
-    xmax = 200 # km
+    xmax = 200000
   []
 []
 
@@ -18,6 +20,7 @@
   geochemistry_reactor_name = reactor
   swap_into_basis = 'Siderite'
   swap_out_of_basis = 'Fe++'
+  prevent_precipitation = 'Pyrite Troilite'
   charge_balance_species = "HCO3-"
   constraint_species = "H2O              Ca++             HCO3-            SO4--            CH3COO-          HS-              CH4(aq)          Siderite         H+" 
 # ASSUME that 1 litre of solution initially contains:
@@ -27,7 +30,7 @@
   controlled_activity_name = 'H+'
   controlled_activity_value = 3.16227E-8 # this is pH=7.5
   kinetic_species_name = "sulfate_reducer methanogen"
-  kinetic_species_initial_value = '1E-6 1E-6' # molecular weight of the microbes = 1, so with 1kg solvent water, this is 1E-6 mmolal
+  kinetic_species_initial_value = '1E-6 1E-6'
   kinetic_species_unit = 'mg mg'
   source_species_names = "H2O              Ca++             SO4--            CH3COO-          HS-              CH4(aq)"
   source_species_rates = "rate_H2O_per_1l  rate_Ca_per_1l   rate_SO4_per_1l  rate_CH3COO_per_1l rate_HS_per_1l rate_CH4_per_1l"
@@ -35,21 +38,25 @@
   execute_console_output_on = 'INITIAL TIMESTEP_END'
   solver_info = true
   evaluate_kinetic_rates_always = true
+  adaptive_timestepping = true
+  abs_tol = 1E-14
   precision = 16
 []
 
 [UserObjects]
+  # Each microbe has molecular weight 1E-6 g/mol.
+  # This is to ensure the number of moles is not too small, to avoid precision loss
   [rate_sulfate_reducer]
     type = GeochemistryKineticRate
     kinetic_species_name = "sulfate_reducer"
-    intrinsic_rate_constant = 31.536 # 1E-9 mol/mg/s = 31.536 mol/g/year
+    intrinsic_rate_constant = 31.536 # 1E-9 mol(acetate)/mg(biomass)/s = 31.536 mol(acetate)/g(biomass)/year
     multiply_by_mass = true
     promoting_species_names = 'CH3COO- SO4--'
     promoting_indices = '1 1'
     promoting_monod_indices = '1 1'
     promoting_half_saturation = '70E-6 200E-6'
     direction = dissolution
-    kinetic_biological_efficiency = 4.3
+    kinetic_biological_efficiency = 4.3E6 # 4.3 g(biomass)/mol(acetate) = 4.3E6 mol(biomass)/mol(acetate)
     energy_captured = 45E3
     theta = 0.2
     eta = 1
@@ -57,21 +64,22 @@
   [death_sulfate_reducer]
     type = GeochemistryKineticRate
     kinetic_species_name = "sulfate_reducer"
-    intrinsic_rate_constant = 0.031536 # 1E-9/s = 0.031536/year
+    intrinsic_rate_constant = 0.031536E6 # 1E-9 g(biomass)/g(biomass)/s = 0.031536E6 mol(biomass)/g(biomass)/year
     multiply_by_mass = true
     direction = death
+    eta = 0.0
   []
   [rate_methanogen]
     type = GeochemistryKineticRate
     kinetic_species_name = "methanogen"
-    intrinsic_rate_constant = 63.072 # 2E-9 mol/mg/s = 63.072 mol/g/year
+    intrinsic_rate_constant = 63.072 # 2E-9 mol(acetate)/mg(biomass)/s = 63.072E-6 mol(acetate)/g(biomass)/year
     multiply_by_mass = true
     promoting_species_names = 'CH3COO-'
     promoting_indices = '1'
     promoting_monod_indices = '1'
     promoting_half_saturation = '20E-3'
     direction = dissolution
-    kinetic_biological_efficiency = 2.0
+    kinetic_biological_efficiency = 2.0E6 # 2 g(biomass)/mol(acetate) = 2E6 mol(biomass)/mol(acetate)
     energy_captured = 24E3
     theta = 0.5
     eta = 1
@@ -79,30 +87,34 @@
   [death_methanogen]
     type = GeochemistryKineticRate
     kinetic_species_name = "methanogen"
-    intrinsic_rate_constant = 0.031536 # 1E-9/s = 0.031536/year
+    intrinsic_rate_constant = 0.031536E6 # 1E-9 g(biomass)/g(biomass)/s = 0.031536E6 mol(biomass)/g(biomass)/year
     multiply_by_mass = true
     direction = death
+    eta = 0.0
   []
   [definition]
     type = GeochemicalModelDefinition
     database_file = "db_sulf_meth.json"
     basis_species = "H2O H+ CH3COO- CH4(aq) HS- Ca++ HCO3- SO4-- Fe++"
-    kinetic_redox = "sulfate_reducer methanogen"
-    equilibrium_minerals = "Siderite Mackinawite"
-    kinetic_rate_descriptions = "rate_sulfate_reducer death_sulfate_reducer death_methanogen"
+    kinetic_minerals = "sulfate_reducer methanogen"
+    equilibrium_minerals = "*"
+    kinetic_rate_descriptions = "rate_sulfate_reducer death_sulfate_reducer rate_methanogen death_methanogen"
   []
   [nodal_void_volume_uo]
     type = NodalVoidVolume
     porosity = porosity
-    execute_on = 'initial timestep_end' # "initial" means this is evaluated properly for the first timestep
+    execute_on = 'initial'
   []
 []
 
 
 [Executioner]
   type = Transient
-  dt = 1 # years
-  end_time = 1E-10
+  [TimeStepper]
+    type = FunctionDT
+  function = '0.1 * (t + 1)'
+  []
+  end_time = 100000
 []
 
 [AuxVariables]
@@ -187,7 +199,7 @@
     type = ParsedAux
     args = 'pf_rate_Ca nodal_void_volume'
     variable = rate_Ca_per_1l
-    function = 'pf_rate_Ca / 40.08 / nodal_void_volume'
+    function = 'pf_rate_Ca / 40.08 / nodal_void_volume + ${rate_Ca_injection} * 1E-3'
     execute_on = 'timestep_begin'
   []
   [rate_SO4_per_1l]
@@ -201,7 +213,7 @@
     type = ParsedAux
     args = 'pf_rate_CH3COO nodal_void_volume'
     variable = rate_CH3COO_per_1l
-    function = 'pf_rate_CH3COO / 59.0445 / nodal_void_volume'
+    function = 'pf_rate_CH3COO / 59.0445 / nodal_void_volume  + ${rate_CH3COO_injection} * 1E-3'
     execute_on = 'timestep_begin'
   []
   [rate_HS_per_1l]

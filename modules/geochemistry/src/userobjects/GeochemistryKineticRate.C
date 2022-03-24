@@ -65,7 +65,7 @@ GeochemistryKineticRate::validParams()
       "one_over_T0",
       0.0,
       "1/T0, in 1/Kelvin, which appears in exp(activation_energy / R * (1/T0 - 1/T))");
-  MooseEnum direction("both dissolution precipitation raw", "both");
+  MooseEnum direction("both dissolution precipitation raw death", "both");
   params.addParam<MooseEnum>(
       "direction",
       direction,
@@ -77,9 +77,14 @@ GeochemistryKineticRate::validParams()
       "dissolution = if Q < K then dissolution will occur, and when Q > K then the rate will be "
       "set to zero so that precipitation will be prevented.  precipitation = if Q > K then "
       "precipitation will occur, and when Q < K then the rate will be set to zero so that "
-      "dissolution will be prevented.  raw = the rate will not depend on 1 - (Q/K), which means "
+      "dissolution will be prevented.  raw = the rate will not depend on sgn(1 - (Q/K)), which "
+      "means "
       "dissolution will occur if intrinsic_rate_constant > 0, and precipitation will occur when "
-      "intrinsic_rate_constant < 0.");
+      "intrinsic_rate_constant < 0.  death = the rate will not depend on sgn(1 - (Q/K)), which "
+      "means "
+      "dissolution will occur if intrinsic_rate_constant > 0, and precipitation will occur when "
+      "intrinsic_rate_constant < 0, and, in addition, no reactants will be produced or consumed by "
+      "this kinetic reaction (only the kinetic species mass will change).");
   params.addParam<std::string>(
       "non_kinetic_biological_catalyst",
       "H2O",
