@@ -75,7 +75,8 @@ ExplicitMixedOrder::validParams()
 ExplicitMixedOrder::ExplicitMixedOrder(const InputParameters & parameters)
   : ExplicitTimeIntegrator(parameters),
     _constant_mass(getParam<bool>("use_constant_mass")),
-    _mass_matrix(getParam<TagName>("mass_matrix_tag")),
+    _mass_matrix_name(getParam<TagName>("mass_matrix_tag")),
+    _mass_matrix_lumped(addVector("mass_matrix_lumped", true, GHOSTED)),
     _solution_older(_sys.solutionState(2)),
     _vars_first(declareRestartableData<std::unordered_set<unsigned int>>("first_order_vars")),
     _local_first_order_indices(
@@ -104,7 +105,7 @@ ExplicitMixedOrder::computeTimeDerivatives()
 TagID
 ExplicitMixedOrder::massMatrixTagID() const
 {
-  return _sys.subproblem().getMatrixTagID(_mass_matrix);
+  return _sys.subproblem().getMatrixTagID(_mass_matrix_name);
 }
 
 void
@@ -128,10 +129,12 @@ ExplicitMixedOrder::solve()
     _fe_problem.computeJacobianTag(
         *_nonlinear_implicit_system->current_local_solution, mass_matrix, mass_tag);
 
-    // Calculating the lumped mass matrix for use in residual calculation
-    mass_matrix.vector_mult(*_mass_matrix_diag_inverted, *_ones);
+    // Calculate and record the lumped mass matrix for use in residual calculation
+    mass_matrix.vector_mult(*_mass_matrix_lumped, *_ones);
+    _mass_matrix_lumped->close();
 
     // "Invert" the diagonal mass matrix
+    *_mass_matrix_diag_inverted = *_mass_matrix_lumped;
     _mass_matrix_diag_inverted->reciprocal();
     _mass_matrix_diag_inverted->close();
   }
@@ -185,29 +188,30 @@ ExplicitMixedOrder::performExplicitSolve(SparseMatrix<Number> &)
 
   // Compute Forward Euler
   // Split diag mass and residual vectors into correct subvectors
-  const std::unique_ptr<NumericVector<Number>> mass_first(
+  const std::unique_ptr<NumericVector<Number>> mass_inv_first(
       NumericVector<Number>::build(_communicator));
   const std::unique_ptr<NumericVector<Real>> exp_res_first(
       NumericVector<Number>::build(_communicator));
-  _mass_matrix_diag_inverted->create_subvector(*mass_first, _local_first_order_indices, false);
+  _mass_matrix_diag_inverted->create_subvector(*mass_inv_first, _local_first_order_indices, false);
   _explicit_residual->create_subvector(*exp_res_first, _local_first_order_indices, false);
 
   // Need velocity vector split into subvectors
   auto vel_first = vel->get_subvector(_local_first_order_indices);
 
   // Velocity update for foward euler
-  vel_first->pointwise_mult(*mass_first, *exp_res_first);
+  vel_first->pointwise_mult(*mass_inv_first, *exp_res_first);
 
   // Restore the velocities
   vel->restore_subvector(std::move(vel_first), _local_first_order_indices);
 
   // Compute Central Difference
   // Split diag mass and residual vectors into correct subvectors
-  const std::unique_ptr<NumericVector<Real>> mass_second(
+  const std::unique_ptr<NumericVector<Real>> mass_inv_second(
       NumericVector<Number>::build(_communicator));
   const std::unique_ptr<NumericVector<Real>> exp_res_second(
       NumericVector<Number>::build(_communicator));
-  _mass_matrix_diag_inverted->create_subvector(*mass_second, _local_second_order_indices, false);
+  _mass_matrix_diag_inverted->create_subvector(
+      *mass_inv_second, _local_second_order_indices, false);
   _explicit_residual->create_subvector(*exp_res_second, _local_second_order_indices, false);
 
   // Only need acceleration and old velocity vector for central difference
@@ -216,7 +220,7 @@ ExplicitMixedOrder::performExplicitSolve(SparseMatrix<Number> &)
   auto vel_second = vel->get_subvector(_local_second_order_indices);
 
   // Compute acceleration for central difference
-  accel_second->pointwise_mult(*mass_second, *exp_res_second);
+  accel_second->pointwise_mult(*mass_inv_second, *exp_res_second);
 
   // Scaling the acceleration
   auto accel_scaled = accel_second->clone();
