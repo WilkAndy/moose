@@ -285,7 +285,7 @@ ExplicitMixedOrder::performExplicitSolve(SparseMatrix<Number> &)
 
   // Scaling the acceleration
   auto accel_scaled = accel_second->clone();
-  accel_scaled->scale((_dt + _dt_old) / 2);
+  accel_scaled->scale(centralDifferenceDt());
 
   // Velocity update for central difference
   *vel_second += *accel_scaled;
@@ -480,6 +480,11 @@ ExplicitMixedOrder::computeICs()
   vel->close();
 }
 
+Real
+ExplicitMixedOrder::centralDifferenceDt()
+{
+  return 0.5 * (_dt + _dt_old);
+}
 
 ExplicitMixedOrder::TimeOrder
 ExplicitMixedOrder::findVariableTimeOrder(unsigned int var_num) const

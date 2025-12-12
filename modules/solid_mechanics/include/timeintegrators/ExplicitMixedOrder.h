@@ -135,7 +135,10 @@ protected:
   void
   computeTimeDerivativeHelper(T & u_dot, T2 & u_dotdot, const T3 & u_old, const T4 & u_older) const;
 
-  void computeICs();
+  virtual void computeICs();
+
+  // Central difference time step, used in velocity += acceleration * centralDifferenceDt()
+  virtual Real centralDifferenceDt();
 
   // using _relevant_blocks, construct _elem_buffer, _elem_range, _node_buffer, _node_range
   void constructRanges();
