@@ -145,6 +145,13 @@ protected:
   
   // use _elem_range and _node_range to setcurrentAlgebraicElementRange and setCurrentAlgebraicNodeRange
   void setCurrentAlgebraicRanges();
+
+private:
+  // Collects all off-rank DOF indices present in the given element range for use as ghost IDs
+  void buildGhostIDs(const libMesh::ConstElemRange & elems, std::vector<dof_id_type> & ghost_ids) const;
+
+  // Rebuild ghost IDs from the current algebraic element range and re-init all ghosted vectors
+  void reinitGhostedVectorsForCurrentAlgebraicRange();
 };
 
 template <typename T, typename T2, typename T3, typename T4>

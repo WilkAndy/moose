@@ -148,6 +148,8 @@ ExplicitMixedOrder::meshChanged()
   {
     constructRanges();
     setCurrentAlgebraicRanges();
+    _nonlinear_implicit_system->update();
+    reinitGhostedVectorsForCurrentAlgebraicRange();  
   }
 
   ExplicitTimeIntegrator::meshChanged();
@@ -170,7 +172,7 @@ ExplicitMixedOrder::solve()
   _n_linear_iterations = 0;
 
   _current_time = _fe_problem.time();
-
+ 
   auto & mass_matrix = _nonlinear_implicit_system->get_system_matrix();
 
   if (_mesh_changed)
@@ -390,6 +392,8 @@ ExplicitMixedOrder::init()
   {
     constructRanges();
     setCurrentAlgebraicRanges();
+    _nonlinear_implicit_system->update();
+    reinitGhostedVectorsForCurrentAlgebraicRange();  
   }
 }
 
@@ -498,4 +502,56 @@ ExplicitMixedOrder::findVariableTimeOrder(unsigned int var_num) const
   else
     mooseError("Variable " + _sys.system().variable_name(var_num) +
                " does not exist in time order sets.");
+}
+
+void
+ExplicitMixedOrder::buildGhostIDs(const libMesh::ConstElemRange & elems, std::vector<dof_id_type> & ghost_ids) const
+{
+    ghost_ids.clear();
+    const auto & dm = _sys.system().get_dof_map();
+
+    const auto first = dm.first_dof();
+    const auto end   = dm.end_dof();
+
+    std::vector<dof_id_type> dofs;
+    for (const libMesh::Elem * e : elems)
+    {
+        dofs.clear();
+        dm.dof_indices(e, dofs);
+        for (const auto di : dofs)
+	  if (di < first || di >= end) // off-rank -> needs ghost
+	    ghost_ids.push_back(di);
+    }
+    std::sort(ghost_ids.begin(), ghost_ids.end());
+    ghost_ids.erase(std::unique(ghost_ids.begin(), ghost_ids.end()), ghost_ids.end());
+}
+
+
+void ExplicitMixedOrder::reinitGhostedVectorsForCurrentAlgebraicRange()
+{
+    // Defensive: ensure we have a valid element range before proceeding
+    if (!_elem_range)
+        return;
+
+    // Build ghost IDs for the newly restricted algebraic coverage
+    std::vector<dof_id_type> ghost_ids;
+    buildGhostIDs(*_elem_range, ghost_ids);
+
+    // Size info
+    const auto & dm    = _sys.system().get_dof_map();
+    const auto n_glob  = dm.n_dofs();
+    const auto n_local = dm.n_local_dofs();
+
+    // If sizes are not distributed yet, do not attempt re-init
+    if (n_glob == 0)
+        return;
+    
+    // Re-init ONLY those vectors you created as GHOSTED (do not convert PARALLEL vectors to ghosted)
+    auto safe_reinit = [&](NumericVector<Number> * v)
+    {
+        if (v && v->type() == GHOSTED)
+	  v->init(n_glob, n_local, ghost_ids, /*fast=*/false, /*ptype=*/GHOSTED);
+    };
+    safe_reinit(_mass_matrix_diag_inverted);
+    safe_reinit(_mass_matrix_lumped);
 }
