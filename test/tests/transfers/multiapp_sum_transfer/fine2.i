@@ -21,9 +21,21 @@
 []
 
 [AuxVariables]
-  [aux]
+  [coarse_disp_x]
     order = FIRST
     family = LAGRANGE
+  []
+  [fine_residual]
+    order = FIRST
+    family = LAGRANGE
+  []
+[]
+
+[AuxKernels]
+  [fine_residual]
+    type = FunctionAux
+    variable = fine_residual
+    function = '-3 - x'
   []
 []
 
@@ -36,5 +48,5 @@
   type = Transient
   solve_type = NEWTON
   dt = 1
-  end_time = 1
+  end_time = 2
 []

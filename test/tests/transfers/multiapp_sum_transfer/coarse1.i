@@ -31,7 +31,6 @@
 [Outputs]
   exodus = true
   csv = true
-  file_base = coarse_out
 []
 
 
@@ -46,7 +45,7 @@
   [fine]
     type = TransientMultiApp
     input_files = fine1.i
-    execute_on = TIMESTEP_BEGIN
+    execute_on = TIMESTEP_END
   []
 []
 
@@ -60,6 +59,6 @@
     verbose = true
     from_variable = u
     to_variable = aux
-    execute_on = TIMESTEP_BEGIN
+    execute_on = TIMESTEP_END
   []
 []

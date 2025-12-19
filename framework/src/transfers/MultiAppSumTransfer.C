@@ -78,8 +78,8 @@ MultiAppSumTransfer::initialSetup()
     mooseError("MultiAppSumTransfer expects exactly one local 'from' mesh (the coarse mesh) and one local 'to' mesh (the fine mesh).  Found from_meshes.size()=", _from_meshes.size(), "to_meshes.size()=", _to_meshes.size());
 
  // Get libMesh meshes
-  const libMesh::MeshBase & coarse_mesh = _from_meshes[0]->getMesh();
-  const libMesh::MeshBase & fine_mesh   = _to_meshes[0]->getMesh();
+ const libMesh::MeshBase & coarse_mesh = (_current_direction == TO_MULTIAPP ? _from_meshes[0]->getMesh() : _to_meshes[0]->getMesh());
+ const libMesh::MeshBase & fine_mesh   = (_current_direction == TO_MULTIAPP ? _to_meshes[0]->getMesh() : _from_meshes[0]->getMesh());
 
   // Resize T appropriately (rows=fine nodes, cols=coarse nodes)
   // Oh how we love dense matrices :-)
@@ -87,7 +87,7 @@ MultiAppSumTransfer::initialSetup()
   const std::size_t n_rows = fine_mesh.n_nodes();
   const std::size_t n_cols = coarse_mesh.n_nodes();
   if (n_rows < n_cols)
-    mooseError("MultiAppSumTransfer: the from_multi_app must be the coarse mesh; the to_multi_app must be the fine mesh");
+    mooseError("MultiAppSumTransfer: it's assumed you run this from the coarse mesh.  In your case, n_nodes on the fine mesh is less than on the coarse mesh");
   _T.resize(n_rows, n_cols);
   _T.zero();
 
@@ -95,17 +95,7 @@ MultiAppSumTransfer::initialSetup()
   buildTransferMatrix(coarse_mesh, fine_mesh, _fe_type, _T);
 
   if (_verbose)
-  {
-    mooseInfo("MultiAppSumTransfer: built T with size ",
-              n_rows,
-              " x ",
-              n_cols,
-              " using FEType(family=",
-              static_cast<int>(_fe_type.family),
-              ", order=",
-              static_cast<int>(_fe_type.order),
-              ").");
-  }
+    std::cerr << "MultiAppSumTransfer: built T with size " <<  n_rows << " * " << n_cols << " using FEType(family=" << static_cast<int>(_fe_type.family) << ", order=" << static_cast<int>(_fe_type.order) << ")\n";
 }
 
 
@@ -134,185 +124,150 @@ MultiAppSumTransfer::find_system_and_var(libMesh::EquationSystems & es, const st
   }
   throw std::runtime_error(oss.str());
 }
-/*
-#include "libmesh/system.h"
-#include "libmesh/dof_map.h"
-#include "libmesh/numeric_vector.h"
-#include <limits>
-#include <stdexcept>
-
-// Helper: find the libMesh System containing `var_name` in an EquationSystems.
-// Tries AuxiliarySystem first, then NonlinearSystem.
-// Returns (System*, var_number). Throws on failure.
-std::pair<libMesh::System *, unsigned int>
-MultiAppSumTransfer::find_system_and_var(libMesh::EquationSystems & es, const std::string & var_name)
-{
-  // Try AuxiliarySystem
-  if (es.has_system("AuxiliarySystem"))
-  {
-    libMesh::System & aux = es.get_system("AuxiliarySystem");
-    try
-    {
-      unsigned int vn = aux.variable_number(var_name);
-      return { &aux, vn };
-    }
-    catch (const std::exception &) {}
-  }
-
-  // Try NonlinearSystem
-  if (es.has_system("NonlinearSystem"))
-  {
-    libMesh::System & nls = es.get_system("NonlinearSystem");
-    try
-    {
-      unsigned int vn = nls.variable_number(var_name);
-      return { &nls, vn };
-    }
-    catch (const std::exception &) {}
-  }
-
-  // Not found
-  throw std::runtime_error("Variable '" + var_name +
-                           "' not found in AuxiliarySystem or NonlinearSystem");
-}
-*/
 
 void
 MultiAppSumTransfer::execute()
 {
-  if (_current_direction == FROM_MULTIAPP)
-    mooseError("I have not yet coded going from coarse to fine");
-  // Refresh app info (ensures _from_es/_to_es/_from_meshes/_to_meshes are valid)
+  // Refresh app info (ensures _from_es _to_es _from_meshes _to_meshes are valid)
   getAppInfo();
 
   const std::size_t T_rows = _T.m();
   const std::size_t T_cols = _T.n();
 
-  const libMesh::MeshBase & coarse_mesh = _from_meshes[0]->getMesh();
-  const libMesh::MeshBase & fine_mesh   = _to_meshes[0]->getMesh();
+  const libMesh::MeshBase & from_mesh = _from_meshes[0]->getMesh();
+  const libMesh::MeshBase & to_mesh   = _to_meshes[0]->getMesh();
 
+
+  // --- Source system & data ---
+  libMesh::System * from_sys          = nullptr;
+  unsigned int      from_var_number   = libMesh::invalid_uint;
+  try
   {
-
-    // --- Source (coarse) system & data ---
-    libMesh::System * src_sys          = nullptr;
-    unsigned int      src_var_number   = libMesh::invalid_uint;
-    try
-    {
-      std::tie(src_sys, src_var_number) = find_system_and_var(*_from_es[0], _from_var_name);
-    }
-    catch (const std::exception & e)
-    {
-      mooseError("Source variable lookup failed for '", _from_var_name, "': ", e.what());
-    }
-
-    const libMesh::DofMap & src_dof_map = src_sys->get_dof_map();
-    // ghosts?
-    libMesh::NumericVector<libMesh::Number> * src_vec = src_sys->solution.get();
-    //        src_sys->current_local_solution.get() ? src_sys->current_local_solution.get()
-    //                                              : src_sys->solution.get();
-
-    if (!src_vec)
-      mooseError("Source system for variable '", _from_var_name, "' has no solution vector.");
-
-    // Build u_coarse (indexed by coarse node ID). Size guarded by T_cols.
-    std::vector<libMesh::Number> u_coarse(T_cols, 0.0);
-
-    for (auto node_it = coarse_mesh.nodes_begin(); node_it != coarse_mesh.nodes_end(); ++node_it)
-    {
-      const libMesh::Node * coarse_node = *node_it;
-      const std::size_t col = coarse_node->id();
-
-      if (col >= T_cols)
-        mooseError("MultiAppSumTransfer: coarse node id ", col,
-                   " exceeds T column count ", T_cols,
-                   ". Ensure T was sized to max node id + 1.");
-
-      std::vector<libMesh::dof_id_type> dofs;
-      src_dof_map.dof_indices(coarse_node, dofs, src_var_number);
-
-      // Expect exactly one nodal DOF for LAGRANGE scalar variables
-      if (dofs.empty())
-      {
-        // Leave as zero (e.g., non-nodal variable, or variable not defined at this node)
-        continue;
-      }
-      else if (dofs.size() > 1)
-      {
-        // For higher-order or vector variables ????
-        // Here we take the first DOF, assuming scalar nodal LAGRANGE.
-      }
-
-      u_coarse[col] = src_vec->el(dofs[0]);
-    }
-
-    // --- Destination: fine system & target vector ---
-
-    // We also need the destination DOF map to place values by fine-node IDs.
-    libMesh::System * dst_sys          = nullptr;
-    unsigned int      dst_var_number   = libMesh::invalid_uint;
-    try
-    {
-      std::tie(dst_sys, dst_var_number) = find_system_and_var(*_to_es[0], _to_var_name);
-    }
-    catch (const std::exception & e)
-    {
-      mooseError("Destination variable lookup failed for '", _to_var_name, "': ", e.what());
-    }
-
-    // We will write into the "to" multiapp transfer vector for this variable
-    libMesh::NumericVector<Real> & tgt_vec = getTransferVector(/* local to app index */ 0, _to_var_name);
-    if (tgt_vec.size() == 0)
-      {
-	const auto n_global = dst_sys->n_dofs();
-	const auto n_local  = dst_sys->n_local_dofs();
-	if (n_global == 0)
-	  mooseError("Destination system for variable '", _to_var_name, "' has zero DOFs. INITIAL stage?");
-	tgt_vec.init(n_global, n_local, /*fast=*/false, libMesh::AUTOMATIC);
-	tgt_vec.zero(); // ensure a clean slate before setting values
-      }
-
-    const libMesh::DofMap & dst_dof_map = dst_sys->get_dof_map();
-
-    // --- Apply transfer: u_fine(row) = dot(T[row, :], u_coarse[:]) ---
-    for (auto node_it = fine_mesh.nodes_begin(); node_it != fine_mesh.nodes_end(); ++node_it)
-    {
-      const libMesh::Node * fine_node = *node_it;
-      std::size_t row = fine_node->id();
-
-      if (row >= T_rows)
-        mooseError("MultiAppSumTransfer: fine node id ", row,
-                   " exceeds T row count ", T_rows,
-                   ". Ensure T was sized to max node id + 1.");
-
-      // Dot product over all coarse node IDs
-      libMesh::Number sum = 0.0;
-      for (std::size_t col = 0; col < T_cols; ++col)
-        sum += _T(row, col) * u_coarse[col];
-
-      // Place into destination DOF(s) for this fine node & variable
-      std::vector<libMesh::dof_id_type> dofs;
-      dst_dof_map.dof_indices(fine_node, dofs, dst_var_number);
-
-      if (dofs.empty())
-      {
-        // Variable not defined at this node; skip
-        continue;
-      }
-      else if (dofs.size() > 1)
-      {
-        // For higher-order variables, distribute appropriately.
-        // For now, assign to the first nodal DOF.
-      }
-
-      tgt_vec.set(dofs[0], static_cast<Real>(sum));
-    }
-
-    // Finalize target vector assembly for this variable
-    tgt_vec.close();
-    dst_sys->update();
-
+    std::tie(from_sys, from_var_number) = find_system_and_var(*_from_es[0], _from_var_name);
   }
-  mooseInfo("MultiAppSumTransfer completed execute!");
+  catch (const std::exception & e)
+  {
+    mooseError("From variable lookup failed for '", _from_var_name, "': ", e.what());
+  }
+
+  const libMesh::DofMap & from_dof_map = from_sys->get_dof_map();
+  libMesh::NumericVector<libMesh::Number> * from_vec = from_sys->solution.get();
+  //        from_sys->current_local_solution.get() ? from_sys->current_local_solution.get()
+  //                                              : from_sys->solution.get();
+  if (!from_vec)
+  {    
+    mooseError("From system for variable '", _from_var_name, "' has no solution vector.");
+  }
+
+  // Build u_from (indexed by from_mesh node ID). Size guarded by T_cols or T_rows as appropriate.
+  const std::size_t from_size = (_current_direction == TO_MULTIAPP ? T_cols : T_rows);
+  std::vector<Real> u_from(from_size, 0.0);
+
+  for (auto node_it = from_mesh.nodes_begin(); node_it != from_mesh.nodes_end(); ++node_it)
+  {
+    const libMesh::Node * from_node = *node_it;
+    const std::size_t index = from_node->id();
+
+    if (index >= from_size)
+      mooseError("MultiAppSumTransfer: from node id ", index,
+		 " exceeds T size of ", from_size,
+		 ". Ensure T was sized to max node id + 1.");
+
+    std::vector<libMesh::dof_id_type> dofs;
+    from_dof_map.dof_indices(from_node, dofs, from_var_number);
+
+    // Expect exactly one nodal DOF for LAGRANGE scalar variables
+    if (dofs.empty())
+    {
+      // Leave as zero (e.g., non-nodal variable, or variable not defined at this node)
+      continue;
+    }
+    else if (dofs.size() > 1)
+    {
+      // For higher-order or vector variables ????
+      // Here we take the first DOF, assuming scalar nodal LAGRANGE.
+    }
+
+    u_from[index] = from_vec->el(dofs[0]);
+  }
+
+  // --- Destination system & target vector ---
+  libMesh::System * to_sys          = nullptr;
+  unsigned int      to_var_number   = libMesh::invalid_uint;
+  try
+  {
+    std::tie(to_sys, to_var_number) = find_system_and_var(*_to_es[0], _to_var_name);
+  }
+  catch (const std::exception & e)
+  {
+    mooseError("Destination variable lookup failed for '", _to_var_name, "': ", e.what());
+  }
+
+  // We will write into the "to" multiapp transfer vector for this variable
+
+  libMesh::NumericVector<Real> & tgt_vec = ((_current_direction == TO_MULTIAPP) ? getTransferVector(/* local to app index */ 0, _to_var_name) : *to_sys->solution.get());
+
+  if (tgt_vec.size() == 0)
+  {
+    const auto n_global = to_sys->n_dofs();
+    const auto n_local  = to_sys->n_local_dofs();
+    if (n_global == 0)
+      mooseError("Destination system for variable '", _to_var_name, "' has zero DOFs. INITIAL stage?");
+    tgt_vec.init(n_global, n_local, /*fast=*/false, libMesh::AUTOMATIC);
+    tgt_vec.zero(); // ensure a clean slate before setting values
+  }
+
+  const libMesh::DofMap & to_dof_map = to_sys->get_dof_map();
+  const std::size_t to_size = (_current_direction == TO_MULTIAPP ? T_rows : T_cols);
+
+  // --- Apply transfer: u_fine(row) = dot(T[row, :], u_from[:]) ---
+  for (auto node_it = to_mesh.nodes_begin(); node_it != to_mesh.nodes_end(); ++node_it)
+  {
+    const libMesh::Node * to_node = *node_it;
+    std::size_t index = to_node->id();
+
+    if (index >= to_size)
+      mooseError("MultiAppSumTransfer: to node id ", index,
+		 " exceeds T size of ", to_size,
+		 ". Ensure T was sized to max node id + 1.");
+
+    // Dot product over all from node IDs
+    libMesh::Number sum = 0.0;
+    if (_current_direction == TO_MULTIAPP)
+    {
+      for (std::size_t col = 0; col < T_cols; ++col)
+        sum += _T(index, col) * u_from[col];
+    }
+    else
+    {
+      for (std::size_t row = 0; row < T_rows; ++row)
+        sum += _T(row, index) * u_from[row];
+    }
+
+    // Place into destination DOF(s) for this to node & variable
+    std::vector<libMesh::dof_id_type> dofs;
+    to_dof_map.dof_indices(to_node, dofs, to_var_number);
+
+    if (dofs.empty())
+    {
+      // Variable not defined at this node; skip
+      continue;
+    }
+    else if (dofs.size() > 1)
+    {
+      // For higher-order variables, distribute appropriately.
+      // For now, assign to the first nodal DOF.
+    }
+
+    tgt_vec.set(dofs[0], static_cast<Real>(sum));
+  }
+
+  // Finalize target vector assembly for this variable
+  tgt_vec.close();
+  to_sys->update();
+
+
+  std::cerr << "Transferred " << _from_var_name << " to " << _to_var_name << "\n";
 }
 
 
