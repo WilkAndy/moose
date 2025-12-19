@@ -23,8 +23,9 @@
 #include "libmesh/equation_systems.h"
 #include "libmesh/system.h"
 #include "libmesh/parallel.h"
+#include "libmesh/dof_map.h"
 
-registerMooseObject("MooseApp", MultiAppSumTransfer);
+registerMooseObject("SolidMechanicsApp", MultiAppSumTransfer);
 
 InputParameters
 MultiAppSumTransfer::validParams()
